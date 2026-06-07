@@ -11,6 +11,10 @@ export interface ParcelProperties {
   median_mar_cents: number;
   size_class: 'single' | 'small' | 'multifamily';
   has_recent_change: boolean;
+  /** Units changed at the latest sweep. */
+  recent_change_count: number;
+  /** Median signed % MAR move among those changes (drives the change choropleth). */
+  recent_change_pct: number;
 }
 
 /** One unit row in a parcel's detail (parcels/<apn>.json). Mirrors the

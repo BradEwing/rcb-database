@@ -26,7 +26,8 @@ export interface ChoroplethMetric {
   legend: string[];
 }
 
-/** PR3 ships the unit-count choropleth; the metric switcher (PR7) adds more. */
+/** Choropleth metrics, selectable via the switcher. `recent_change` is a
+ *  diverging scale (the seed reflects the 2023→2026 MAR move). */
 export const METRICS = {
   unit_count: {
     property: 'unit_count',
@@ -34,6 +35,13 @@ export const METRICS = {
     stops: [2, 4, 10, 25, 50],
     colors: ['#dbe9f6', '#9ecae1', '#5fa8d3', '#3576b5', '#1d4e89', '#08233f'],
     legend: ['1', '2–3', '4–9', '10–24', '25–49', '50+'],
+  },
+  recent_change: {
+    property: 'recent_change_pct',
+    label: 'Recent MAR change',
+    stops: [-10, -2, 2, 10],
+    colors: ['#1a7d3c', '#9bd4a8', '#ededed', '#f0a78f', '#c0322b'],
+    legend: ['↓ >10%', '↓ 2–10%', '± <2%', '↑ 2–10%', '↑ >10%'],
   },
 } satisfies Record<string, ChoroplethMetric>;
 
