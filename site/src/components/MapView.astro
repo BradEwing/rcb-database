@@ -1,0 +1,210 @@
+---
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { METRICS } from '../config';
+
+// Legend is rendered statically from the metric config (no client JS needed).
+const metric = METRICS.unit_count;
+const legendBins = metric.legend.map((label, i) => ({ label, color: metric.colors[i] }));
+---
+
+<div id="map" role="application" aria-label="Map of Santa Monica rent-controlled parcels"></div>
+
+<div class="legend" aria-hidden="false">
+  <p class="legend-title">{metric.label}</p>
+  <ul>
+    {
+      legendBins.map((bin) => (
+        <li>
+          <span class="swatch" style={`background:${bin.color}`}></span>
+          {bin.label}
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<script>
+  import maplibregl from 'maplibre-gl';
+  import {
+    BASEMAP_STYLE,
+    INITIAL_CENTER,
+    INITIAL_ZOOM,
+    PARCEL_ATTRIBUTION,
+    METRICS,
+    stepColorExpression,
+    dataUrl,
+  } from '../config';
+  import { formatCount, formatMarCents } from '../lib/format';
+  import type { ParcelProperties } from '../lib/types';
+
+  const metric = METRICS.unit_count;
+
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: BASEMAP_STYLE,
+    center: INITIAL_CENTER,
+    zoom: INITIAL_ZOOM,
+    attributionControl: false,
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  map.addControl(
+    new maplibregl.AttributionControl({ compact: false, customAttribution: PARCEL_ATTRIBUTION }),
+    'bottom-right',
+  );
+
+  const escapeHtml = (s: string): string =>
+    s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  function tooltipHtml(p: ParcelProperties): string {
+    const controlled = `${formatCount(p.controlled_count)} controlled`;
+    const exempt = p.exempt_count > 0 ? ` · ${formatCount(p.exempt_count)} exempt` : '';
+    return (
+      `<strong>${escapeHtml(p.label_address)}</strong>` +
+      `<span class="apn">APN ${escapeHtml(p.apn)}</span>` +
+      `<span class="row">${formatCount(p.unit_count)} units — ${controlled}${exempt}</span>` +
+      `<span class="row">Median MAR ${formatMarCents(p.median_mar_cents)}</span>`
+    );
+  }
+
+  // Extend a bounds object with every coordinate in a (Multi)Polygon geometry.
+  function extendBounds(b: maplibregl.LngLatBounds, geom: GeoJSON.Geometry): void {
+    if (geom.type === 'Polygon') {
+      for (const ring of geom.coordinates)
+        for (const c of ring) b.extend(c as [number, number]);
+    } else if (geom.type === 'MultiPolygon') {
+      for (const poly of geom.coordinates)
+        for (const ring of poly) for (const c of ring) b.extend(c as [number, number]);
+    }
+  }
+
+  map.on('load', async () => {
+    const res = await fetch(dataUrl('parcels.geojson'));
+    if (!res.ok) throw new Error(`Failed to load parcels.geojson: ${res.status}`);
+    const geojson = (await res.json()) as GeoJSON.FeatureCollection;
+
+    map.addSource('parcels', { type: 'geojson', data: geojson, promoteId: 'apn' });
+
+    map.addLayer({
+      id: 'parcels-fill',
+      type: 'fill',
+      source: 'parcels',
+      paint: {
+        'fill-color': stepColorExpression(metric),
+        'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.95, 0.72],
+      },
+    });
+    map.addLayer({
+      id: 'parcels-line',
+      type: 'line',
+      source: 'parcels',
+      paint: {
+        'line-color': '#2b3b4e',
+        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1.8, 0.3],
+        'line-opacity': 0.55,
+      },
+    });
+
+    // Frame the data.
+    const bounds = new maplibregl.LngLatBounds();
+    for (const f of geojson.features) if (f.geometry) extendBounds(bounds, f.geometry);
+    if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 24, animate: false });
+
+    // Hover: highlight via feature-state + a follow-the-cursor tooltip.
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      className: 'parcel-tip',
+      maxWidth: '260px',
+    });
+    let hovered: string | null = null;
+
+    map.on('mousemove', 'parcels-fill', (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      map.getCanvas().style.cursor = 'pointer';
+      const id = String(f.id);
+      if (hovered !== id) {
+        if (hovered) map.setFeatureState({ source: 'parcels', id: hovered }, { hover: false });
+        hovered = id;
+        map.setFeatureState({ source: 'parcels', id }, { hover: true });
+      }
+      popup.setLngLat(e.lngLat).setHTML(tooltipHtml(f.properties as ParcelProperties)).addTo(map);
+    });
+    map.on('mouseleave', 'parcels-fill', () => {
+      map.getCanvas().style.cursor = '';
+      if (hovered) map.setFeatureState({ source: 'parcels', id: hovered }, { hover: false });
+      hovered = null;
+      popup.remove();
+    });
+  });
+</script>
+
+<style>
+  #map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .legend {
+    position: absolute;
+    left: 1rem;
+    bottom: 1.75rem;
+    z-index: 2;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.12);
+  }
+  .legend-title {
+    margin: 0 0 0.4rem;
+    font-weight: 600;
+  }
+  .legend ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.2rem;
+  }
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+  }
+  .swatch {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 2px;
+    border: 1px solid rgb(0 0 0 / 0.2);
+    flex: none;
+  }
+</style>
+
+<style is:global>
+  /* Tooltip skin (Popup content lives outside the component's scoped styles). */
+  .parcel-tip .maplibregl-popup-content {
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.5rem;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    box-shadow: 0 3px 14px rgb(0 0 0 / 0.18);
+  }
+  .parcel-tip strong {
+    display: block;
+  }
+  .parcel-tip .apn {
+    display: block;
+    color: #6b7280;
+    font-size: 0.72rem;
+    margin-bottom: 0.25rem;
+  }
+  .parcel-tip .row {
+    display: block;
+  }
+</style>

@@ -1,68 +1,63 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import MapView from '../components/MapView.astro';
 ---
 
 <Layout>
-  <main>
-    <section class="hero">
-      <p class="kicker">Santa Monica</p>
+  <header class="topbar">
+    <div class="brand">
+      <span class="kicker">Santa Monica</span>
       <h1>Rent-Control Registry</h1>
-      <p class="lede">
-        A public, self-hosted map of Santa Monica's rent-controlled stock — every
-        controlled parcel, its units, and their Maximum Allowable Rent, refreshed
-        monthly from the City's public MAR lookup tool.
-      </p>
-      <p class="status" role="status">
-        🚧 The interactive parcel map is being built. This page proves the
-        hosting pipeline end-to-end; features land PR by PR.
-      </p>
-      <p class="links">
-        <a href="https://github.com/bradewing/rcb-database">Source &amp; data on GitHub</a>
-      </p>
-    </section>
+    </div>
+    <p class="tagline">Maximum Allowable Rent by parcel · hover a parcel for its unit breakdown</p>
+  </header>
+
+  <main class="map-page">
+    <MapView />
   </main>
 </Layout>
 
 <style>
-  main {
-    min-height: 100dvh;
-    display: grid;
-    place-items: center;
-    padding: 2rem;
+  .map-page {
+    position: fixed;
+    inset: 0;
   }
-  .hero {
-    max-width: 36rem;
+
+  .topbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem 1.25rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 1rem;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
   }
   .kicker {
-    margin: 0 0 0.25rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--muted);
   }
   h1 {
-    margin: 0 0 1rem;
-    font-size: clamp(2rem, 6vw, 3rem);
-    line-height: 1.1;
-  }
-  .lede {
+    margin: 0;
     font-size: 1.1rem;
-    color: var(--fg);
+    font-weight: 700;
   }
-  .status {
-    margin-top: 1.5rem;
-    padding: 0.85rem 1rem;
-    border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
-    border-radius: 0.5rem;
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-    font-size: 0.95rem;
-  }
-  .links {
-    margin-top: 1.5rem;
-  }
-  a {
-    color: var(--accent);
-    font-weight: 600;
+  .tagline {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--muted);
   }
 </style>
