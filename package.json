@@ -8,6 +8,7 @@
     "scraper": "tsx scraper/src/index.ts",
     "reconcile": "tsx scraper/src/analyze/reconcile.ts",
     "changes": "tsx scraper/src/analyze/changes.ts",
+    "exits": "tsx scraper/src/analyze/exits.ts",
     "backfill:snapshot-2023": "tsx scraper/src/backfill/ingest-snapshot-2023.ts",
     "migrate:sparse": "tsx scraper/src/backfill/migrate-sparse.ts",
     "test": "vitest run",

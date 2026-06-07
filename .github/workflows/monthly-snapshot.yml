@@ -77,12 +77,22 @@ jobs:
           MAR_MIN_DELAY_MS: "200"
         run: npm run scraper -- drill-properties
 
+      # Regenerate the derived artifacts from the fresh snapshot. Order is
+      # independent (each reads the source CSVs), but keep them after Phase B.
       - name: Reconcile against RCB headline
         run: npm run reconcile
 
-      # Commit only the tracked CSVs (data/raw/ is gitignored). A run always
-      # appends a fresh observed_at, so there will normally be a diff; guard
-      # anyway so a no-op run doesn't create an empty commit.
+      - name: Derive rent-change report
+        run: npm run changes
+
+      - name: Derive disappearance (exit) report
+        run: npm run exits
+
+      # Commit only the tracked CSVs (data/raw/ is gitignored). Under the sparse
+      # change-log model an observation row is appended only when a unit's
+      # MAR/tenancy moved, but every run still rewrites units.csv last_seen_at
+      # and the sweeps/derived tables, so there is normally a diff; guard anyway
+      # so a genuine no-op run doesn't create an empty commit.
       - name: Commit & push snapshot
         run: |
           set -euo pipefail
