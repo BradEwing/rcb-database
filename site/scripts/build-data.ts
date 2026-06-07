@@ -169,6 +169,50 @@ function addressesOf(units: UnitDetail[]): string[] {
 const intOf = (r: Row, k: string): number => parseInt(g(r, k) || "0", 10);
 const floatOf = (r: Row, k: string): number => parseFloat(g(r, k) || "0") || 0;
 
+/** Unrounded median of a numeric list (0 for empty) — for signed percentages. */
+function medianSigned(values: number[]): number {
+  if (values.length === 0) return 0;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? ((s[mid - 1] ?? 0) + (s[mid] ?? 0)) / 2 : (s[mid] ?? 0);
+}
+
+/** A parcel's change activity at the latest sweep: how many units changed and
+ *  the median signed % move (drives the "recent change" choropleth). */
+function recentChange(
+  list: ParcelChange[] | undefined,
+  sweepDate: string,
+): { count: number; medianPct: number } {
+  if (!list) return { count: 0, medianPct: 0 };
+  const recent = list.filter((c) => c.observed_at === sweepDate);
+  const pcts = recent.filter((c) => c.old_mar_cents > 0 && c.new_mar_cents > 0).map((c) => c.delta_pct);
+  return { count: recent.length, medianPct: Number(medianSigned(pcts).toFixed(1)) };
+}
+
+/** Representative point for a parcel marker — bbox centre of its geometry. */
+function bboxCentroid(geom: unknown): [number, number] | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const visit = (c: number[]): void => {
+    const x = c[0] ?? 0;
+    const y = c[1] ?? 0;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+  };
+  const g0 = geom as { type?: string; coordinates?: unknown };
+  if (g0.type === "Polygon") {
+    for (const ring of g0.coordinates as number[][][]) for (const c of ring) visit(c);
+  } else if (g0.type === "MultiPolygon") {
+    for (const poly of g0.coordinates as number[][][][])
+      for (const ring of poly) for (const c of ring) visit(c);
+  } else {
+    return null;
+  }
+  if (!Number.isFinite(minX)) return null;
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+
 /** Group mar_changes.csv rows by APN, newest first. */
 function changesByApn(changes: Row[]): Map<string, ParcelChange[]> {
   const byApn = new Map<string, ParcelChange[]>();
@@ -345,6 +389,7 @@ function main(): void {
   mkdirSync(parcelsDir, { recursive: true });
 
   const features: GeoFeature[] = [];
+  const exitFeatures: GeoFeature[] = [];
   const unmatchedApns: string[] = [];
   for (const [apn, parcelUnitList] of parcelUnits) {
     const summary = summarize(parcelUnitList);
@@ -368,6 +413,7 @@ function main(): void {
       unmatchedApns.push(apn);
       continue;
     }
+    const change = recentChange(changesFor.get(apn), sweepDate);
     features.push({
       type: "Feature",
       geometry,
@@ -380,8 +426,23 @@ function main(): void {
         median_mar_cents: summary.median_mar_cents,
         size_class: sizeClassOf(summary.unit_count),
         has_recent_change: recentlyChanged.has(apn),
+        recent_change_count: change.count,
+        recent_change_pct: change.medianPct,
       },
     });
+
+    // Exit markers — parcels that lost a unit from the latest sweep.
+    const exitedHere = exitsFor.get(apn);
+    if (exitedHere?.length) {
+      const centroid = bboxCentroid(geometry);
+      if (centroid) {
+        exitFeatures.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: centroid },
+          properties: { apn, label_address: addresses[0] ?? "", exit_count: exitedHere.length },
+        });
+      }
+    }
   }
 
   const referenced = parcelUnits.size;
@@ -419,6 +480,14 @@ function main(): void {
     JSON.stringify({ type: "FeatureCollection", features }),
   );
 
+  // Exit markers (point per parcel that lost a unit). Empty at the seed; the
+  // layer exists so steady-state demolitions/exemptions surface on the map.
+  exitFeatures.sort((a, b) =>
+    String(a.properties.apn).localeCompare(String(b.properties.apn)),
+  );
+  const exitsPath = join(SITE_DATA_DIR, "exits.geojson");
+  writeFileSync(exitsPath, JSON.stringify({ type: "FeatureCollection", features: exitFeatures }));
+
   const meta = {
     built_at: new Date().toISOString(),
     source_sha: gitSha(),
@@ -441,6 +510,7 @@ function main(): void {
   const bytes = Buffer.byteLength(JSON.stringify({ type: "FeatureCollection", features }));
   process.stdout.write(
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
+      `Wrote ${exitsPath} (${exitFeatures.length} exit markers)\n` +
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${summaryPath}\n` +
       `Wrote ${metaPath}\n`,
