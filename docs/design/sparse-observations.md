@@ -98,8 +98,10 @@ description.
 ## Out of scope (later)
 
 - **GA-deviation-only storage** (store only departures from the deterministic
-  published GA) — smaller still, but couples storage correctness to attribution
-  logic. Separate phase.
+  published GA) — considered and **rejected**: the GA formula isn't stable
+  (CPI-driven each year; Measure RC changed it by ballot), so predicting it
+  couples storage correctness to a moving target. We record every actual rent
+  change instead — the GA is just one kind of recorded change.
 - Explicit exit tombstones; the static site; month-over-month attribution UI.
 
 ## Expected outcome

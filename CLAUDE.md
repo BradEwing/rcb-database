@@ -71,9 +71,11 @@ Implemented as the two-phase architecture above. As seeded 2026-06-07: 10,714 ad
 
 **Completeness / RCB reconciliation — resolved (see `docs/reconciliation-2025.md`).** The ~19% overage is **definitional, not a scraper defect.** The MAR lookup tool returns a row for every unit with an established MAR — a *superset* of the report's "controlled" definition, which excludes rent-level-decontrolled SFR/condos (1,865), owner-occupied 2–3 unit exemptions (1,106), and other use-exempt units (3,205) that can still carry a positive MAR. Scraper integrity was verified against raw HTML: the cross-address dedup is correct (confirmed double-counts ≈ 0), large APNs are real complexes, and the surplus is concentrated on 1–3 unit parcels (the SFD/condo/small-property exemption zone) and skewed to large units — exactly matching the report's excluded categories. The bridge closes to 27,589 against the report's own exclusion counts. **Do not "fix" this by mangling data.** Publish the registry total (32,900 positive-MAR) as a superset *and* the RCB-comparable estimate (~26,754 = controlled units on 4+ unit parcels, persisted as `rcb_comparable` by `npm run reconcile`). Re-run `npm run reconcile` each month and bump the `RCB_2025` figures in `scraper/src/analyze/reconcile.ts` per the latest Annual Report.
 
-### 2. Monthly diffing and change attribution — open
+### 2. Monthly diffing and change attribution — change report built; UI open
 
-Each monthly pull stores one `mar_observations.csv` row per (unit, date). Interesting signals:
+`mar_observations.csv` is an event-sourced change log, so the diff between sweeps already *is* the change set. `npm run changes` turns it into `data/derived/mar_changes.csv` — one row per rent change with the old→new MAR, delta, and a formula-free `reason` (`new_tenancy` vs `mar_adjustment`) plus exempt transitions. A deliberate decision: we do **not** reconstruct/predict the GA from its published formula (it shifts yearly with CPI and by ballot — Measure RC changed it), so we record every actual change and attribute by whether the `tenancy_date` moved. Still open: the static-site visualization of these changes.
+
+Each monthly pull records a `mar_observations.csv` row only when a unit's MAR/tenancy changed. Interesting signals:
 
 - MAR increases on the annual GA effective date (typically September 1) → general adjustment.
 - Mid-year jumps that don't match the GA → likely a new tenancy reset (a fresh `tenancy_date`) or a Board-approved adjustment.
@@ -92,7 +94,10 @@ Keep raw scraped values (`data/raw/` snapshots until they get too large, plus th
 
 All tables are sorted by primary key and written deterministically so month-over-month `git diff` is meaningful — and because the observation table is now a change log, each monthly diff *is* the change attribution. `data/raw/` (per-query HTML snapshots) is gitignored — re-fetchable from the CSVs.
 
-`data/derived/` holds regenerable analysis artifacts (committed for diff history), produced by `npm run reconcile`: `unit_categories.csv` (`unit_id, apn, bedrooms, mar_status, parcel_unit_count, size_class, rcb_comparable`) classifies each unit by independently-derivable signals (MAR status + parcel size); `reconciliation_summary.csv` is the bridge-summary metrics. These are *derived*, never a source of truth — regenerate after each sweep.
+`data/derived/` holds regenerable analysis artifacts (committed for diff history). These are *derived*, never a source of truth — regenerate after each sweep.
+
+- `npm run reconcile` → `unit_categories.csv` (`unit_id, apn, bedrooms, mar_status, parcel_unit_count, size_class, rcb_comparable`) classifies each unit by independently-derivable signals (MAR status + parcel size); `reconciliation_summary.csv` is the bridge-summary metrics.
+- `npm run changes` → `mar_changes.csv`: one row per rent change, derived from adjacent pairs in the observation change log. Columns include `old_mar_cents`, `new_mar_cents`, `delta_cents`, `delta_pct`, and `reason` — `new_tenancy` (the `tenancy_date` moved) vs `mar_adjustment` (ceiling moved under a sitting tenant: GA or Board order) — plus `mar_status_change` for `$0` exempt transitions (`became_exempt` / `reinstated`). **No GA formula** is used; attribution reads straight off whether the tenancy date moved, so it can't drift with CPI or ballot changes.
 
 ## Hosting & Distribution
 
