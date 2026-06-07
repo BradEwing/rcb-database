@@ -10,7 +10,18 @@ import MapView from '../components/MapView.astro';
       <h1>Rent-Control Registry</h1>
     </div>
     <p class="tagline">Maximum Allowable Rent by parcel · click a parcel for its unit breakdown</p>
+    <div class="search" role="search">
+      <input
+        id="parcel-search"
+        type="search"
+        placeholder="Search address or APN…"
+        autocomplete="off"
+        aria-label="Search by address or APN"
+      />
+      <ul id="search-results" class="search-results" hidden></ul>
+    </div>
     <dl id="summary-stats" class="stats" aria-label="Citywide totals"></dl>
+    <nav class="nav"><a href={`${import.meta.env.BASE_URL}/about`}>About</a></nav>
   </header>
 
   <main class="map-page">
@@ -86,6 +97,72 @@ import MapView from '../components/MapView.astro';
     margin: 0;
     font-size: 0.82rem;
     color: var(--muted);
+  }
+
+  .search {
+    position: relative;
+    flex: 1 1 200px;
+    max-width: 320px;
+  }
+  .search input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    border-radius: 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .search-results {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    right: 0;
+    z-index: 5;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    background: var(--bg);
+    border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+    border-radius: 0.45rem;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .search-results[hidden] {
+    display: none;
+  }
+  .search-results :global(button) {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    width: 100%;
+    border: none;
+    background: none;
+    color: var(--fg);
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.3rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .search-results :global(button:hover) {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .search-results :global(.r-apn) {
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .nav {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .nav a {
+    color: var(--accent);
+    text-decoration: none;
   }
 
   .stats {

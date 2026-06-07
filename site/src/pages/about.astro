@@ -1,0 +1,136 @@
+---
+import Layout from '../layouts/Layout.astro';
+const base = import.meta.env.BASE_URL;
+const repo = 'https://github.com/BradEwing/rcb-database';
+---
+
+<Layout title="About — Santa Monica Rent-Control Registry">
+  <article class="prose">
+    <p class="back"><a href={`${base}/`}>← Back to the map</a></p>
+
+    <h1>About this registry</h1>
+    <p class="lede">
+      A self-hosted map of Santa Monica's rent-controlled housing, rebuilt each
+      month from the City's public Maximum Allowable Rent (MAR) lookup tool. It's
+      the source of truth for tracking how the MAR of every controlled unit
+      changes over time.
+    </p>
+
+    <h2>What is the MAR?</h2>
+    <p>
+      The <strong>Maximum Allowable Rent</strong> is the legal rent ceiling for a
+      rent-controlled unit. It moves with the annual General Adjustment (effective
+      around September 1), Board-approved adjustments, and tenancy resets. A
+      <strong>$0</strong> MAR means the unit is currently exempt (e.g. Costa-Hawkins
+      vacancy decontrol, Ellis-withdrawn, or post-1978 exempt).
+    </p>
+
+    <h2>Counts &amp; the RCB caveat</h2>
+    <p>
+      The MAR tool returns a row for every unit with an established MAR — a
+      <em>superset</em> of the Rent Control Board's published "controlled units"
+      headline, which excludes rent-level-decontrolled single-family homes and
+      condos, owner-occupied 2–3 unit exemptions, and other use-exempt units that
+      can still carry a positive MAR. So the registry's positive-MAR total runs
+      above the RCB headline by design — it is definitional, not a scraping error.
+      We publish both the registry total and an RCB-comparable estimate
+      (controlled units on 4+ unit parcels). See the
+      <a href={`${repo}/blob/main/docs/reconciliation-2025.md`}>reconciliation memo</a>.
+    </p>
+
+    <h2>How the map is built</h2>
+    <ul>
+      <li>Each unit is grouped under its <strong>APN</strong> (LA County parcel number).</li>
+      <li>
+        Parcel polygons come from the City's
+        <strong>Parcels Public</strong> layer, joined to the registry by APN
+        (~99% coverage; unmatched parcels are reported in the footer).
+      </li>
+      <li>
+        The observation history is an event-sourced change log — one row per
+        change, carried forward — so the colour and the per-parcel change list
+        reflect real MAR movements, attributed by whether the tenancy date moved
+        (new tenancy) or not (adjustment). No GA formula is reconstructed.
+      </li>
+    </ul>
+
+    <h2>Sources</h2>
+    <ul>
+      <li><a href="https://www.smgov.net/departments/rentcontrol/mar.aspx">City of Santa Monica — MAR lookup tool</a></li>
+      <li><a href="https://www.smgov.net/Departments/RentControl/content.aspx?id=44652">Rent Control program info &amp; street list</a></li>
+      <li><a href="https://gis-smgov.opendata.arcgis.com/datasets/smgov::parcels-public-1/explore">City of Santa Monica / LA County — Parcels Public</a></li>
+      <li>Basemap © <a href="https://carto.com/attributions">CARTO</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</li>
+    </ul>
+
+    <h2>Cadence &amp; licensing</h2>
+    <p>
+      The registry refreshes monthly via a scheduled GitHub Action; the map
+      rebuilds automatically when the data commits. Code is MIT-licensed; the
+      registry data is released CC0. Full source and data:
+      <a href={repo}>{repo.replace('https://github.com/', '')}</a>.
+    </p>
+
+    <footer id="provenance" class="provenance">Loading build provenance…</footer>
+  </article>
+</Layout>
+
+<script>
+  import { dataUrl } from '../config';
+  import type { SiteMeta } from '../lib/types';
+
+  const el = document.getElementById('provenance');
+  if (el) {
+    fetch(dataUrl('meta.json'))
+      .then((r) => (r.ok ? (r.json() as Promise<SiteMeta>) : Promise.reject(r.status)))
+      .then((m) => {
+        const built = new Date(m.built_at).toISOString().slice(0, 10);
+        const sha = (m.source_sha || '').slice(0, 7);
+        const pct = (m.match_rate * 100).toFixed(1);
+        el.textContent =
+          `Latest sweep ${m.latest_sweep} · built ${built} from ${sha} · ` +
+          `${m.parcels_mapped.toLocaleString()}/${m.parcels_total.toLocaleString()} parcels mapped ` +
+          `(${pct}%, ${m.parcels_unmatched} unmatched) · ${m.units_total.toLocaleString()} units.`;
+      })
+      .catch(() => {
+        el.textContent = '';
+      });
+  }
+</script>
+
+<style>
+  .prose {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  .back {
+    font-size: 0.85rem;
+  }
+  .back a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin: 0.4rem 0 0.6rem;
+  }
+  .lede {
+    font-size: 1.05rem;
+    color: var(--fg);
+  }
+  h2 {
+    margin-top: 2rem;
+    font-size: 1.15rem;
+  }
+  a {
+    color: var(--accent);
+  }
+  .provenance {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
