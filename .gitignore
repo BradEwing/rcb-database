@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+
+# Per-street raw HTML snapshots — large, regeneratable via `npm run scraper enumerate`
+data/raw/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
