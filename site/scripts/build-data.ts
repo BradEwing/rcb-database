@@ -26,6 +26,8 @@ import {
   OBS_CSV,
   SWEEPS_CSV,
   CHANGES_CSV,
+  EXITS_CSV,
+  RECON_SUMMARY_CSV,
   readCsv,
   g,
   normApn,
@@ -33,6 +35,7 @@ import {
   latestSweepDate,
   median,
   sizeClassOf,
+  bedroomBucket,
   type Row,
   type LatestMar,
 } from "./lib/registry.ts";
@@ -52,6 +55,37 @@ type UnitDetail = {
   mar_cents: number;
   mar_status: "controlled" | "exempt";
   tenancy_date: string;
+};
+
+/** A rent-change event on a parcel (mar_changes.csv row, compacted). Mirrors
+ *  `ParcelChange` in site/src/lib/types.ts. */
+type ParcelChange = {
+  observed_at: string;
+  unit_label: string;
+  old_mar_cents: number;
+  new_mar_cents: number;
+  delta_cents: number;
+  delta_pct: number;
+  reason: string;
+  mar_status_change: string;
+};
+
+/** A unit that vanished from the latest sweep (unit_exits.csv row). Mirrors
+ *  `ParcelExit` in site/src/lib/types.ts. */
+type ParcelExit = {
+  unit_label: string;
+  bedrooms: string;
+  last_seen_at: string;
+  last_mar_cents: number;
+  last_tenancy: string;
+};
+
+/** One point in a unit's MAR series (an observation in the change log). Mirrors
+ *  `MarHistoryPoint` in site/src/lib/types.ts. */
+type MarHistoryPoint = {
+  unit_label: string;
+  observed_at: string;
+  mar_cents: number;
 };
 
 type GeoFeature = {
@@ -132,6 +166,132 @@ function addressesOf(units: UnitDetail[]): string[] {
   return [...set].sort((a, b) => collator.compare(a, b));
 }
 
+const intOf = (r: Row, k: string): number => parseInt(g(r, k) || "0", 10);
+const floatOf = (r: Row, k: string): number => parseFloat(g(r, k) || "0") || 0;
+
+/** Group mar_changes.csv rows by APN, newest first. */
+function changesByApn(changes: Row[]): Map<string, ParcelChange[]> {
+  const byApn = new Map<string, ParcelChange[]>();
+  for (const c of changes) {
+    const apn = normApn(g(c, "apn"));
+    if (!apn) continue;
+    const row: ParcelChange = {
+      observed_at: g(c, "observed_at"),
+      unit_label: g(c, "unit_label"),
+      old_mar_cents: intOf(c, "old_mar_cents"),
+      new_mar_cents: intOf(c, "new_mar_cents"),
+      delta_cents: intOf(c, "delta_cents"),
+      delta_pct: floatOf(c, "delta_pct"),
+      reason: g(c, "reason"),
+      mar_status_change: g(c, "mar_status_change"),
+    };
+    const list = byApn.get(apn);
+    if (list) list.push(row);
+    else byApn.set(apn, [row]);
+  }
+  for (const list of byApn.values()) {
+    list.sort(
+      (a, b) =>
+        b.observed_at.localeCompare(a.observed_at) ||
+        a.unit_label.localeCompare(b.unit_label),
+    );
+  }
+  return byApn;
+}
+
+/** Group unit_exits.csv rows by APN. */
+function exitsByApn(exits: Row[]): Map<string, ParcelExit[]> {
+  const byApn = new Map<string, ParcelExit[]>();
+  for (const e of exits) {
+    const apn = normApn(g(e, "apn"));
+    if (!apn) continue;
+    const row: ParcelExit = {
+      unit_label: g(e, "unit_label"),
+      bedrooms: g(e, "bedrooms"),
+      last_seen_at: g(e, "last_seen_at"),
+      last_mar_cents: intOf(e, "last_mar_cents"),
+      last_tenancy: g(e, "last_tenancy"),
+    };
+    const list = byApn.get(apn);
+    if (list) list.push(row);
+    else byApn.set(apn, [row]);
+  }
+  return byApn;
+}
+
+/** Reconstruct each parcel's MAR series from the observation change log. Every
+ *  observation row is a point (carry-forward holds between points), so the raw
+ *  rows for a parcel's units ARE its history. Keyed by APN via unit→apn/label. */
+function historyByApn(
+  obs: Row[],
+  unitMeta: Map<string, { apn: string; unit_label: string }>,
+): Map<string, MarHistoryPoint[]> {
+  const byApn = new Map<string, MarHistoryPoint[]>();
+  for (const o of obs) {
+    const meta = unitMeta.get(g(o, "unit_id"));
+    if (!meta) continue;
+    const point: MarHistoryPoint = {
+      unit_label: meta.unit_label,
+      observed_at: g(o, "observed_at"),
+      mar_cents: intOf(o, "mar_amount_cents"),
+    };
+    const list = byApn.get(meta.apn);
+    if (list) list.push(point);
+    else byApn.set(meta.apn, [point]);
+  }
+  for (const list of byApn.values()) {
+    list.sort(
+      (a, b) =>
+        a.observed_at.localeCompare(b.observed_at) ||
+        a.unit_label.localeCompare(b.unit_label),
+    );
+  }
+  return byApn;
+}
+
+/** Citywide header stats (summary.json). */
+function buildSummary(
+  units: Row[],
+  latestMar: Map<string, LatestMar>,
+  changes: Row[],
+  exits: Row[],
+  sweepDate: string,
+  reconSummary: Row[],
+): Record<string, unknown> {
+  let controlled = 0;
+  let exempt = 0;
+  const bedroomMix: Record<string, number> = { "0": 0, "1": 0, "2": 0, "3+": 0, unknown: 0 };
+  for (const u of units) {
+    const cents = latestMar.get(g(u, "unit_id"))?.mar_amount_cents ?? 0;
+    if (cents > 0) {
+      controlled++;
+      const b = bedroomBucket(g(u, "bedrooms"));
+      bedroomMix[b] = (bedroomMix[b] ?? 0) + 1;
+    } else {
+      exempt++;
+    }
+  }
+  const recon = new Map(reconSummary.map((r) => [g(r, "metric"), g(r, "value")]));
+  const recentChanges = changes.filter((c) => g(c, "observed_at") === sweepDate).length;
+
+  return {
+    units_total: units.length,
+    controlled_total: controlled,
+    exempt_total: exempt,
+    bedroom_mix: bedroomMix,
+    rcb_comparable: recon.get("registry_multifamily_controlled")
+      ? Number(recon.get("registry_multifamily_controlled"))
+      : null,
+    rcb_report_total: recon.get("report_controlled_total")
+      ? Number(recon.get("report_controlled_total"))
+      : null,
+    latest_sweep: sweepDate,
+    recent_change_count: recentChanges,
+    total_change_events: changes.length,
+    exited_count: exits.length,
+  };
+}
+
 function main(): void {
   const units = readCsv(UNITS_CSV);
   if (units.length === 0) {
@@ -146,10 +306,21 @@ function main(): void {
   const obs = readCsv(OBS_CSV);
   const sweeps = readCsv(SWEEPS_CSV);
   const changes = readCsv(CHANGES_CSV);
+  const exits = readCsv(EXITS_CSV);
+  const reconSummary = readCsv(RECON_SUMMARY_CSV);
   const latestMar = latestMarByUnit(obs);
   const sweepDate = latestSweepDate(sweeps);
 
   const parcelUnits = groupUnitsByApn(units, latestMar);
+
+  // Per-parcel time data for the detail panel.
+  const unitMeta = new Map<string, { apn: string; unit_label: string }>();
+  for (const u of units) {
+    unitMeta.set(g(u, "unit_id"), { apn: normApn(g(u, "apn")), unit_label: g(u, "unit_label") });
+  }
+  const changesFor = changesByApn(changes);
+  const exitsFor = exitsByApn(exits);
+  const historyFor = historyByApn(obs, unitMeta);
 
   // APNs that saw a MAR change at the latest sweep → choropleth "recent change".
   const recentlyChanged = new Set<string>();
@@ -181,7 +352,15 @@ function main(): void {
 
     writeFileSync(
       join(parcelsDir, `${apn}.json`),
-      JSON.stringify({ apn, addresses, summary, units: parcelUnitList }),
+      JSON.stringify({
+        apn,
+        addresses,
+        summary,
+        units: parcelUnitList,
+        changes: changesFor.get(apn) ?? [],
+        exited: exitsFor.get(apn) ?? [],
+        mar_history: historyFor.get(apn) ?? [],
+      }),
     );
 
     const geometry = geomByApn.get(apn);
@@ -255,10 +434,15 @@ function main(): void {
   const metaPath = join(SITE_DATA_DIR, "meta.json");
   writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n");
 
+  const summaryJson = buildSummary(units, latestMar, changes, exits, sweepDate, reconSummary);
+  const summaryPath = join(SITE_DATA_DIR, "summary.json");
+  writeFileSync(summaryPath, JSON.stringify(summaryJson, null, 2) + "\n");
+
   const bytes = Buffer.byteLength(JSON.stringify({ type: "FeatureCollection", features }));
   process.stdout.write(
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
+      `Wrote ${summaryPath}\n` +
       `Wrote ${metaPath}\n`,
   );
 }
