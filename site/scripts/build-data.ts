@@ -390,6 +390,7 @@ function main(): void {
 
   const features: GeoFeature[] = [];
   const exitFeatures: GeoFeature[] = [];
+  const searchIndex: Array<{ apn: string; label: string; addr: string[] }> = [];
   const unmatchedApns: string[] = [];
   for (const [apn, parcelUnitList] of parcelUnits) {
     const summary = summarize(parcelUnitList);
@@ -413,6 +414,9 @@ function main(): void {
       unmatchedApns.push(apn);
       continue;
     }
+    // Searchable only for mapped parcels (search flies to geometry).
+    searchIndex.push({ apn, label: addresses[0] ?? "", addr: addresses });
+
     const change = recentChange(changesFor.get(apn), sweepDate);
     features.push({
       type: "Feature",
@@ -488,6 +492,11 @@ function main(): void {
   const exitsPath = join(SITE_DATA_DIR, "exits.geojson");
   writeFileSync(exitsPath, JSON.stringify({ type: "FeatureCollection", features: exitFeatures }));
 
+  // Search index (address / APN → parcel), mapped parcels only.
+  searchIndex.sort((a, b) => a.apn.localeCompare(b.apn));
+  const searchPath = join(SITE_DATA_DIR, "search.json");
+  writeFileSync(searchPath, JSON.stringify(searchIndex));
+
   const meta = {
     built_at: new Date().toISOString(),
     source_sha: gitSha(),
@@ -511,6 +520,7 @@ function main(): void {
   process.stdout.write(
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
       `Wrote ${exitsPath} (${exitFeatures.length} exit markers)\n` +
+      `Wrote ${searchPath} (${searchIndex.length} searchable parcels)\n` +
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${summaryPath}\n` +
       `Wrote ${metaPath}\n`,

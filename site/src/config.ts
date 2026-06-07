@@ -36,6 +36,13 @@ export const METRICS = {
     colors: ['#dbe9f6', '#9ecae1', '#5fa8d3', '#3576b5', '#1d4e89', '#08233f'],
     legend: ['1', '2–3', '4–9', '10–24', '25–49', '50+'],
   },
+  median_mar: {
+    property: 'median_mar_cents',
+    label: 'Median MAR',
+    stops: [150000, 220000, 300000, 400000],
+    colors: ['#f2e6f7', '#d8b3e0', '#b87fc9', '#8f4baa', '#5d2a78'],
+    legend: ['< $1.5k', '$1.5–2.2k', '$2.2–3k', '$3–4k', '$4k+'],
+  },
   recent_change: {
     property: 'recent_change_pct',
     label: 'Recent MAR change',

@@ -271,6 +271,92 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     renderLegend();
   }
 
+  // ---- Search (address / APN) -----------------------------------------------
+  type SearchEntry = { apn: string; label: string; addr: string[] };
+  const searchInput = document.getElementById('parcel-search') as HTMLInputElement | null;
+  const searchResults = document.getElementById('search-results') as HTMLElement | null;
+  let searchData: SearchEntry[] | null = null;
+  let searchLoading = false;
+  let lastResults: SearchEntry[] = [];
+
+  async function ensureSearchData(): Promise<void> {
+    if (searchData || searchLoading) return;
+    searchLoading = true;
+    try {
+      const r = await fetch(dataUrl('search.json'));
+      if (r.ok) searchData = (await r.json()) as SearchEntry[];
+    } finally {
+      searchLoading = false;
+    }
+  }
+
+  function runSearch(q: string): SearchEntry[] {
+    const query = q.trim().toLowerCase();
+    if (!query || !searchData) return [];
+    const digits = query.replace(/\D/g, '');
+    const out: SearchEntry[] = [];
+    for (const e of searchData) {
+      const byApn = digits.length >= 3 && e.apn.startsWith(digits);
+      const byAddr = e.addr.some((a) => a.toLowerCase().includes(query));
+      if (byApn || byAddr) out.push(e);
+      if (out.length >= 8) break;
+    }
+    return out;
+  }
+
+  function renderResults(items: SearchEntry[]): void {
+    if (!searchResults) return;
+    if (!items.length) {
+      searchResults.hidden = true;
+      searchResults.innerHTML = '';
+      return;
+    }
+    searchResults.innerHTML = items
+      .map(
+        (e) =>
+          `<li><button type="button" data-apn="${e.apn}">` +
+          `${escapeHtml(e.label || 'APN ' + e.apn)}<span class="r-apn">${escapeHtml(e.apn)}</span>` +
+          `</button></li>`,
+      )
+      .join('');
+    searchResults.hidden = false;
+    searchResults
+      .querySelectorAll('button')
+      .forEach((b) => b.addEventListener('click', () => chooseResult(b.dataset.apn ?? '')));
+  }
+
+  function chooseResult(apn: string): void {
+    if (!apn) return;
+    if (searchInput) searchInput.value = '';
+    renderResults([]);
+    flyToParcel(apn);
+    void openParcel(apn);
+  }
+
+  if (searchInput && searchResults) {
+    let debounce: number | undefined;
+    searchInput.addEventListener('focus', () => void ensureSearchData());
+    searchInput.addEventListener('input', () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(async () => {
+        await ensureSearchData();
+        lastResults = runSearch(searchInput.value);
+        renderResults(lastResults);
+      }, 120);
+    });
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && lastResults[0]) {
+        e.preventDefault();
+        chooseResult(lastResults[0].apn);
+      } else if (e.key === 'Escape') {
+        renderResults([]);
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!searchResults.hidden && !(e.target as Element).closest('.search')) renderResults([]);
+    });
+  }
+
   function setSelected(apn: string | null): void {
     if (selected) map.setFeatureState({ source: 'parcels', id: selected }, { selected: false });
     selected = apn;
@@ -435,6 +521,29 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   }
   .detail-close:hover {
     background: color-mix(in srgb, var(--muted) 32%, transparent);
+  }
+
+  /* On small screens the top bar wraps and grows; stack the map controls at the
+     bottom-left to avoid colliding with it, and let the panel fill the width. */
+  @media (max-width: 640px) {
+    .metric-switch {
+      top: auto;
+      bottom: 8.5rem;
+      font-size: 0.72rem;
+    }
+    .legend {
+      bottom: 1rem;
+      font-size: 0.72rem;
+    }
+    .detail-panel {
+      width: 100vw;
+      height: 70vh;
+      top: auto;
+      bottom: 0;
+      border-left: none;
+      border-top: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+      border-radius: 0.75rem 0.75rem 0 0;
+    }
   }
 </style>
 
