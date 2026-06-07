@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Build a self-hosted registry of Santa Monica rent-controlled units by scraping the City's public Maximum Allowable Rent (MAR) lookup tool on a monthly schedule. The registry is the source of truth for tracking MAR changes over time (new tenancies, annual general adjustments, capital improvement pass-throughs, etc.) for every rent-controlled parcel in the city.
 
-Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). Open: month-over-month diffing/attribution, the GitHub Action cron, and the static site are not yet built; and the unit count runs ~19% above the RCB report's 27,589 headline (see completeness note under Core Design Problems).
+Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). Open: month-over-month diffing/attribution, the GitHub Action cron, and the static site are not yet built.
 
 ## Stack
 
@@ -61,7 +61,9 @@ Other observed behaviors:
 
 ### 1. Enumerating the universe of rent-controlled parcels — design solved, sweeps unrun
 
-Implemented as the two-phase architecture above. As seeded 2026-06-07: 10,714 address-parcels → ~8,500 distinct APNs, 35,419 units (32,900 controlled + 2,519 exempt). After fixing the multi-address double-count (keying units by row `Address`, not the queried street), the controlled count sits **~19% above** the RCB 2025 Annual Report's 27,589 headline, and APNs ~22% above the rough ~7,000 estimate. Integrity is clean (0 duplicate `unit_id`s). The residual gap is an **open reconciliation** against the report's exact unit definition (the MAR tool's universe appears broader than the report's headline) — treat it as a definition question to verify, not a known scraper bug to "fix" by mangling data.
+Implemented as the two-phase architecture above. As seeded 2026-06-07: 10,714 address-parcels → ~8,500 distinct APNs, 35,419 units (32,900 controlled + 2,519 exempt). After fixing the multi-address double-count (keying units by row `Address`, not the queried street), the controlled count sits **~19% above** the RCB 2025 Annual Report's 27,589 headline. Integrity is clean (0 duplicate `unit_id`s).
+
+**Completeness / RCB reconciliation — resolved (see `docs/reconciliation-2025.md`).** The ~19% overage is **definitional, not a scraper defect.** The MAR lookup tool returns a row for every unit with an established MAR — a *superset* of the report's "controlled" definition, which excludes rent-level-decontrolled SFR/condos (1,865), owner-occupied 2–3 unit exemptions (1,106), and other use-exempt units (3,205) that can still carry a positive MAR. Scraper integrity was verified against raw HTML: the cross-address dedup is correct (confirmed double-counts ≈ 0), large APNs are real complexes, and the surplus is concentrated on 1–3 unit parcels (the SFD/condo/small-property exemption zone) and skewed to large units — exactly matching the report's excluded categories. The bridge closes to 27,589 against the report's own exclusion counts. **Do not "fix" this by mangling data.** Publish the registry total (32,900 positive-MAR) as a superset *and* the RCB-comparable estimate (~26,754 = controlled units on 4+ unit parcels, persisted as `rcb_comparable` by `npm run reconcile`). Re-run `npm run reconcile` each month and bump the `RCB_2025` figures in `scraper/src/analyze/reconcile.ts` per the latest Annual Report.
 
 ### 2. Monthly diffing and change attribution — open
 
@@ -82,6 +84,8 @@ Keep raw scraped values (`data/raw/` snapshots until they get too large, plus th
 - `mar_observations.csv` — `unit_id, observed_at, mar_amount_cents, tenancy_date`. Integer cents avoid float drift. Empty `tenancy_date` means the form returned `&nbsp;` (long-term tenancy, no recent reset). `mar_amount_cents=0` means exempt.
 
 All tables are sorted by primary key and written deterministically so month-over-month `git diff` is meaningful. `data/raw/` (per-query HTML snapshots) is gitignored — re-fetchable from the CSVs.
+
+`data/derived/` holds regenerable analysis artifacts (committed for diff history), produced by `npm run reconcile`: `unit_categories.csv` (`unit_id, apn, bedrooms, mar_status, parcel_unit_count, size_class, rcb_comparable`) classifies each unit by independently-derivable signals (MAR status + parcel size); `reconciliation_summary.csv` is the bridge-summary metrics. These are *derived*, never a source of truth — regenerate after each sweep.
 
 ## Hosting & Distribution
 

@@ -6,6 +6,7 @@
   "description": "Self-hosted registry of Santa Monica rent-controlled units.",
   "scripts": {
     "scraper": "tsx scraper/src/index.ts",
+    "reconcile": "tsx scraper/src/analyze/reconcile.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
