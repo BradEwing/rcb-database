@@ -124,9 +124,14 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
       },
     });
 
-    // Frame the data.
+    // Frame the data + index features by APN for deep-link fly-to.
     const bounds = new maplibregl.LngLatBounds();
-    for (const f of geojson.features) if (f.geometry) extendBounds(bounds, f.geometry);
+    for (const f of geojson.features) {
+      if (!f.geometry) continue;
+      extendBounds(bounds, f.geometry);
+      const apn = (f.properties as ParcelProperties | null)?.apn;
+      if (apn) featureByApn.set(String(apn), f);
+    }
     if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 24, animate: false });
 
     // Hover: highlight via feature-state + a follow-the-cursor tooltip.
@@ -163,6 +168,13 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
       if (!f) return;
       void openParcel(String(f.id));
     });
+
+    // Deep link: open + fly to a parcel named in the URL hash (#apn=...).
+    const initial = apnFromHash();
+    if (initial && featureByApn.has(initial)) {
+      flyToParcel(initial);
+      void openParcel(initial);
+    }
   });
 
   // ---- Detail panel ---------------------------------------------------------
@@ -171,6 +183,27 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
   const closeBtn = document.getElementById('detail-close') as HTMLButtonElement;
   let selected: string | null = null;
   const detailCache = new Map<string, ParcelDetail>();
+  const featureByApn = new Map<string, GeoJSON.Feature>();
+
+  // ---- Deep link (#apn=...) -------------------------------------------------
+  function apnFromHash(): string | null {
+    const m = /(?:^|[#&])apn=(\d+)/.exec(location.hash);
+    return m ? m[1]! : null;
+  }
+  function setHash(apn: string): void {
+    history.replaceState(null, '', `#apn=${apn}`);
+  }
+  function clearHash(): void {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  function flyToParcel(apn: string): void {
+    const f = featureByApn.get(apn);
+    if (!f?.geometry) return;
+    const b = new maplibregl.LngLatBounds();
+    extendBounds(b, f.geometry);
+    if (!b.isEmpty()) map.fitBounds(b, { padding: 80, maxZoom: 17, duration: 600 });
+  }
 
   function setSelected(apn: string | null): void {
     if (selected) map.setFeatureState({ source: 'parcels', id: selected }, { selected: false });
@@ -181,6 +214,7 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
   function closePanel(): void {
     panel.hidden = true;
     setSelected(null);
+    clearHash();
   }
 
   async function openParcel(apn: string): Promise<void> {
@@ -198,9 +232,21 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
       // Guard against a slower fetch resolving after another parcel was selected.
       if (selected !== apn) return;
       panelBody.innerHTML = renderParcelDetail(detail);
+      hydrateChart(detail);
+      setHash(apn);
     } catch (err) {
       panelBody.innerHTML = `<p class="detail-error">Couldn't load parcel ${apn}: ${String(err)}</p>`;
     }
+  }
+
+  // Lazily render the MAR-history chart (Plot/d3 loaded on demand, not upfront).
+  function hydrateChart(detail: ParcelDetail): void {
+    const host = panelBody.querySelector<HTMLElement>('.mar-chart');
+    if (!host || detail.mar_history.length < 2) return;
+    void import('../lib/chart').then(({ marHistoryChart }) => {
+      if (selected !== detail.apn) return; // panel moved on while loading
+      host.replaceChildren(marHistoryChart(detail.mar_history, host.clientWidth || 360));
+    });
   }
 
   closeBtn.addEventListener('click', closePanel);
@@ -388,5 +434,63 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
   .badge.status-exempt {
     background: color-mix(in srgb, var(--muted) 22%, transparent);
     color: var(--muted);
+  }
+
+  .detail-section {
+    margin-top: 1.4rem;
+  }
+  .detail-section h2 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+  }
+  .mar-chart {
+    overflow-x: auto;
+  }
+  ul.changes,
+  ul.exits {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  ul.changes li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.05rem 0.6rem;
+    font-size: 0.82rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--muted) 18%, transparent);
+  }
+  ul.changes .when {
+    grid-row: 1 / span 2;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    font-size: 0.76rem;
+    align-self: start;
+  }
+  ul.changes .why {
+    font-size: 0.74rem;
+    color: var(--muted);
+  }
+  .delta {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .delta.up {
+    color: #b91c1c;
+  }
+  .delta.down {
+    color: #15803d;
+  }
+  ul.exits li {
+    font-size: 0.82rem;
+  }
+  .exit-note {
+    font-size: 0.78rem;
+    margin: 0 0 0.5rem;
   }
 </style>

@@ -32,12 +32,59 @@ export interface ParcelSummary {
   median_mar_cents: number;
 }
 
+/** A rent-change event on a parcel (mirrors build-data `ParcelChange`). */
+export interface ParcelChange {
+  observed_at: string;
+  unit_label: string;
+  old_mar_cents: number;
+  new_mar_cents: number;
+  delta_cents: number;
+  delta_pct: number;
+  /** "new_tenancy" | "mar_adjustment" | "" (status-only). */
+  reason: string;
+  /** "became_exempt" | "reinstated" | "". */
+  mar_status_change: string;
+}
+
+/** A unit gone from the latest sweep (mirrors build-data `ParcelExit`). */
+export interface ParcelExit {
+  unit_label: string;
+  bedrooms: string;
+  last_seen_at: string;
+  last_mar_cents: number;
+  last_tenancy: string;
+}
+
+/** One point in a unit's MAR series (mirrors build-data `MarHistoryPoint`). */
+export interface MarHistoryPoint {
+  unit_label: string;
+  observed_at: string;
+  mar_cents: number;
+}
+
 /** parcels/<apn>.json — the full per-parcel breakdown, lazy-loaded on click. */
 export interface ParcelDetail {
   apn: string;
   addresses: string[];
   summary: ParcelSummary;
   units: UnitDetail[];
+  changes: ParcelChange[];
+  exited: ParcelExit[];
+  mar_history: MarHistoryPoint[];
+}
+
+/** summary.json — citywide header stats. */
+export interface SiteSummary {
+  units_total: number;
+  controlled_total: number;
+  exempt_total: number;
+  bedroom_mix: Record<string, number>;
+  rcb_comparable: number | null;
+  rcb_report_total: number | null;
+  latest_sweep: string;
+  recent_change_count: number;
+  total_change_events: number;
+  exited_count: number;
 }
 
 /** meta.json — build provenance, surfaced in the footer (later PR). */

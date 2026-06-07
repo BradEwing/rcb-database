@@ -1,8 +1,15 @@
 /** Render a parcel's detail (parcels/<apn>.json) into the side panel's inner
  *  HTML. Kept separate from the map island so it's easy to extend in PR5
  *  (MAR-history chart, change list, exits). */
-import { formatCount, formatMarCents, sizeClassLabel } from './format';
-import type { ParcelDetail, UnitDetail } from './types';
+import {
+  formatCount,
+  formatMarCents,
+  formatSignedCents,
+  formatPct,
+  changeReasonLabel,
+  sizeClassLabel,
+} from './format';
+import type { ParcelChange, ParcelDetail, ParcelExit, UnitDetail } from './types';
 
 export function escapeHtml(s: string): string {
   return s.replace(
@@ -58,12 +65,67 @@ export function renderParcelDetail(d: ParcelDetail): string {
     d.units.map(unitRow).join('') +
     `</tbody></table>`;
 
+  // MAR-history chart goes here (hydrated by the island with Observable Plot).
+  const chart =
+    d.mar_history.length > 1
+      ? `<section class="detail-section"><h2>MAR history</h2>` +
+        `<div class="mar-chart" aria-label="MAR history chart"></div></section>`
+      : '';
+
   return (
     `<header class="detail-head">` +
     addressBlock +
     `<p class="apn muted">APN ${escapeHtml(d.apn)}</p>` +
     `<p class="statline">${statline}</p>` +
     `</header>` +
-    table
+    table +
+    chart +
+    renderChanges(d.changes) +
+    renderExits(d.exited)
+  );
+}
+
+function changeRow(c: ParcelChange): string {
+  const unit = c.unit_label ? escapeHtml(c.unit_label) : '—';
+  const up = c.delta_cents > 0;
+  const down = c.delta_cents < 0;
+  const arrow = up ? '▲' : down ? '▼' : '·';
+  const deltaClass = up ? 'up' : down ? 'down' : 'flat';
+  const from = c.old_mar_cents > 0 ? formatMarCents(c.old_mar_cents) : 'exempt';
+  const to = c.new_mar_cents > 0 ? formatMarCents(c.new_mar_cents) : 'exempt';
+  const delta =
+    c.old_mar_cents > 0 && c.new_mar_cents > 0
+      ? ` <span class="delta ${deltaClass}">${arrow} ${formatSignedCents(c.delta_cents)} (${formatPct(c.delta_pct)})</span>`
+      : '';
+  return (
+    `<li>` +
+    `<span class="when">${escapeHtml(c.observed_at)}</span>` +
+    `<span class="what">Unit ${unit}: ${from} → ${to}${delta}</span>` +
+    `<span class="why">${escapeHtml(changeReasonLabel(c.reason, c.mar_status_change))}</span>` +
+    `</li>`
+  );
+}
+
+function renderChanges(changes: ParcelChange[]): string {
+  if (!changes.length) return '';
+  return (
+    `<section class="detail-section"><h2>Recent changes <span class="muted">(${changes.length})</span></h2>` +
+    `<ul class="changes">${changes.map(changeRow).join('')}</ul></section>`
+  );
+}
+
+function renderExits(exits: ParcelExit[]): string {
+  if (!exits.length) return '';
+  const rows = exits
+    .map((e) => {
+      const unit = e.unit_label ? escapeHtml(e.unit_label) : '—';
+      const last = e.last_mar_cents > 0 ? formatMarCents(e.last_mar_cents) : 'exempt';
+      return `<li>Unit ${unit} — last seen ${escapeHtml(e.last_seen_at)} at ${last}</li>`;
+    })
+    .join('');
+  return (
+    `<section class="detail-section"><h2>Exited units <span class="muted">(${exits.length})</span></h2>` +
+    `<p class="muted exit-note">Gone from the latest sweep — possible demolition or full exemption.</p>` +
+    `<ul class="exits">${rows}</ul></section>`
   );
 }

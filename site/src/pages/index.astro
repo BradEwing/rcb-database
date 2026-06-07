@@ -9,13 +9,40 @@ import MapView from '../components/MapView.astro';
       <span class="kicker">Santa Monica</span>
       <h1>Rent-Control Registry</h1>
     </div>
-    <p class="tagline">Maximum Allowable Rent by parcel · hover a parcel for its unit breakdown</p>
+    <p class="tagline">Maximum Allowable Rent by parcel · click a parcel for its unit breakdown</p>
+    <dl id="summary-stats" class="stats" aria-label="Citywide totals"></dl>
   </header>
 
   <main class="map-page">
     <MapView />
   </main>
 </Layout>
+
+<script>
+  import { dataUrl } from '../config';
+  import { formatCount } from '../lib/format';
+  import type { SiteSummary } from '../lib/types';
+
+  const el = document.getElementById('summary-stats');
+  if (el) {
+    fetch(dataUrl('summary.json'))
+      .then((r) => (r.ok ? (r.json() as Promise<SiteSummary>) : Promise.reject(r.status)))
+      .then((s) => {
+        const stats: Array<[string, string]> = [
+          [formatCount(s.controlled_total), 'controlled units'],
+          [formatCount(s.units_total), 'with a MAR'],
+          [formatCount(s.rcb_comparable ?? 0), 'RCB-comparable'],
+          [s.latest_sweep, 'last sweep'],
+        ];
+        el.innerHTML = stats
+          .map(([v, k]) => `<div><dt>${v}</dt><dd>${k}</dd></div>`)
+          .join('');
+      })
+      .catch(() => {
+        /* header stats are non-essential; leave empty on failure */
+      });
+  }
+</script>
 
 <style>
   .map-page {
@@ -59,5 +86,33 @@ import MapView from '../components/MapView.astro';
     margin: 0;
     font-size: 0.82rem;
     color: var(--muted);
+  }
+
+  .stats {
+    display: flex;
+    gap: 1.1rem;
+    margin: 0;
+    margin-left: auto;
+  }
+  .stats :global(div) {
+    text-align: right;
+    line-height: 1.1;
+  }
+  .stats :global(dt) {
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats :global(dd) {
+    margin: 0;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  @media (max-width: 640px) {
+    .stats {
+      display: none;
+    }
   }
 </style>

@@ -24,6 +24,7 @@ export const OBS_CSV = join(DATA_DIR, "mar_observations.csv");
 export const SWEEPS_CSV = join(DATA_DIR, "sweeps.csv");
 export const CHANGES_CSV = join(DERIVED_DIR, "mar_changes.csv");
 export const EXITS_CSV = join(DERIVED_DIR, "unit_exits.csv");
+export const RECON_SUMMARY_CSV = join(DERIVED_DIR, "reconciliation_summary.csv");
 export const GEOMETRY_CACHE = join(EXTERNAL_DIR, "parcels-geometry.geojson");
 
 export function readCsv(path: string): Row[] {
@@ -84,6 +85,16 @@ export function median(values: number[]): number {
     return Math.round(((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2);
   }
   return sorted[mid] ?? 0;
+}
+
+/** Bedroom bucket, matching scraper reconcile.ts `normBedrooms` (report grouping). */
+export function bedroomBucket(raw: string): "0" | "1" | "2" | "3+" | "unknown" {
+  const n = parseInt((raw ?? "").trim(), 10);
+  if (Number.isNaN(n)) return "unknown";
+  if (n <= 0) return "0";
+  if (n === 1) return "1";
+  if (n === 2) return "2";
+  return "3+";
 }
 
 /** Parcel size class, matching scraper reconcile.ts `sizeClassOf`. */
