@@ -16,6 +16,7 @@ export type UnitRow = {
   unit_label: string;
   bedrooms: string;
   first_seen_at: string;
+  last_seen_at: string;
 };
 
 export type MarObservationRow = {
@@ -99,6 +100,7 @@ export function parsePhaseUnits(
       unit_label: unitLabel,
       bedrooms,
       first_seen_at: today,
+      last_seen_at: today,
     });
     observations.push({
       unit_id: unitId,

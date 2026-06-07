@@ -16,6 +16,11 @@ import {
   writeCsvSorted,
   type Row,
 } from "./csv.ts";
+import {
+  latestObservations,
+  observationChanged,
+  upsertUnits,
+} from "./sparse.ts";
 import { logger } from "./logger.ts";
 
 const REPO_ROOT = new URL("../../", import.meta.url).pathname;
@@ -26,6 +31,7 @@ const PARCELS_CSV = join(DATA_DIR, "parcels.csv");
 const UNITS_CSV = join(DATA_DIR, "units.csv");
 const OBS_CSV = join(DATA_DIR, "mar_observations.csv");
 const STREETS_CSV = join(DATA_DIR, "streets.csv");
+const SWEEPS_CSV = join(DATA_DIR, "sweeps.csv");
 
 const PARCEL_HEADERS = [
   "parcel_id",
@@ -42,12 +48,20 @@ const UNIT_HEADERS = [
   "unit_label",
   "bedrooms",
   "first_seen_at",
+  "last_seen_at",
 ];
 const OBS_HEADERS = [
   "unit_id",
   "observed_at",
   "mar_amount_cents",
   "tenancy_date",
+];
+const SWEEP_HEADERS = [
+  "sweep_date",
+  "parcels_drilled",
+  "units_observed",
+  "units_changed",
+  "units_exited",
 ];
 
 // Number of parcels to drill between CSV flushes, so a crashed Phase B run keeps
@@ -89,9 +103,10 @@ commands:
   refresh-streets               Fetch the official street-name list and rewrite data/streets.csv.
   sweep-streets                 Phase A: for each street in data/streets.csv, POST blank+street,
                                 parse gvAddresses, append discovered properties to data/parcels.csv.
-  drill-properties              Phase B: for each parcel without an MAR observation today,
-                                POST number+street, parse gvMarData, append to units.csv +
-                                mar_observations.csv, and backfill parcels.csv with APN.`);
+  drill-properties              Phase B: for each parcel not drilled today, POST number+street,
+                                parse gvMarData, upsert units.csv (bumping last_seen_at), append a
+                                mar_observations.csv row only when MAR/tenancy changed, backfill
+                                parcels.csv with APN, and record a sweeps.csv coverage row.`);
 }
 
 async function refreshStreets(): Promise<void> {
@@ -216,24 +231,30 @@ async function drillProperties(): Promise<void> {
   const skipped = parcels.length - toDrill.length;
 
   const existingUnits = readCsv(UNITS_CSV);
-  const newUnits: UnitRow[] = [];
   const newObs: MarObservationRow[] = [];
   const apnUpdates = new Map<string, string>();
-  // Same physical unit is returned by every alias address of its parcel; dedup
-  // by unit_id so we record it once even though several addresses drill it.
-  const seenUnits = new Set<string>();
+  // Every physical unit is returned by each alias address of its parcel; key by
+  // unit_id so we record it once even though several addresses drill it. The
+  // value is this run's parsed UnitRow (last_seen_at = today).
+  const observedUnits = new Map<string, UnitRow>();
   const drilledParcels = new Set<string>();
   let drilled = 0;
+
+  // Latest known (mar, tenancy) per unit from observations *before* today. The
+  // event log gets a new row for a unit only when its value differs from this
+  // (or the unit is brand new). Built from rows strictly before today so a
+  // same-day re-run compares against prior history, not its own appends.
+  const latest = latestObservations(existingObs, today);
 
   // Write what we have so far. Called periodically so a crash mid-run keeps
   // progress; the same-day skip set then resumes from what's on disk. fs writes
   // here are synchronous, so a flush is an atomic snapshot even though several
-  // workers mutate newUnits/newObs concurrently between flushes.
+  // workers mutate observedUnits/newObs concurrently between flushes.
   const flushData = (): void => {
     writeCsvSorted(
       UNITS_CSV,
       UNIT_HEADERS,
-      mergeRows(existingUnits, newUnits as unknown as Row[], ["unit_id"]),
+      upsertUnits(existingUnits, observedUnits, today),
       ["unit_id"],
     );
     writeCsvSorted(
@@ -286,10 +307,11 @@ async function drillProperties(): Promise<void> {
         if (apn) apnUpdates.set(parcelId, apn);
         for (let k = 0; k < units.length; k++) {
           const u = units[k]!;
-          if (seenUnits.has(u.unit_id)) continue; // already recorded via another alias
-          seenUnits.add(u.unit_id);
-          newUnits.push(u);
-          newObs.push(observations[k]!);
+          if (observedUnits.has(u.unit_id)) continue; // already recorded via another alias
+          observedUnits.set(u.unit_id, u);
+          // Append to the change log only when MAR/tenancy moved (or first sighting).
+          const obs = observations[k]!;
+          if (observationChanged(latest, obs)) newObs.push(obs);
         }
         drilledParcels.add(parcelId);
         drilled++;
@@ -323,14 +345,44 @@ async function drillProperties(): Promise<void> {
     writeCsvSorted(PARCELS_CSV, PARCEL_HEADERS, updated, ["parcel_id"]);
   }
 
+  // Run-level coverage row, derived from on-disk state so it is resume-safe and
+  // idempotent (a same-day re-run recomputes the same numbers and overwrites the
+  // row rather than appending a duplicate). "units_exited" = units in the
+  // registry whose last_seen_at lags today's sweep — the disappearance signal.
+  const finalUnits = readCsv(UNITS_CSV);
+  const finalObs = readCsv(OBS_CSV);
+  const finalParcels = readCsv(PARCELS_CSV);
+  const sweepRow: Row = {
+    sweep_date: today,
+    parcels_drilled: String(
+      finalParcels.filter((p) => (p.last_drilled_at ?? "") === today).length,
+    ),
+    units_observed: String(
+      finalUnits.filter((u) => (u.last_seen_at ?? "") === today).length,
+    ),
+    units_changed: String(
+      finalObs.filter((o) => (o.observed_at ?? "") === today).length,
+    ),
+    units_exited: String(
+      finalUnits.filter((u) => {
+        const ls = u.last_seen_at ?? "";
+        return ls !== "" && ls < today;
+      }).length,
+    ),
+  };
+  const sweeps = readCsv(SWEEPS_CSV).filter((s) => s.sweep_date !== today);
+  sweeps.push(sweepRow);
+  writeCsvSorted(SWEEPS_CSV, SWEEP_HEADERS, sweeps, ["sweep_date"]);
+
   const sum = (pick: (c: MarClient) => number): number =>
     clients.reduce((n, c) => n + pick(c), 0);
   logger.info(
     {
       drilled,
       skipped,
-      newUnits: newUnits.length,
+      unitsObserved: observedUnits.size,
       newObs: newObs.length,
+      unitsExited: sweepRow.units_exited,
       workers: workerCount,
       posts: sum((c) => c.posts),
       seeds: sum((c) => c.seeds),

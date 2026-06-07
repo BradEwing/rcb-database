@@ -73,6 +73,32 @@ describe("classifyUnits", () => {
   });
 });
 
+describe("classifyUnits — carry-forward (sparse event log)", () => {
+  it("uses the most-recent observation when a unit has several", () => {
+    const units: Row[] = [
+      { unit_id: "u1", apn: "A", address: "10 MAIN", unit_label: "1", bedrooms: "1", first_seen_at: "x", last_seen_at: "y" },
+    ];
+    const obs: Row[] = [
+      { unit_id: "u1", observed_at: "2023-07-19", mar_amount_cents: "100000", tenancy_date: "" },
+      { unit_id: "u1", observed_at: "2026-06-07", mar_amount_cents: "0", tenancy_date: "" },
+    ];
+    // Latest observation is $0 -> zero_mar, not the older positive value.
+    expect(classifyUnits(units, obs)[0]!.mar_status).toBe("zero_mar");
+  });
+
+  it("classifies a unit with only an old observation at that old MAR (no $0 default)", () => {
+    // A unit unchanged since 2023 keeps a single 2023 row in the sparse log; it
+    // must still classify as controlled via carry-forward, not fall through to $0.
+    const units: Row[] = [
+      { unit_id: "u1", apn: "A", address: "10 MAIN", unit_label: "1", bedrooms: "1", first_seen_at: "x", last_seen_at: "y" },
+    ];
+    const obs: Row[] = [
+      { unit_id: "u1", observed_at: "2023-07-19", mar_amount_cents: "250000", tenancy_date: "" },
+    ];
+    expect(classifyUnits(units, obs)[0]!.mar_status).toBe("controlled");
+  });
+});
+
 describe("buildBridge", () => {
   const units: Row[] = [
     { unit_id: "u1", apn: "A", address: "10 MAIN", unit_label: "1", bedrooms: "1", first_seen_at: "x" },

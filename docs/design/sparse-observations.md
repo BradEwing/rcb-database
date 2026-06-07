@@ -1,6 +1,6 @@
 # Design: event-sourced (sparse) MAR observations
 
-**Status:** proposed · **Scope:** storage-model refactor · **Owner:** next session
+**Status:** implemented (2026-06-07) · **Scope:** storage-model refactor
 
 ## Problem
 
