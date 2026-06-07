@@ -1,0 +1,98 @@
+name: monthly-snapshot
+
+# Monthly MAR pull. Drills every parcel (Phase B), re-sweeps streets quarterly
+# (Phase A — parcels rarely change), reconciles against the RCB headline, and
+# commits the appended snapshot so month-over-month `git diff` is the change log.
+#
+# Timing note: the 1st-of-month run at 09:00 UTC lands ~02:00 PT. The annual
+# General Adjustment is effective ~Sept 1, so the Sept run is the one that
+# captures the GA as an attributable MAR jump — keep this cron alive through it.
+
+on:
+  schedule:
+    - cron: "0 9 1 * *" # 09:00 UTC on the 1st of every month
+  workflow_dispatch:
+    inputs:
+      run_phase_a:
+        description: "Force Phase A (street sweep) even outside the quarterly cadence"
+        type: boolean
+        default: false
+
+# Need write access to commit the new snapshot back to the repo.
+permissions:
+  contents: write
+
+# Never let two monthly runs interleave their commits.
+concurrency:
+  group: monthly-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90 # Phase B ≈ 9 min at 4 workers/200ms; huge margin vs the 6h cap.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Phase A runs only on the quarter months (Jan/Apr/Jul/Oct) or when forced
+      # via workflow_dispatch. The street universe barely moves, so a monthly
+      # re-sweep would be wasted requests against the City's servers.
+      - name: Decide whether to run Phase A
+        id: decide
+        run: |
+          set -euo pipefail
+          month=$(date -u +%m)
+          force="${{ github.event.inputs.run_phase_a }}"
+          case "$month" in
+            01|04|07|10) quarter=true ;;
+            *) quarter=false ;;
+          esac
+          if [ "$force" = "true" ] || [ "$quarter" = "true" ]; then
+            echo "phase_a=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "phase_a=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Phase A — sweep streets (quarterly)
+        if: ${{ steps.decide.outputs.phase_a == 'true' }}
+        env:
+          MAR_MIN_DELAY_MS: "250" # single-worker, gentle
+        run: npm run scraper -- sweep-streets
+
+      # Phase B — every run. Gentle CI cadence (4 workers / 200ms ≈ 20 req/s),
+      # well under the seeded 6-worker rate. MarClient backs off on 429/503.
+      - name: Phase B — drill properties
+        env:
+          MAR_WORKERS: "4"
+          MAR_MIN_DELAY_MS: "200"
+        run: npm run scraper -- drill-properties
+
+      - name: Reconcile against RCB headline
+        run: npm run reconcile
+
+      # Commit only the tracked CSVs (data/raw/ is gitignored). A run always
+      # appends a fresh observed_at, so there will normally be a diff; guard
+      # anyway so a no-op run doesn't create an empty commit.
+      - name: Commit & push snapshot
+        run: |
+          set -euo pipefail
+          today=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+          git commit -m "data: monthly snapshot (${today})"
+          git push
