@@ -30,6 +30,12 @@ Scraper subcommands (defined in `scraper/src/index.ts`):
 - `sweep-streets` (Phase A) — for each street in `data/streets.csv`, POST blank-number to get the property index; append to `data/parcels.csv`.
 - `drill-properties` (Phase B) — for each parcel without an observation today, POST number+street to get units and MAR; append to `data/units.csv` and `data/mar_observations.csv`; backfill APN on `data/parcels.csv`. Idempotent — re-running on the same day skips parcels already drilled.
 
+## Commit Conventions
+
+- **Conventional Commits**: `type: subject`, imperative, lower-case, no trailing period. Keep it terse — one line is the norm; add a body only when the *why* isn't obvious.
+- **Types in use**: `feat`, `fix`, `docs`, `refactor`, `chore`, `ci`, plus project-specific `data` (registry CSV snapshots) and `analysis` (derived artifacts / reconciliation).
+- **No `Co-Authored-By` trailer** and no tool attribution lines.
+
 ## Canonical Data Sources
 
 - MAR lookup tool: https://www.smgov.net/departments/rentcontrol/mar.aspx
