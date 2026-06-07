@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Build a self-hosted registry of Santa Monica rent-controlled units by scraping the City's public Maximum Allowable Rent (MAR) lookup tool on a monthly schedule. The registry is the source of truth for tracking MAR changes over time (new tenancies, annual general adjustments, capital improvement pass-throughs, etc.) for every rent-controlled parcel in the city.
 
-Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). Open: month-over-month diffing/attribution, the GitHub Action cron, and the static site are not yet built.
+Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). The monthly GitHub Action cron is wired up (`.github/workflows/monthly-snapshot.yml`) but has not yet run on schedule. Open: month-over-month diffing/attribution and the static site are not yet built.
 
 ## Stack
 
@@ -59,7 +59,7 @@ Other observed behaviors:
 
 ## Core Design Problems
 
-### 1. Enumerating the universe of rent-controlled parcels — design solved, sweeps unrun
+### 1. Enumerating the universe of rent-controlled parcels — design solved, registry seeded 2026-06-07
 
 Implemented as the two-phase architecture above. As seeded 2026-06-07: 10,714 address-parcels → ~8,500 distinct APNs, 35,419 units (32,900 controlled + 2,519 exempt). After fixing the multi-address double-count (keying units by row `Address`, not the queried street), the controlled count sits **~19% above** the RCB 2025 Annual Report's 27,589 headline. Integrity is clean (0 duplicate `unit_id`s).
 
