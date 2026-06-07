@@ -5,6 +5,9 @@
   "type": "module",
   "description": "Static GitHub Pages site for the Santa Monica rent-control registry.",
   "scripts": {
+    "fetch-geometry": "tsx scripts/fetch-geometry.ts",
+    "build-data": "tsx scripts/build-data.ts",
+    "prebuild": "npm run build-data",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
@@ -12,5 +15,10 @@
   },
   "dependencies": {
     "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "csv-parse": "^5.5.6",
+    "tsx": "^4.19.1"
   }
 }
