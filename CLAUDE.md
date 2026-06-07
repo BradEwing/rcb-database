@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Build a self-hosted registry of Santa Monica rent-controlled units by scraping the City's public Maximum Allowable Rent (MAR) lookup tool on a monthly schedule. The registry is the source of truth for tracking MAR changes over time (new tenancies, annual general adjustments, capital improvement pass-throughs, etc.) for every rent-controlled parcel in the city.
 
-Status: scraper implemented and tested against captured fixtures; `data/streets.csv` is populated (147 streets). The two long sweeps (street index → property drill-down) have not yet been run end-to-end against the city's servers — that's an operational decision, not code work. See "Run cadence" below.
+Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). Open: month-over-month diffing/attribution, the GitHub Action cron, and the static site are not yet built; and the unit count runs ~19% above the RCB report's 27,589 headline (see completeness note under Core Design Problems).
 
 ## Stack
 
@@ -48,6 +48,7 @@ The form returns one of two GridViews, never both:
 
 - **Blank number + street** → `gvAddresses`. Single column (`Addresses`), one row per controlled property on that street (e.g. `2615 COLORADO AVE`).
 - **Number + street** → `gvMarData`. Columns: `Address`, `Unit`, `MAR`, `Tenancy Date`, `Bedrooms`, `Parcel`. `Parcel` is the LA County APN.
+  - **Critical:** the form returns *every* unit on a parcel for *any* of that parcel's addresses, each row self-identifying via its own `Address` + `Unit`. A physical parcel (one APN) is listed in `gvAddresses` under several street addresses (corner lots, multi-frontage buildings), so querying each address re-returns the same unit list. Identify units by the row's own `Address` + `Unit` (`unit_id = slug("<row Address> <Unit>")`), **never** by the queried street — that double-counts. A single address query can even return units spanning multiple APNs.
 
 Other observed behaviors:
 
@@ -60,7 +61,7 @@ Other observed behaviors:
 
 ### 1. Enumerating the universe of rent-controlled parcels — design solved, sweeps unrun
 
-Implemented as the two-phase architecture above. Completeness check: total `units.csv` rows should land within ~5% of 27,589 (RCB 2025 Annual Report); `parcels.csv` within ~10% of ~7,000.
+Implemented as the two-phase architecture above. As seeded 2026-06-07: 10,714 address-parcels → ~8,500 distinct APNs, 35,419 units (32,900 controlled + 2,519 exempt). After fixing the multi-address double-count (keying units by row `Address`, not the queried street), the controlled count sits **~19% above** the RCB 2025 Annual Report's 27,589 headline, and APNs ~22% above the rough ~7,000 estimate. Integrity is clean (0 duplicate `unit_id`s). The residual gap is an **open reconciliation** against the report's exact unit definition (the MAR tool's universe appears broader than the report's headline) — treat it as a definition question to verify, not a known scraper bug to "fix" by mangling data.
 
 ### 2. Monthly diffing and change attribution — open
 
@@ -76,8 +77,8 @@ Keep raw scraped values (`data/raw/` snapshots until they get too large, plus th
 ## Schema (`data/`)
 
 - `streets.csv` — `street_name, first_swept_at`. Mirrors the published street list.
-- `parcels.csv` — `parcel_id, street_number, street_name, apn, first_seen_at`. `parcel_id` is `slug("<street_number> <street_name>")`. `apn` is empty until Phase B fills it.
-- `units.csv` — `unit_id, parcel_id, unit_label, bedrooms, first_seen_at`. `unit_id` is `slug("<parcel_id> <unit_label>")`.
+- `parcels.csv` — `parcel_id, street_number, street_name, apn, first_seen_at, last_drilled_at`. `parcel_id` is `slug("<street_number> <street_name>")` — the *address* found in the street sweep; several `parcel_id`s can map to one `apn`. `apn` + `last_drilled_at` are filled in Phase B; re-running Phase B the same day skips parcels already stamped `last_drilled_at == today` (idempotent/resumable).
+- `units.csv` — `unit_id, apn, address, unit_label, bedrooms, first_seen_at`. A unit is keyed by the gvMarData row's OWN `address` + `unit_label`: `unit_id = slug("<address> <unit_label>")` (blank label → `slug("<address>")`). This de-duplicates the multi-address form behavior above while keeping genuinely distinct units (e.g. corner buildings with one unit per street number) apart. `apn` is the per-row LA County parcel.
 - `mar_observations.csv` — `unit_id, observed_at, mar_amount_cents, tenancy_date`. Integer cents avoid float drift. Empty `tenancy_date` means the form returned `&nbsp;` (long-term tenancy, no recent reset). `mar_amount_cents=0` means exempt.
 
 All tables are sorted by primary key and written deterministically so month-over-month `git diff` is meaningful. `data/raw/` (per-query HTML snapshots) is gitignored — re-fetchable from the CSVs.
@@ -90,13 +91,12 @@ The static site stays TS/Node — Astro or Vite + MapLibre GL JS + Observable Pl
 
 ## Run Cadence
 
-- Phase A: ~147 POSTs @ 5s rate limit ≈ 12 min. Only when `streets.csv` stales, maybe once a quarter.
-- Phase B: ~7,000 POSTs @ 5s rate limit ≈ 10 hours. **Too long for a default GHA job (6h cap).** Options to decide before wiring the cron:
-  - Drop rate limit to ~2s (~4 hours) — likely still polite for a once-monthly scrape.
-  - Chunk by street and run multiple GHA jobs in parallel.
-  - Use a self-hosted runner.
+`MarClient` GETs the form once to seed an ASP.NET token chain, then reuses it by harvesting the fresh token triplet from each POST response — so it spends **one request per query** in steady state (re-seeding only if a token is rejected). Cadence is configurable: `MAR_MIN_DELAY_MS` (per-worker delay) and `MAR_WORKERS` (bounded concurrent sessions, each its own token chain). 429/503 → exponential back-off honoring `Retry-After`.
+
+- Phase A (`sweep-streets`): 147 streets, single client, ~30–60s.
+- Phase B (`drill-properties`): ~10,700 parcels. Seeded at `MAR_WORKERS=6 MAR_MIN_DELAY_MS=150` (~40 req/s) in **~4 min**, 0 throttles / 0 failures. Fits the GHA 6h cap with huge margin — **chunking and self-hosted runners are not needed.** Dial down (e.g. 4 workers / 200ms) for a gentler run.
 
 ## Operational Constraints to Respect
 
-- **Be polite to the City's servers.** The MAR tool is a public service, not an API. `MarClient` identifies itself in the User-Agent and rate-limits to 5s by default. A monthly pass does not need to be fast.
+- **Be polite to the City's servers.** The MAR tool is a public service, not an API. `MarClient` identifies itself in the User-Agent, backs off on 429/503, and is rate-limited (default 5s for ad-hoc `probe-one`; sweeps default 150ms/6 workers ≈ 40 req/s). `robots.txt` explicitly `Allow`s `/departments/rentcontrol/mar.aspx` (the rest of the site is `Disallow: /`) and publishes **no** `Crawl-delay`, so automated access is sanctioned but uncapped — stay a good citizen and let the 429/503 back-off be the safety valve. Keep concurrency bounded (single-digit workers); do not fan out to many parallel jobs.
 - **Parsers must fail loudly** on unexpected HTML rather than silently producing nulls, so a layout change surfaces in the next monthly run instead of corrupting history. The current parser tolerates absent grids (returns null) and unknown column headers (returns empty strings via `pickFirst`); tighten with a `zod` schema check the first time we see real layout drift, not before.

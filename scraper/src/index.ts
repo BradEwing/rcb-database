@@ -33,10 +33,12 @@ const PARCEL_HEADERS = [
   "street_name",
   "apn",
   "first_seen_at",
+  "last_drilled_at",
 ];
 const UNIT_HEADERS = [
   "unit_id",
-  "parcel_id",
+  "apn",
+  "address",
   "unit_label",
   "bedrooms",
   "first_seen_at",
@@ -47,6 +49,16 @@ const OBS_HEADERS = [
   "mar_amount_cents",
   "tenancy_date",
 ];
+
+// Number of parcels to drill between CSV flushes, so a crashed Phase B run keeps
+// its progress (the same-day idempotent skip set resumes from what's on disk).
+const FLUSH_EVERY = 250;
+
+// The long sweeps run at a fast-but-serial cadence (default 200ms = 5 req/s,
+// single worker). Override with MAR_MIN_DELAY_MS. probe-one keeps the polite 5s.
+function sweepClient(): MarClient {
+  return new MarClient({ minDelayMs: Number(process.env.MAR_MIN_DELAY_MS ?? 200) });
+}
 
 async function main(): Promise<void> {
   const [, , command, ...args] = process.argv;
@@ -147,7 +159,7 @@ async function sweepStreets(): Promise<void> {
     .filter((s): s is string => Boolean(s));
   logger.info({ count: streets.length }, "sweep.start");
 
-  const client = new MarClient();
+  const client = sweepClient();
   const discovered: ParcelRow[] = [];
 
   for (const [i, street] of streets.entries()) {
@@ -168,7 +180,15 @@ async function sweepStreets(): Promise<void> {
   const existing = readCsv(PARCELS_CSV);
   const merged = mergeRows(existing, discovered, ["parcel_id"]);
   writeCsvSorted(PARCELS_CSV, PARCEL_HEADERS, merged, ["parcel_id"]);
-  logger.info({ discovered: discovered.length }, "sweep.done");
+  logger.info(
+    {
+      discovered: discovered.length,
+      posts: client.posts,
+      seeds: client.seeds,
+      reGets: client.reGets,
+    },
+    "sweep.done",
+  );
 }
 
 async function drillProperties(): Promise<void> {
@@ -180,114 +200,145 @@ async function drillProperties(): Promise<void> {
 
   const today = new Date().toISOString().slice(0, 10);
   const existingObs = readCsv(OBS_CSV);
-  const observedToday = new Set(
-    existingObs
-      .filter((r) => r.observed_at === today)
-      .map((r) => r.unit_id ?? "")
-      .filter(Boolean),
+
+  // Idempotent + resumable: a parcel is "done today" if parcels.csv records it as
+  // drilled today. This is recorded per-parcel (see backfill below) rather than
+  // inferred from observations, because units are now keyed by their canonical
+  // address — which can differ from the queried street — so an observation no
+  // longer maps cleanly back to the parcel that was queried to produce it.
+  const toDrill = parcels.filter(
+    (p) =>
+      p.street_number &&
+      p.street_name &&
+      p.parcel_id &&
+      p.last_drilled_at !== today,
   );
+  const skipped = parcels.length - toDrill.length;
 
-  // We treat an observation as "stale" if the parcel has no row in mar_observations
-  // for today. This makes the command idempotent and resumable: re-running on the
-  // same day skips parcels we've already drilled.
-  const obsByParcel = indexParcelsObserved(existingObs, parcels, today);
-
-  const client = new MarClient();
+  const existingUnits = readCsv(UNITS_CSV);
   const newUnits: UnitRow[] = [];
   const newObs: MarObservationRow[] = [];
   const apnUpdates = new Map<string, string>();
+  // Same physical unit is returned by every alias address of its parcel; dedup
+  // by unit_id so we record it once even though several addresses drill it.
+  const seenUnits = new Set<string>();
+  const drilledParcels = new Set<string>();
   let drilled = 0;
-  let skipped = 0;
 
-  for (const [i, parcel] of parcels.entries()) {
-    const streetNumber = parcel.street_number ?? "";
-    const streetName = parcel.street_name ?? "";
-    const parcelId = parcel.parcel_id ?? "";
-    if (!streetNumber || !streetName || !parcelId) continue;
-    if (obsByParcel.has(parcelId)) {
-      skipped++;
-      continue;
-    }
-    logger.info(
-      { i: i + 1, total: parcels.length, parcel: `${streetNumber} ${streetName}` },
-      "drill.parcel",
+  // Write what we have so far. Called periodically so a crash mid-run keeps
+  // progress; the same-day skip set then resumes from what's on disk. fs writes
+  // here are synchronous, so a flush is an atomic snapshot even though several
+  // workers mutate newUnits/newObs concurrently between flushes.
+  const flushData = (): void => {
+    writeCsvSorted(
+      UNITS_CSV,
+      UNIT_HEADERS,
+      mergeRows(existingUnits, newUnits as unknown as Row[], ["unit_id"]),
+      ["unit_id"],
     );
-    try {
-      const result = await client.query(streetNumber, streetName);
-      const safe = `${streetNumber}-${streetName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")}.html`;
-      writeRaw(safe, result.html);
-      const page = parseMarPage(result.html);
-      const { apn, units, observations } = parsePhaseUnits(
-        page,
-        streetNumber,
-        streetName,
-        result.fetchedAt,
+    writeCsvSorted(
+      OBS_CSV,
+      OBS_HEADERS,
+      mergeRows(existingObs, newObs as unknown as Row[], [
+        "unit_id",
+        "observed_at",
+      ]),
+      ["unit_id", "observed_at"],
+    );
+  };
+
+  // Bounded concurrency: a few independent sessions (each its own token chain),
+  // each draining the shared work-list. robots.txt explicitly allows this path
+  // and publishes no crawl-delay; MarClient backs off on any 429/503. Tune with
+  // MAR_WORKERS and MAR_MIN_DELAY_MS (per-worker delay → aggregate ≈ workers/delay).
+  const workerCount = Math.max(1, Number(process.env.MAR_WORKERS ?? 6));
+  const perWorkerDelay = Number(process.env.MAR_MIN_DELAY_MS ?? 150);
+  const clients: MarClient[] = [];
+  let cursor = 0; // shared work-list cursor; reads are atomic (no await between)
+
+  const runWorker = async (): Promise<void> => {
+    const client = new MarClient({ minDelayMs: perWorkerDelay });
+    clients.push(client);
+    for (;;) {
+      const idx = cursor++;
+      const parcel = toDrill[idx];
+      if (!parcel) return;
+      const streetNumber = parcel.street_number ?? "";
+      const streetName = parcel.street_name ?? "";
+      const parcelId = parcel.parcel_id ?? "";
+      logger.info(
+        { i: idx + 1, total: toDrill.length, parcel: `${streetNumber} ${streetName}` },
+        "drill.parcel",
       );
-      if (apn) apnUpdates.set(parcelId, apn);
-      for (const u of units) newUnits.push(u);
-      for (const o of observations) {
-        if (!observedToday.has(o.unit_id)) newObs.push(o);
+      try {
+        const result = await client.query(streetNumber, streetName);
+        const safe = `${streetNumber}-${streetName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")}.html`;
+        writeRaw(safe, result.html);
+        const page = parseMarPage(result.html);
+        const { apn, units, observations } = parsePhaseUnits(
+          page,
+          streetNumber,
+          streetName,
+          result.fetchedAt,
+        );
+        if (apn) apnUpdates.set(parcelId, apn);
+        for (let k = 0; k < units.length; k++) {
+          const u = units[k]!;
+          if (seenUnits.has(u.unit_id)) continue; // already recorded via another alias
+          seenUnits.add(u.unit_id);
+          newUnits.push(u);
+          newObs.push(observations[k]!);
+        }
+        drilledParcels.add(parcelId);
+        drilled++;
+        if (drilled % FLUSH_EVERY === 0) flushData();
+      } catch (err) {
+        logger.error(
+          { parcel: parcelId, err: (err as Error).message },
+          "drill.fail",
+        );
       }
-      drilled++;
-    } catch (err) {
-      logger.error(
-        { parcel: parcelId, err: (err as Error).message },
-        "drill.fail",
-      );
     }
-  }
+  };
 
-  // Persist updates.
-  const existingUnits = readCsv(UNITS_CSV);
-  writeCsvSorted(
-    UNITS_CSV,
-    UNIT_HEADERS,
-    mergeRows(existingUnits, newUnits as unknown as Row[], ["unit_id"]),
-    ["unit_id"],
+  logger.info(
+    { toDrill: toDrill.length, skipped, workers: workerCount, perWorkerDelay },
+    "drill.pool",
   );
-  writeCsvSorted(
-    OBS_CSV,
-    OBS_HEADERS,
-    mergeRows(existingObs, newObs as unknown as Row[], [
-      "unit_id",
-      "observed_at",
-    ]),
-    ["unit_id", "observed_at"],
-  );
+  await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
 
-  // Backfill APNs into parcels.csv.
-  if (apnUpdates.size > 0) {
+  // Final persist of units + observations.
+  flushData();
+
+  // Backfill APNs and stamp last_drilled_at on every parcel we drilled this run.
+  if (drilledParcels.size > 0) {
     const updated = parcels.map((p) => {
-      const apn = apnUpdates.get(p.parcel_id ?? "");
-      return apn ? { ...p, apn } : p;
+      const id = p.parcel_id ?? "";
+      if (!drilledParcels.has(id)) return p;
+      const apn = apnUpdates.get(id);
+      return { ...p, last_drilled_at: today, ...(apn ? { apn } : {}) };
     });
     writeCsvSorted(PARCELS_CSV, PARCEL_HEADERS, updated, ["parcel_id"]);
   }
 
-  logger.info({ drilled, skipped, newUnits: newUnits.length, newObs: newObs.length }, "drill.done");
-}
-
-function indexParcelsObserved(
-  obs: Row[],
-  parcels: Row[],
-  today: string,
-): Set<string> {
-  const unitToParcel = new Map<string, string>();
-  // Cheap lookup: derive parcel_id from unit_id slug prefix is fragile; instead
-  // we cross-walk via the units.csv if present.
-  const units = existsSync(UNITS_CSV) ? readCsv(UNITS_CSV) : [];
-  for (const u of units) {
-    if (u.unit_id && u.parcel_id) unitToParcel.set(u.unit_id, u.parcel_id);
-  }
-  const parcelsObservedToday = new Set<string>();
-  for (const o of obs) {
-    if (o.observed_at !== today) continue;
-    const parcelId = unitToParcel.get(o.unit_id ?? "");
-    if (parcelId) parcelsObservedToday.add(parcelId);
-  }
-  return parcelsObservedToday;
+  const sum = (pick: (c: MarClient) => number): number =>
+    clients.reduce((n, c) => n + pick(c), 0);
+  logger.info(
+    {
+      drilled,
+      skipped,
+      newUnits: newUnits.length,
+      newObs: newObs.length,
+      workers: workerCount,
+      posts: sum((c) => c.posts),
+      seeds: sum((c) => c.seeds),
+      reGets: sum((c) => c.reGets),
+      throttles: sum((c) => c.throttles),
+    },
+    "drill.done",
+  );
 }
 
 function writeRaw(name: string, html: string): void {

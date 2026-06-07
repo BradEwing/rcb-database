@@ -77,11 +77,12 @@ describe("parsePhaseUnits", () => {
     "2026-06-07T00:00:00.000Z",
   );
 
-  it("yields a unit row per MAR grid row", () => {
+  it("yields a unit row per MAR grid row, keyed by the row's own address", () => {
     expect(out.units).toHaveLength(6);
     expect(out.units[0]?.unit_label).toBe("A");
     expect(out.units[0]?.bedrooms).toBe("2");
-    expect(out.units[0]?.parcel_id).toBe("624-lincoln-blvd");
+    expect(out.units[0]?.address).toBe("624 LINCOLN BLVD");
+    expect(out.units[0]?.apn).toBe("4293011005");
     expect(out.units[0]?.unit_id).toBe("624-lincoln-blvd-a");
   });
 
@@ -100,5 +101,38 @@ describe("parsePhaseUnits", () => {
 
   it("extracts the LA County APN as a parcel-level attribute", () => {
     expect(out.apn).toBe("4293011005");
+  });
+});
+
+describe("parsePhaseUnits — multi-address parcel (the de-dup fix)", () => {
+  // This response was captured by querying "1430 SANTA MONICA BLVD", but APN
+  // 4282021001 spans several addresses, so the form returns the parcel's whole
+  // unit list — each row carrying its OWN address (e.g. "1410 15TH ST"). Units
+  // must be keyed by that row address, NOT by the queried street, or the same
+  // physical units get counted once per alias address.
+  const page = parseMarPage(read("1430-santa-monica-blvd.html"));
+  const out = parsePhaseUnits(page, "1430", "Santa Monica Blvd", "2026-06-07T00:00:00.000Z");
+
+  it("keys units by the row's address, not the queried street", () => {
+    // The queried street never appears in any unit_id…
+    expect(out.units.every((u) => !u.unit_id.startsWith("1430-santa-monica-blvd"))).toBe(true);
+    // …and the canonical addresses from the grid do.
+    const u = out.units.find((x) => x.address === "1410 15TH ST" && x.unit_label === "22");
+    expect(u?.unit_id).toBe("1410-15th-st-22");
+    expect(u?.apn).toBe("4282021001");
+  });
+
+  it("produces identical unit_ids regardless of which alias address was queried", () => {
+    // Same parcel, queried by a different alias — unit_ids must match exactly,
+    // which is what lets mergeRows collapse the duplicates.
+    const viaOther = parsePhaseUnits(
+      parseMarPage(read("1430-santa-monica-blvd.html")),
+      "9999",
+      "Some Other St",
+      "2026-06-07T00:00:00.000Z",
+    );
+    expect(new Set(viaOther.units.map((u) => u.unit_id))).toEqual(
+      new Set(out.units.map((u) => u.unit_id)),
+    );
   });
 });

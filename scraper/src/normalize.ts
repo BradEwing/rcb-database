@@ -11,7 +11,8 @@ export type ParcelRow = {
 
 export type UnitRow = {
   unit_id: string;
-  parcel_id: string;
+  apn: string;
+  address: string;
   unit_label: string;
   bedrooms: string;
   first_seen_at: string;
@@ -66,7 +67,7 @@ export function parsePhaseUnits(
   observations: MarObservationRow[];
 } {
   const today = fetchedAtIso.slice(0, 10);
-  const parcelId = slug(`${streetNumber} ${streetName}`);
+  const queriedAddress = `${streetNumber} ${streetName}`;
   const units: UnitRow[] = [];
   const observations: MarObservationRow[] = [];
   let apn = "";
@@ -76,17 +77,25 @@ export function parsePhaseUnits(
   }
 
   for (const r of page.marData.rows) {
+    // Identify the unit by the form's OWN Address column, not the queried
+    // street. The MAR form returns every unit on a parcel for any of that
+    // parcel's addresses, each row self-identifying via Address + Unit. Keying
+    // on the queried street double-counts buildings that span several addresses
+    // (one APN, many street numbers); keying on the row's Address collapses
+    // those duplicates while keeping genuinely distinct units apart.
+    const rowAddress = pickFirst(r, ["Address"]) || queriedAddress;
     const unitLabel = pickFirst(r, ["Unit", "Unit Number", "Apt", "Suite"]);
     const bedrooms = pickFirst(r, ["Bedrooms", "BR", "Beds"]);
     const marText = pickFirst(r, ["MAR", "Maximum Allowable Rent"]);
     const tenancyText = pickFirst(r, ["Tenancy Date", "Tenancy"]);
-    const apnText = pickFirst(r, ["Parcel", "APN"]);
-    if (apnText) apn = apnText;
+    const rowApn = pickFirst(r, ["Parcel", "APN"]);
+    if (rowApn) apn = rowApn;
 
-    const unitId = slug(`${parcelId} ${unitLabel || "_"}`);
+    const unitId = slug(`${rowAddress} ${unitLabel || "_"}`);
     units.push({
       unit_id: unitId,
-      parcel_id: parcelId,
+      apn: rowApn,
+      address: rowAddress,
       unit_label: unitLabel,
       bedrooms,
       first_seen_at: today,
