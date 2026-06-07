@@ -141,7 +141,7 @@ function parseTenancyDate(text: string): string {
   return `${yr}-${mo!.padStart(2, "0")}-${da!.padStart(2, "0")}`;
 }
 
-function slug(s: string): string {
+export function slug(s: string): string {
   return s
     .toLowerCase()
     .trim()
