@@ -13,6 +13,33 @@ export interface ParcelProperties {
   has_recent_change: boolean;
 }
 
+/** One unit row in a parcel's detail (parcels/<apn>.json). Mirrors the
+ *  `UnitDetail` type in site/scripts/build-data.ts (the two must stay in sync). */
+export interface UnitDetail {
+  unit_id: string;
+  address: string;
+  unit_label: string;
+  bedrooms: string;
+  mar_cents: number;
+  mar_status: 'controlled' | 'exempt';
+  tenancy_date: string;
+}
+
+export interface ParcelSummary {
+  unit_count: number;
+  controlled: number;
+  exempt: number;
+  median_mar_cents: number;
+}
+
+/** parcels/<apn>.json — the full per-parcel breakdown, lazy-loaded on click. */
+export interface ParcelDetail {
+  apn: string;
+  addresses: string[];
+  summary: ParcelSummary;
+  units: UnitDetail[];
+}
+
 /** meta.json — build provenance, surfaced in the footer (later PR). */
 export interface SiteMeta {
   built_at: string;

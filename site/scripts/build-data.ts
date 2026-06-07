@@ -42,13 +42,16 @@ import {
  *  drift while still catching a real join regression (wrong field, stale cache). */
 const MIN_MATCH_RATE = 0.95;
 
-type ParcelAgg = {
-  apn: string;
-  addresses: Set<string>;
-  unitCount: number;
-  controlledCount: number;
-  exemptCount: number;
-  controlledMarCents: number[];
+/** One row of the per-APN detail's unit table. Mirrors the `UnitDetail` type in
+ *  site/src/lib/types.ts (the two must stay in sync). */
+type UnitDetail = {
+  unit_id: string;
+  address: string;
+  unit_label: string;
+  bedrooms: string;
+  mar_cents: number;
+  mar_status: "controlled" | "exempt";
+  tenancy_date: string;
 };
 
 type GeoFeature = {
@@ -66,45 +69,67 @@ function gitSha(): string {
   }
 }
 
-/** Aggregate every unit into its APN. Source of truth for the parcel universe. */
-function aggregateParcels(
+/** Group every unit (with its carry-forward MAR) under its APN. units.csv is the
+ *  source of truth for the parcel universe and unit grouping (never parcels.csv).
+ *  Units within a parcel are ordered by address, then unit label (numeric-aware),
+ *  so the detail table and any diffs are deterministic. */
+function groupUnitsByApn(
   units: Row[],
   latestMar: Map<string, LatestMar>,
-): Map<string, ParcelAgg> {
-  const byApn = new Map<string, ParcelAgg>();
+): Map<string, UnitDetail[]> {
+  const byApn = new Map<string, UnitDetail[]>();
   for (const u of units) {
     const apn = normApn(g(u, "apn"));
     if (!apn) continue;
-    let p = byApn.get(apn);
-    if (!p) {
-      p = {
-        apn,
-        addresses: new Set(),
-        unitCount: 0,
-        controlledCount: 0,
-        exemptCount: 0,
-        controlledMarCents: [],
-      };
-      byApn.set(apn, p);
-    }
-    p.unitCount++;
-    const addr = g(u, "address");
-    if (addr) p.addresses.add(addr);
     const mar = latestMar.get(g(u, "unit_id"));
     const cents = mar?.mar_amount_cents ?? 0;
-    if (cents > 0) {
-      p.controlledCount++;
-      p.controlledMarCents.push(cents);
-    } else {
-      p.exemptCount++;
-    }
+    const detail: UnitDetail = {
+      unit_id: g(u, "unit_id"),
+      address: g(u, "address"),
+      unit_label: g(u, "unit_label"),
+      bedrooms: g(u, "bedrooms"),
+      mar_cents: cents,
+      mar_status: cents > 0 ? "controlled" : "exempt",
+      tenancy_date: mar?.tenancy_date ?? "",
+    };
+    const list = byApn.get(apn);
+    if (list) list.push(detail);
+    else byApn.set(apn, [detail]);
+  }
+  const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+  for (const list of byApn.values()) {
+    list.sort(
+      (a, b) =>
+        collator.compare(a.address, b.address) ||
+        collator.compare(a.unit_label, b.unit_label),
+    );
   }
   return byApn;
 }
 
-/** Representative address for an APN label: the lexicographically first one. */
-function labelAddress(addresses: Set<string>): string {
-  return [...addresses].sort()[0] ?? "";
+type ParcelSummary = {
+  unit_count: number;
+  controlled: number;
+  exempt: number;
+  median_mar_cents: number;
+};
+
+function summarize(units: UnitDetail[]): ParcelSummary {
+  const controlledCents = units.filter((u) => u.mar_cents > 0).map((u) => u.mar_cents);
+  return {
+    unit_count: units.length,
+    controlled: controlledCents.length,
+    exempt: units.length - controlledCents.length,
+    median_mar_cents: median(controlledCents),
+  };
+}
+
+/** Distinct addresses for a parcel, sorted (numeric-aware). */
+function addressesOf(units: UnitDetail[]): string[] {
+  const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+  const set = new Set<string>();
+  for (const u of units) if (u.address) set.add(u.address);
+  return [...set].sort((a, b) => collator.compare(a, b));
 }
 
 function main(): void {
@@ -124,7 +149,7 @@ function main(): void {
   const latestMar = latestMarByUnit(obs);
   const sweepDate = latestSweepDate(sweeps);
 
-  const parcels = aggregateParcels(units, latestMar);
+  const parcelUnits = groupUnitsByApn(units, latestMar);
 
   // APNs that saw a MAR change at the latest sweep → choropleth "recent change".
   const recentlyChanged = new Set<string>();
@@ -143,31 +168,44 @@ function main(): void {
     if (ain && !geomByApn.has(ain)) geomByApn.set(ain, f.geometry);
   }
 
+  // Per-APN detail JSON, lazy-loaded on parcel click. Written for EVERY APN (not
+  // just mapped ones) so search can resolve any parcel later; cheap static files.
+  const parcelsDir = join(SITE_DATA_DIR, "parcels");
+  mkdirSync(parcelsDir, { recursive: true });
+
   const features: GeoFeature[] = [];
   const unmatchedApns: string[] = [];
-  for (const p of parcels.values()) {
-    const geometry = geomByApn.get(p.apn);
+  for (const [apn, parcelUnitList] of parcelUnits) {
+    const summary = summarize(parcelUnitList);
+    const addresses = addressesOf(parcelUnitList);
+
+    writeFileSync(
+      join(parcelsDir, `${apn}.json`),
+      JSON.stringify({ apn, addresses, summary, units: parcelUnitList }),
+    );
+
+    const geometry = geomByApn.get(apn);
     if (!geometry) {
-      unmatchedApns.push(p.apn);
+      unmatchedApns.push(apn);
       continue;
     }
     features.push({
       type: "Feature",
       geometry,
       properties: {
-        apn: p.apn,
-        label_address: labelAddress(p.addresses),
-        unit_count: p.unitCount,
-        controlled_count: p.controlledCount,
-        exempt_count: p.exemptCount,
-        median_mar_cents: median(p.controlledMarCents),
-        size_class: sizeClassOf(p.unitCount),
-        has_recent_change: recentlyChanged.has(p.apn),
+        apn,
+        label_address: addresses[0] ?? "",
+        unit_count: summary.unit_count,
+        controlled_count: summary.controlled,
+        exempt_count: summary.exempt,
+        median_mar_cents: summary.median_mar_cents,
+        size_class: sizeClassOf(summary.unit_count),
+        has_recent_change: recentlyChanged.has(apn),
       },
     });
   }
 
-  const referenced = parcels.size;
+  const referenced = parcelUnits.size;
   const matched = features.length;
   const rate = referenced ? matched / referenced : 0;
 
@@ -220,6 +258,7 @@ function main(): void {
   const bytes = Buffer.byteLength(JSON.stringify({ type: "FeatureCollection", features }));
   process.stdout.write(
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
+      `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${metaPath}\n`,
   );
 }
