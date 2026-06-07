@@ -1,0 +1,68 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <main>
+    <section class="hero">
+      <p class="kicker">Santa Monica</p>
+      <h1>Rent-Control Registry</h1>
+      <p class="lede">
+        A public, self-hosted map of Santa Monica's rent-controlled stock — every
+        controlled parcel, its units, and their Maximum Allowable Rent, refreshed
+        monthly from the City's public MAR lookup tool.
+      </p>
+      <p class="status" role="status">
+        🚧 The interactive parcel map is being built. This page proves the
+        hosting pipeline end-to-end; features land PR by PR.
+      </p>
+      <p class="links">
+        <a href="https://github.com/bradewing/rcb-database">Source &amp; data on GitHub</a>
+      </p>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  main {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+  }
+  .hero {
+    max-width: 36rem;
+  }
+  .kicker {
+    margin: 0 0 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.1;
+  }
+  .lede {
+    font-size: 1.1rem;
+    color: var(--fg);
+  }
+  .status {
+    margin-top: 1.5rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    font-size: 0.95rem;
+  }
+  .links {
+    margin-top: 1.5rem;
+  }
+  a {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
