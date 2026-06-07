@@ -1,0 +1,10 @@
+# Astro build output + cache
+dist/
+.astro/
+
+# Generated site data artifacts (built in CI from the registry CSVs, deployed
+# to Pages — never committed). See docs/design/static-site.md (Repo-size discipline).
+public/data/
+
+node_modules/
+.DS_Store
