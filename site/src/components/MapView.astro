@@ -23,6 +23,13 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
   </ul>
 </div>
 
+<aside id="detail-panel" class="detail-panel" aria-label="Parcel detail" hidden>
+  <button id="detail-close" class="detail-close" type="button" aria-label="Close parcel detail">
+    ✕
+  </button>
+  <div id="detail-body" class="detail-body"></div>
+</aside>
+
 <script>
   import maplibregl from 'maplibre-gl';
   import {
@@ -35,7 +42,8 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
     dataUrl,
   } from '../config';
   import { formatCount, formatMarCents } from '../lib/format';
-  import type { ParcelProperties } from '../lib/types';
+  import { renderParcelDetail } from '../lib/detail';
+  import type { ParcelProperties, ParcelDetail } from '../lib/types';
 
   const metric = METRICS.unit_count;
 
@@ -98,9 +106,21 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
       type: 'line',
       source: 'parcels',
       paint: {
-        'line-color': '#2b3b4e',
-        'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1.8, 0.3],
-        'line-opacity': 0.55,
+        'line-color': [
+          'case',
+          ['boolean', ['feature-state', 'selected'], false],
+          '#b91c1c',
+          '#2b3b4e',
+        ],
+        'line-width': [
+          'case',
+          ['boolean', ['feature-state', 'selected'], false],
+          2.6,
+          ['boolean', ['feature-state', 'hover'], false],
+          1.8,
+          0.3,
+        ],
+        'line-opacity': 0.6,
       },
     });
 
@@ -136,6 +156,56 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
       hovered = null;
       popup.remove();
     });
+
+    // Click: lazy-load the per-APN detail and open the side panel.
+    map.on('click', 'parcels-fill', (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      void openParcel(String(f.id));
+    });
+  });
+
+  // ---- Detail panel ---------------------------------------------------------
+  const panel = document.getElementById('detail-panel') as HTMLElement;
+  const panelBody = document.getElementById('detail-body') as HTMLElement;
+  const closeBtn = document.getElementById('detail-close') as HTMLButtonElement;
+  let selected: string | null = null;
+  const detailCache = new Map<string, ParcelDetail>();
+
+  function setSelected(apn: string | null): void {
+    if (selected) map.setFeatureState({ source: 'parcels', id: selected }, { selected: false });
+    selected = apn;
+    if (apn) map.setFeatureState({ source: 'parcels', id: apn }, { selected: true });
+  }
+
+  function closePanel(): void {
+    panel.hidden = true;
+    setSelected(null);
+  }
+
+  async function openParcel(apn: string): Promise<void> {
+    setSelected(apn);
+    panel.hidden = false;
+    panelBody.innerHTML = '<p class="detail-loading">Loading…</p>';
+    try {
+      let detail = detailCache.get(apn);
+      if (!detail) {
+        const res = await fetch(dataUrl(`parcels/${apn}.json`));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        detail = (await res.json()) as ParcelDetail;
+        detailCache.set(apn, detail);
+      }
+      // Guard against a slower fetch resolving after another parcel was selected.
+      if (selected !== apn) return;
+      panelBody.innerHTML = renderParcelDetail(detail);
+    } catch (err) {
+      panelBody.innerHTML = `<p class="detail-error">Couldn't load parcel ${apn}: ${String(err)}</p>`;
+    }
+  }
+
+  closeBtn.addEventListener('click', closePanel);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) closePanel();
   });
 </script>
 
@@ -184,6 +254,40 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
     border: 1px solid rgb(0 0 0 / 0.2);
     flex: none;
   }
+
+  .detail-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 4;
+    width: min(420px, 92vw);
+    height: 100%;
+    overflow-y: auto;
+    background: var(--bg);
+    border-left: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+    box-shadow: -4px 0 20px rgb(0 0 0 / 0.14);
+    padding: 1rem 1.1rem 2rem;
+  }
+  .detail-panel[hidden] {
+    display: none;
+  }
+  .detail-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    margin: -0.25rem -0.25rem 0 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--muted) 18%, transparent);
+    color: var(--fg);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .detail-close:hover {
+    background: color-mix(in srgb, var(--muted) 32%, transparent);
+  }
 </style>
 
 <style is:global>
@@ -206,5 +310,83 @@ const legendBins = metric.legend.map((label, i) => ({ label, color: metric.color
   }
   .parcel-tip .row {
     display: block;
+  }
+
+  /* Detail panel content (rendered via innerHTML → outside scoped styles). */
+  .detail-body .muted {
+    color: var(--muted);
+  }
+  .detail-head {
+    margin-bottom: 0.9rem;
+  }
+  .detail-head .single-address,
+  .detail-head .addresses > summary {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .detail-head .addresses {
+    margin: 0;
+  }
+  .detail-head .addresses > summary {
+    cursor: pointer;
+  }
+  .detail-head .addresses ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+  }
+  .detail-head .apn {
+    margin: 0.15rem 0 0;
+    font-size: 0.74rem;
+  }
+  .detail-head .statline {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+  }
+  .detail-loading,
+  .detail-error {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  table.units {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  table.units th,
+  table.units td {
+    text-align: left;
+    padding: 0.34rem 0.4rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--muted) 22%, transparent);
+  }
+  table.units th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  table.units .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  table.units tbody tr:hover {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  .badge.status-controlled {
+    background: color-mix(in srgb, #16a34a 18%, transparent);
+    color: #15803d;
+  }
+  .badge.status-exempt {
+    background: color-mix(in srgb, var(--muted) 22%, transparent);
+    color: var(--muted);
   }
 </style>
