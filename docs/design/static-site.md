@@ -189,3 +189,9 @@ Each PR is independently shippable and reviewable:
 - Use-type / vintage breakdowns (ADU vs rental SFR vs multifamily; legacy vs new
   construction) — needs an external parcel/permit cross-reference, tracked
   separately in [parcel-enrichment.md](./parcel-enrichment.md).
+- **City-limits boundary overlay.** Draw Santa Monica's city boundary as an
+  outline on the map (optionally dimming everything outside it). Fetch the City's
+  boundary layer from the same ArcGIS portal and cache it under `data/external/`
+  like the parcel geometry; OSM's city relation is a fallback. Helps orient the
+  ~45°-rotated street grid and distinguishes "inside the city, no controlled
+  units here" from "outside the city."
