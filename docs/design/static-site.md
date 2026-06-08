@@ -180,6 +180,14 @@ Each PR is independently shippable and reviewable:
 - **v1 time scope:** current snapshot first; 2023→2026 + monthly change layer
   lands in PR6.
 
+## Roadmap (planned)
+
+- **Analytics charts + map unit-density view** — a citywide charts section
+  (initial-MAR-by-tenancy-vintage scatter, median rent by bedroom count) and a
+  spatial unit-density map layer. Build-time aggregates over the registry CSVs,
+  rendered with the Observable Plot / MapLibre stack already shipped. Designed in
+  [charts-and-density.md](./charts-and-density.md).
+
 ## Out of scope (later)
 
 - Per-unit rent-history beyond what the registry holds (the tool only exposes
