@@ -633,13 +633,16 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     display: grid;
     gap: 0.2rem;
   }
-  .legend li {
+  /* Legend rows + swatches are injected via innerHTML at runtime, so they never
+     receive Astro's scope attribute — target them with :global or the scoped
+     rule won't match and the swatches collapse to zero size (invisible). */
+  .legend :global(li) {
     display: flex;
     align-items: center;
     gap: 0.45rem;
     white-space: nowrap;
   }
-  .swatch {
+  .legend :global(.swatch) {
     width: 0.9rem;
     height: 0.9rem;
     border-radius: 2px;
