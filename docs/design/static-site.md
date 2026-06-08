@@ -186,3 +186,6 @@ Each PR is independently shippable and reviewable:
   current MAR; history starts at the 2023 dump + monthly sweeps).
 - User accounts, saved searches, server-side search/filtering.
 - GA-formula reconstruction (rejected — see [sparse-observations.md](./sparse-observations.md)).
+- Use-type / vintage breakdowns (ADU vs rental SFR vs multifamily; legacy vs new
+  construction) — needs an external parcel/permit cross-reference, tracked
+  separately in [parcel-enrichment.md](./parcel-enrichment.md).
