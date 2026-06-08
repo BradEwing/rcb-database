@@ -337,6 +337,136 @@ function buildSummary(
   };
 }
 
+/** Linear-interpolated percentile (p in 0–100) of a numeric list; 0 for empty. */
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0;
+  const s = [...values].sort((a, b) => a - b);
+  if (s.length === 1) return s[0]!;
+  const rank = (p / 100) * (s.length - 1);
+  const lo = Math.floor(rank);
+  const hi = Math.ceil(rank);
+  if (lo === hi) return s[lo]!;
+  const frac = rank - lo;
+  return Math.round((s[lo] ?? 0) * (1 - frac) + (s[hi] ?? 0) * frac);
+}
+
+/** One bar of the median-rent-by-bedroom chart. Mirrors `RentByBedroom` in
+ *  site/src/lib/types.ts (the two must stay in sync). */
+type RentByBedroom = {
+  bucket: "0" | "1" | "2" | "3+";
+  label: string;
+  count: number;
+  median_cents: number;
+  mean_cents: number;
+  p25_cents: number;
+  p75_cents: number;
+};
+
+const BEDROOM_LABELS: Record<string, string> = {
+  "0": "Studio",
+  "1": "1 BR",
+  "2": "2 BR",
+  "3+": "3+ BR",
+};
+
+/** Citywide analytics aggregates (analytics.json) — the build-time dataset the
+ *  /charts page reads. `rent_by_bedroom` is controlled units only; exempt ($0)
+ *  units are excluded (they'd drag every median to zero — see charts-and-density.md). */
+const BEDROOM_ORDER: Array<"0" | "1" | "2" | "3+"> = ["0", "1", "2", "3+"];
+
+/** One snapshot point of a bedroom bucket's median rent over time. */
+type RentTimePoint = { date: string; median_cents: number; count: number };
+
+/** Median MAR per bedroom bucket at every registry snapshot, reconstructed from
+ *  the event-sourced change log: a unit's MAR as-of date D is its latest
+ *  observation with `observed_at <= D` (carry-forward). The time grid is the set
+ *  of distinct observation dates — currently the 2023 baseline + each sweep, so
+ *  the series deepens by one point per monthly sweep. Controlled units only. */
+function buildRentOverTime(
+  units: Row[],
+  obs: Row[],
+): { dates: string[]; series: Array<{ bucket: string; label: string; points: RentTimePoint[] }> } {
+  // Per-unit observations sorted ascending by date (for as-of carry-forward).
+  const obsByUnit = new Map<string, Array<{ at: string; cents: number }>>();
+  for (const o of obs) {
+    const id = g(o, "unit_id");
+    const rec = { at: g(o, "observed_at"), cents: intOf(o, "mar_amount_cents") };
+    const list = obsByUnit.get(id);
+    if (list) list.push(rec);
+    else obsByUnit.set(id, [rec]);
+  }
+  for (const list of obsByUnit.values()) list.sort((a, b) => a.at.localeCompare(b.at));
+
+  const bedroomByUnit = new Map<string, string>();
+  for (const u of units) bedroomByUnit.set(g(u, "unit_id"), bedroomBucket(g(u, "bedrooms")));
+
+  const dates = [...new Set(obs.map((o) => g(o, "observed_at")).filter(Boolean))].sort();
+  const series = BEDROOM_ORDER.map((b) => ({
+    bucket: b as string,
+    label: BEDROOM_LABELS[b] ?? b,
+    points: [] as RentTimePoint[],
+  }));
+
+  for (const d of dates) {
+    const buckets = new Map<string, number[]>();
+    for (const [id, list] of obsByUnit) {
+      // As-of MAR: the last observation on or before this snapshot date.
+      let cents = -1;
+      for (const o of list) {
+        if (o.at <= d) cents = o.cents;
+        else break;
+      }
+      if (cents <= 0) continue; // not yet present, or exempt at this date
+      const bucket = bedroomByUnit.get(id);
+      if (!bucket || bucket === "unknown") continue;
+      const arr = buckets.get(bucket);
+      if (arr) arr.push(cents);
+      else buckets.set(bucket, [cents]);
+    }
+    for (const s of series) {
+      const arr = buckets.get(s.bucket) ?? [];
+      s.points.push({ date: d, median_cents: median(arr), count: arr.length });
+    }
+  }
+  return { dates, series };
+}
+
+function buildAnalytics(
+  units: Row[],
+  latestMar: Map<string, LatestMar>,
+  obs: Row[],
+  sweepDate: string,
+): Record<string, unknown> {
+  const byBucket = new Map<string, number[]>();
+  for (const u of units) {
+    const cents = latestMar.get(g(u, "unit_id"))?.mar_amount_cents ?? 0;
+    if (cents <= 0) continue; // exempt — not a rent data point
+    const bucket = bedroomBucket(g(u, "bedrooms"));
+    if (bucket === "unknown") continue;
+    const list = byBucket.get(bucket);
+    if (list) list.push(cents);
+    else byBucket.set(bucket, [cents]);
+  }
+  const rentByBedroom: RentByBedroom[] = BEDROOM_ORDER.filter((b) => byBucket.has(b)).map((b) => {
+    const v = byBucket.get(b)!;
+    const sum = v.reduce((a, c) => a + c, 0);
+    return {
+      bucket: b,
+      label: BEDROOM_LABELS[b] ?? b,
+      count: v.length,
+      median_cents: median(v),
+      mean_cents: Math.round(sum / v.length),
+      p25_cents: percentile(v, 25),
+      p75_cents: percentile(v, 75),
+    };
+  });
+  return {
+    latest_sweep: sweepDate,
+    rent_by_bedroom: rentByBedroom,
+    rent_over_time: buildRentOverTime(units, obs),
+  };
+}
+
 function main(): void {
   const units = readCsv(UNITS_CSV);
   if (units.length === 0) {
@@ -533,6 +663,10 @@ function main(): void {
   const summaryPath = join(SITE_DATA_DIR, "summary.json");
   writeFileSync(summaryPath, JSON.stringify(summaryJson, null, 2) + "\n");
 
+  const analyticsJson = buildAnalytics(units, latestMar, obs, sweepDate);
+  const analyticsPath = join(SITE_DATA_DIR, "analytics.json");
+  writeFileSync(analyticsPath, JSON.stringify(analyticsJson, null, 2) + "\n");
+
   const bytes = Buffer.byteLength(JSON.stringify({ type: "FeatureCollection", features }));
   process.stdout.write(
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
@@ -541,6 +675,7 @@ function main(): void {
       (boundaryCopied ? `Wrote ${boundaryPath} (city-limits overlay)\n` : "") +
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${summaryPath}\n` +
+      `Wrote ${analyticsPath}\n` +
       `Wrote ${metaPath}\n`,
   );
 }

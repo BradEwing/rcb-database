@@ -1,7 +1,10 @@
 # Design: analytics charts + map unit-density view
 
-**Status:** proposed (roadmap) · **Scope:** new site charts section + one map
+**Status:** partially shipped · **Scope:** new site charts section + one map
 layer · **Depends on:** the registry CSVs (shipped) + the static site (shipped)
+
+**Progress:** #2 (rent by bedroom) is **shipped** — see "Shipped" below. #1
+(tenancy-vintage scatter) and #3 (map density) remain planned.
 
 ## Goal
 
@@ -10,11 +13,11 @@ that reads the registry as a dataset, plus a spatial **density** view of the
 controlled stock. Three deliverables, each shippable on its own:
 
 1. **Initial MAR by tenancy start date** — a scatter of allowed rent against the
-   month-year a tenancy began (the Costa-Hawkins "rent by vintage" story).
+   month-year a tenancy began (the Costa-Hawkins "rent by vintage" story). *(planned)*
 2. **Average / median MAR by bedroom count** — what a controlled 0/1/2/3+ BR unit
-   rents for.
+   rents for. *(shipped)*
 3. **Map density view** — unit count rendered as a heat/density layer, not just
-   the existing per-parcel choropleth.
+   the existing per-parcel choropleth. *(planned)*
 
 All three are build-time aggregates over the source CSVs (no backend), rendered
 with the chart stack the site already ships (**Observable Plot**, used today for
@@ -54,7 +57,32 @@ Berkeleyside's 2023 Berkeley affordable-housing coverage,
   `site/scripts/lib/registry.ts`; the citywide `bedroom_mix` already lands in
   `summary.json`, so this is the same group-by with a MAR aggregate added.
 - **Optional cut:** by `size_class` (single / small / multifamily) to show the
-  SFR-vs-apartment rent gap.
+  SFR-vs-apartment rent gap. *(not yet built)*
+
+### Shipped
+
+A **`/charts`** page (`site/src/pages/charts.astro`, linked from the map header
+nav) renders two complementary views, both fed by a new build-time
+**`analytics.json`** (`buildAnalytics` in `build-data.ts`; types in
+`site/src/lib/types.ts`; chart helpers in `site/src/lib/chart.ts`):
+
+- **Median MAR by bedroom, over time** — the primary chart: one line per bucket,
+  a point at each registry snapshot. Built from `buildRentOverTime`, which
+  reconstructs every unit's MAR **as-of** each distinct `observed_at` date by
+  carry-forward over the event-sourced log, then takes the per-bucket median.
+  Currently two points (the 2023 baseline + the 2026 sweep); **the series deepens
+  by one point per monthly sweep** with no further work — the registry's whole
+  reason for existing. Honest framing on the chart note (history is shallow today).
+- **Current median by bedroom count** — the latest snapshot as a bar per bucket
+  with a 25th–75th-percentile whisker for spread, plus a value label and a
+  summary table of median + unit count.
+
+Both are **controlled units only** (`mar_amount_cents > 0`); exempt `$0` units are
+excluded so they can't drag medians to zero. Added a linear-interpolated
+`percentile()` helper for the IQR. Median chosen over mean (right-skewed rents);
+the per-bucket `mean_cents` is persisted in `analytics.json` too but not yet
+plotted. Charts render via Observable Plot (theme-aware via `currentColor`) and
+re-render on resize.
 
 ## 3. Map density view (units)
 

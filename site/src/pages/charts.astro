@@ -1,0 +1,189 @@
+---
+import Layout from '../layouts/Layout.astro';
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title="Charts — Santa Monica Rent-Control Registry">
+  <article class="charts">
+    <p class="back"><a href={`${base}/`}>← Back to the map</a></p>
+
+    <h1>Rent by the numbers</h1>
+    <p class="lede">
+      Citywide breakdowns of the controlled stock, rebuilt each month from the
+      registry. Rent figures cover <strong>controlled units only</strong> —
+      exempt ($0&nbsp;MAR) units are excluded so they can't drag the medians down.
+    </p>
+
+    <section class="chart-block">
+      <h2>Median MAR by bedroom, over time</h2>
+      <p class="chart-note">
+        Median Maximum Allowable Rent for controlled units at each registry
+        snapshot, reconstructed as-of every date the registry recorded. History
+        begins at the <strong>2023 baseline</strong> and deepens by one point with
+        every monthly sweep.
+      </p>
+      <figure id="rent-over-time" class="chart"><p class="loading">Loading chart…</p></figure>
+    </section>
+
+    <section class="chart-block">
+      <h2>Current median by bedroom count</h2>
+      <p class="chart-note">
+        Latest snapshot. Each bar is the <strong>median</strong> Maximum Allowable
+        Rent for units of that size; the vertical whisker spans the 25th–75th
+        percentile. Bedrooms are grouped 0&nbsp;/&nbsp;1&nbsp;/&nbsp;2&nbsp;/&nbsp;3+.
+      </p>
+      <figure id="rent-by-bedroom" class="chart"><p class="loading">Loading chart…</p></figure>
+      <dl id="rent-by-bedroom-table" class="chart-table" aria-label="Median MAR by bedroom count"></dl>
+    </section>
+
+    <p class="more"><a href={`${base}/about/`}>About this registry →</a></p>
+
+    <footer id="provenance" class="provenance">Loading build provenance…</footer>
+  </article>
+</Layout>
+
+<script>
+  import { dataUrl } from '../config';
+  import { rentByBedroomChart, rentOverTimeChart } from '../lib/chart';
+  import { formatMarCents, formatCount } from '../lib/format';
+  import type { SiteAnalytics, SiteMeta } from '../lib/types';
+
+  const host = document.getElementById('rent-by-bedroom');
+  const timeHost = document.getElementById('rent-over-time');
+  const tableEl = document.getElementById('rent-by-bedroom-table');
+  let analytics: SiteAnalytics | null = null;
+
+  function renderChart(): void {
+    if (!analytics) return;
+    if (timeHost) {
+      timeHost.replaceChildren(
+        rentOverTimeChart(analytics.rent_over_time.series, timeHost.clientWidth || 640),
+      );
+    }
+    if (host) {
+      host.replaceChildren(rentByBedroomChart(analytics.rent_by_bedroom, host.clientWidth || 640));
+    }
+  }
+
+  fetch(dataUrl('analytics.json'))
+    .then((r) => (r.ok ? (r.json() as Promise<SiteAnalytics>) : Promise.reject(r.status)))
+    .then((a) => {
+      analytics = a;
+      renderChart();
+      if (tableEl) {
+        tableEl.innerHTML = a.rent_by_bedroom
+          .map(
+            (r) =>
+              `<div><dt>${r.label}</dt><dd>${formatMarCents(r.median_cents)} median` +
+              ` · ${formatCount(r.count)} units</dd></div>`,
+          )
+          .join('');
+      }
+    })
+    .catch(() => {
+      const msg = '<p class="loading">Chart data unavailable.</p>';
+      if (timeHost) timeHost.innerHTML = msg;
+      if (host) host.innerHTML = msg;
+    });
+
+  // Re-render on resize (debounced) so the SVG tracks the container width.
+  let resizeTimer: number | undefined;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(renderChart, 150);
+  });
+
+  const prov = document.getElementById('provenance');
+  if (prov) {
+    fetch(dataUrl('meta.json'))
+      .then((r) => (r.ok ? (r.json() as Promise<SiteMeta>) : Promise.reject(r.status)))
+      .then((m) => {
+        const built = new Date(m.built_at).toISOString().slice(0, 10);
+        prov.textContent =
+          `Latest sweep ${m.latest_sweep} · built ${built} · ` +
+          `${m.units_total.toLocaleString()} units.`;
+      })
+      .catch(() => {
+        prov.textContent = '';
+      });
+  }
+</script>
+
+<style>
+  .charts {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  .back {
+    font-size: 0.85rem;
+  }
+  .back a,
+  .more a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin: 0.4rem 0 0.6rem;
+  }
+  .lede {
+    font-size: 1.05rem;
+  }
+  .chart-block {
+    margin-top: 2.25rem;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin: 0 0 0.35rem;
+  }
+  .chart-note {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .chart {
+    margin: 0;
+    min-height: 200px;
+  }
+  .chart :global(svg) {
+    max-width: 100%;
+    height: auto;
+  }
+  .loading {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .chart-table {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    margin: 0.75rem 0 0;
+    font-size: 0.82rem;
+  }
+  .chart-table :global(div) {
+    display: flex;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
+  .chart-table :global(dt) {
+    font-weight: 700;
+  }
+  .chart-table :global(dd) {
+    margin: 0;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .more {
+    margin-top: 2.5rem;
+    font-weight: 600;
+  }
+  .provenance {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

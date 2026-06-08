@@ -91,6 +91,38 @@ export interface SiteSummary {
   exited_count: number;
 }
 
+/** One bar of the median-rent-by-bedroom chart (mirrors build-data `RentByBedroom`). */
+export interface RentByBedroom {
+  bucket: '0' | '1' | '2' | '3+';
+  label: string;
+  count: number;
+  median_cents: number;
+  mean_cents: number;
+  p25_cents: number;
+  p75_cents: number;
+}
+
+/** One snapshot point of a bedroom bucket's median rent over time. */
+export interface RentTimePoint {
+  date: string;
+  median_cents: number;
+  count: number;
+}
+
+/** A bedroom bucket's median-rent time series (mirrors build-data). */
+export interface RentOverTimeSeries {
+  bucket: string;
+  label: string;
+  points: RentTimePoint[];
+}
+
+/** analytics.json — citywide aggregates read by the /charts page. */
+export interface SiteAnalytics {
+  latest_sweep: string;
+  rent_by_bedroom: RentByBedroom[];
+  rent_over_time: { dates: string[]; series: RentOverTimeSeries[] };
+}
+
 /** meta.json — build provenance, surfaced in the footer (later PR). */
 export interface SiteMeta {
   built_at: string;
