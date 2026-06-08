@@ -6,6 +6,7 @@
   "description": "Static GitHub Pages site for the Santa Monica rent-control registry.",
   "scripts": {
     "fetch-geometry": "tsx scripts/fetch-geometry.ts",
+    "fetch-boundary": "tsx scripts/fetch-boundary.ts",
     "build-data": "tsx scripts/build-data.ts",
     "prebuild": "npm run build-data",
     "dev": "astro dev",

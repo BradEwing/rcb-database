@@ -189,9 +189,17 @@ Each PR is independently shippable and reviewable:
 - Use-type / vintage breakdowns (ADU vs rental SFR vs multifamily; legacy vs new
   construction) — needs an external parcel/permit cross-reference, tracked
   separately in [parcel-enrichment.md](./parcel-enrichment.md).
-- **City-limits boundary overlay.** Draw Santa Monica's city boundary as an
-  outline on the map (optionally dimming everything outside it). Fetch the City's
-  boundary layer from the same ArcGIS portal and cache it under `data/external/`
-  like the parcel geometry; OSM's city relation is a fallback. Helps orient the
-  ~45°-rotated street grid and distinguishes "inside the city, no controlled
-  units here" from "outside the city."
+
+## Shipped after the initial PRs
+
+- **City-limits boundary overlay (done).** Santa Monica's city boundary is drawn
+  as an outline plus a soft dim of everything outside the limits, toggleable from
+  the legend (default on). The single boundary polygon is fetched from the City's
+  `Santa_Monica_city_boundary` ArcGIS FeatureServer and cached under
+  `data/external/city-boundary.geojson` (committed, like the parcel geometry) by
+  `npm run fetch-boundary`; `build-data` passes it through to
+  `site/public/data/` and the map builds a "world minus the city ring" mask for
+  the dim. It orients the ~45°-rotated street grid and distinguishes "inside the
+  city, no controlled units here" from "outside the city." Unlike the parcel
+  geometry the overlay is cosmetic, so a missing cache only warns — it never
+  gates the build.

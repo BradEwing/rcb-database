@@ -17,11 +17,12 @@
  * Run: `npm run build-data`  (from the site/ directory)
  */
 import { execSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   SITE_DATA_DIR,
   GEOMETRY_CACHE,
+  BOUNDARY_CACHE,
   UNITS_CSV,
   OBS_CSV,
   SWEEPS_CSV,
@@ -497,6 +498,22 @@ function main(): void {
   const searchPath = join(SITE_DATA_DIR, "search.json");
   writeFileSync(searchPath, JSON.stringify(searchIndex));
 
+  // City-limits overlay — pass the cached boundary polygon straight through.
+  // Cosmetic, so a missing cache only warns (the map layer is optional): run
+  // `npm run fetch-boundary` to (re)create it. Unlike parcel geometry it never
+  // gates the build.
+  const boundaryPath = join(SITE_DATA_DIR, "city-boundary.geojson");
+  let boundaryCopied = false;
+  if (existsSync(BOUNDARY_CACHE)) {
+    copyFileSync(BOUNDARY_CACHE, boundaryPath);
+    boundaryCopied = true;
+  } else {
+    process.stderr.write(
+      `WARN: ${BOUNDARY_CACHE} missing — city-limits overlay will be absent. ` +
+        `Run \`npm run fetch-boundary\`.\n`,
+    );
+  }
+
   const meta = {
     built_at: new Date().toISOString(),
     source_sha: gitSha(),
@@ -521,6 +538,7 @@ function main(): void {
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
       `Wrote ${exitsPath} (${exitFeatures.length} exit markers)\n` +
       `Wrote ${searchPath} (${searchIndex.length} searchable parcels)\n` +
+      (boundaryCopied ? `Wrote ${boundaryPath} (city-limits overlay)\n` : "") +
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${summaryPath}\n` +
       `Wrote ${metaPath}\n`,

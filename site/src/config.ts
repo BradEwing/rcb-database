@@ -15,6 +15,15 @@ export const INITIAL_ZOOM = 12.5;
 export const PARCEL_ATTRIBUTION =
   'Parcels: City of Santa Monica / LA County · Data: <a href="https://github.com/BradEwing/rcb-database">rcb-database</a> (CC0)';
 
+/** City-limits overlay — outline + a soft dim of everything outside the city,
+ *  to orient the ~45°-rotated grid and distinguish "inside SM, no controlled
+ *  units" from "outside SM". Geometry: data/external/city-boundary.geojson. */
+export const BOUNDARY_LINE_COLOR = '#0f2f4c';
+export const BOUNDARY_LINE_WIDTH = 1.6;
+/** Neutral wash over the world minus the city ring (subtle, basemap stays legible). */
+export const BOUNDARY_MASK_COLOR = '#1d2b3a';
+export const BOUNDARY_MASK_OPACITY = 0.16;
+
 export interface ChoroplethMetric {
   /** Feature property to colour by. */
   property: keyof import('./lib/types').ParcelProperties;

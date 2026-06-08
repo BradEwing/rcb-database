@@ -10,6 +10,16 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   <p id="legend-title" class="legend-title"></p>
   <ul id="legend-body"></ul>
   <p id="legend-note" class="legend-note"></p>
+  <div id="map-toggles" class="map-toggles" hidden>
+    <label id="boundary-toggle" class="map-toggle" hidden>
+      <input type="checkbox" id="boundary-checkbox" checked />
+      City limits
+    </label>
+    <label id="place-toggle" class="map-toggle" hidden>
+      <input type="checkbox" id="place-label-checkbox" />
+      Place labels
+    </label>
+  </div>
 </div>
 
 <aside id="detail-panel" class="detail-panel" aria-label="Parcel detail" hidden>
@@ -29,6 +39,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     METRICS,
     stepColorExpression,
     dataUrl,
+    BOUNDARY_LINE_COLOR,
+    BOUNDARY_LINE_WIDTH,
+    BOUNDARY_MASK_COLOR,
+    BOUNDARY_MASK_OPACITY,
     type MetricKey,
   } from '../config';
   import { formatCount, formatMarCents, formatPct } from '../lib/format';
@@ -80,6 +94,89 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     }
   }
 
+  // Build a "dim everything outside the city" mask: one polygon covering the
+  // world with each city-boundary outer ring punched out as a hole. Filling it
+  // shades the world minus Santa Monica.
+  function maskOutside(boundary: GeoJSON.FeatureCollection): GeoJSON.Feature {
+    const world: GeoJSON.Position[] = [
+      [-180, -85],
+      [180, -85],
+      [180, 85],
+      [-180, 85],
+      [-180, -85],
+    ];
+    const holes: GeoJSON.Position[][] = [];
+    for (const f of boundary.features) {
+      const geom = f.geometry;
+      if (!geom) continue;
+      if (geom.type === 'Polygon') holes.push(geom.coordinates[0]!);
+      else if (geom.type === 'MultiPolygon')
+        for (const poly of geom.coordinates) holes.push(poly[0]!);
+    }
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Polygon', coordinates: [world, ...holes] },
+    };
+  }
+
+  // Reveal the legend's map-settings group (hidden until something populates it).
+  function revealToggles(): void {
+    const group = document.getElementById('map-toggles');
+    if (group) group.hidden = false;
+  }
+
+  // Reveal the legend's city-limits toggle (hidden until the overlay loads) and
+  // wire it to both boundary layers' visibility.
+  function initBoundaryToggle(): void {
+    const toggle = document.getElementById('boundary-toggle') as HTMLElement | null;
+    const checkbox = document.getElementById('boundary-checkbox') as HTMLInputElement | null;
+    if (!toggle || !checkbox) return;
+    revealToggles();
+    toggle.hidden = false;
+    checkbox.addEventListener('change', () => {
+      const visibility = checkbox.checked ? 'visible' : 'none';
+      for (const id of ['city-mask-fill', 'city-boundary-line']) {
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility);
+      }
+    });
+  }
+
+  // Basemap place names (city + neighborhood labels) live in the vector tiles'
+  // `place` source-layer; hide them as a group to declutter the map. Matches by
+  // source-layer (robust) with an id-prefix fallback for style variants.
+  function placeLabelLayerIds(): string[] {
+    const style = map.getStyle();
+    return (style.layers ?? [])
+      .filter(
+        (l) =>
+          l.type === 'symbol' &&
+          ((l as { 'source-layer'?: string })['source-layer'] === 'place' ||
+            /^place[_-]/.test(l.id)),
+      )
+      .map((l) => l.id);
+  }
+  function setPlaceLabels(visible: boolean): void {
+    for (const id of placeLabelLayerIds()) {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+      }
+    }
+  }
+
+  // Reveal the place-labels toggle and wire it. Default OFF (labels hidden) — the
+  // dimmed surroundings read cleaner without city/neighborhood names.
+  function initPlaceLabelsToggle(): void {
+    const toggle = document.getElementById('place-toggle') as HTMLElement | null;
+    const checkbox = document.getElementById('place-label-checkbox') as HTMLInputElement | null;
+    if (!toggle || !checkbox) return;
+    setPlaceLabels(false);
+    checkbox.checked = false;
+    revealToggles();
+    toggle.hidden = false;
+    checkbox.addEventListener('change', () => setPlaceLabels(checkbox.checked));
+  }
+
   map.on('load', async () => {
     const res = await fetch(dataUrl('parcels.geojson'));
     if (!res.ok) throw new Error(`Failed to load parcels.geojson: ${res.status}`);
@@ -118,6 +215,41 @@ import 'maplibre-gl/dist/maplibre-gl.css';
         'line-opacity': 0.6,
       },
     });
+
+    // City-limits overlay — a soft dim outside the boundary (mask under the
+    // parcels so they stay vivid) plus a crisp outline on top. Optional: if the
+    // boundary artifact is absent the toggle simply stays hidden.
+    try {
+      const boundaryRes = await fetch(dataUrl('city-boundary.geojson'));
+      if (boundaryRes.ok) {
+        const boundary = (await boundaryRes.json()) as GeoJSON.FeatureCollection;
+        map.addSource('city-mask', { type: 'geojson', data: maskOutside(boundary) });
+        map.addSource('city-boundary', { type: 'geojson', data: boundary });
+        // Mask below the parcels; outline above them (city edge stays legible).
+        map.addLayer(
+          {
+            id: 'city-mask-fill',
+            type: 'fill',
+            source: 'city-mask',
+            paint: { 'fill-color': BOUNDARY_MASK_COLOR, 'fill-opacity': BOUNDARY_MASK_OPACITY },
+          },
+          'parcels-fill',
+        );
+        map.addLayer({
+          id: 'city-boundary-line',
+          type: 'line',
+          source: 'city-boundary',
+          paint: {
+            'line-color': BOUNDARY_LINE_COLOR,
+            'line-width': BOUNDARY_LINE_WIDTH,
+            'line-opacity': 0.85,
+          },
+        });
+        initBoundaryToggle();
+      }
+    } catch {
+      /* city-limits overlay is optional */
+    }
 
     // Frame the data + index features by APN for deep-link fly-to.
     const bounds = new maplibregl.LngLatBounds();
@@ -159,6 +291,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
     renderSwitch();
     renderLegend();
+    initPlaceLabelsToggle();
 
     // Hover: highlight via feature-state + a follow-the-cursor tooltip.
     const popup = new maplibregl.Popup({
@@ -439,6 +572,31 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   }
   .legend-note:empty {
     display: none;
+  }
+
+  .map-toggles {
+    margin-top: 0.55rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--muted) 22%, transparent);
+    display: grid;
+    gap: 0.3rem;
+  }
+  .map-toggles[hidden] {
+    display: none;
+  }
+  .map-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    cursor: pointer;
+  }
+  .map-toggle[hidden] {
+    display: none;
+  }
+  .map-toggle input {
+    accent-color: var(--accent);
+    cursor: pointer;
   }
 
   .metric-switch {
