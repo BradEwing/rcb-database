@@ -11,6 +11,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   <ul id="legend-body"></ul>
   <p id="legend-note" class="legend-note"></p>
   <div id="map-toggles" class="map-toggles" hidden>
+    <label id="d3-toggle" class="map-toggle" hidden>
+      <input type="checkbox" id="d3-checkbox" />
+      3D buildings
+    </label>
+    <div id="height-mult" class="height-mult" hidden>
+      <span class="hm-label">Height ∝ controlled units</span>
+      <div id="hm-buttons" class="hm-buttons" role="group" aria-label="Height multiplier"></div>
+    </div>
     <label id="boundary-toggle" class="map-toggle" hidden>
       <input type="checkbox" id="boundary-checkbox" checked />
       City limits
@@ -43,6 +51,11 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     BOUNDARY_LINE_WIDTH,
     BOUNDARY_MASK_COLOR,
     BOUNDARY_MASK_OPACITY,
+    EXTRUSION_PITCH,
+    EXTRUSION_MULTIPLIERS,
+    EXTRUSION_DEFAULT_MULTIPLIER,
+    EXTRUSION_OPACITY,
+    extrusionHeightExpression,
     type MetricKey,
   } from '../config';
   import { formatCount, formatMarCents, formatPct } from '../lib/format';
@@ -58,7 +71,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     zoom: INITIAL_ZOOM,
     attributionControl: false,
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  // Compass shown so users can reset bearing/pitch after orbiting in 3D mode.
+  map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
   map.addControl(
     new maplibregl.AttributionControl({ compact: false, customAttribution: PARCEL_ATTRIBUTION }),
     'bottom-right',
@@ -177,6 +191,62 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     checkbox.addEventListener('change', () => setPlaceLabels(checkbox.checked));
   }
 
+  // ---- 3D extrusion mode ----------------------------------------------------
+  // A VoteHub-style read of the controlled stock: parcels extruded by their
+  // controlled-unit count, coloured by the active metric, viewed pitched. OFF by
+  // default. `heightMultiplier` is the user's 1×–50× choice (the metric switcher
+  // recolours both the flat fill and the extrusion unconditionally).
+  let heightMultiplier: number = EXTRUSION_DEFAULT_MULTIPLIER;
+
+  function applyExtrusionHeight(): void {
+    if (map.getLayer('parcels-3d')) {
+      map.setPaintProperty('parcels-3d', 'fill-extrusion-height', extrusionHeightExpression(heightMultiplier));
+    }
+  }
+
+  // Render the 1×/5×/…/50× segmented control and wire each preset.
+  function renderHeightButtons(): void {
+    const host = document.getElementById('hm-buttons');
+    if (!host) return;
+    host.innerHTML = EXTRUSION_MULTIPLIERS.map(
+      (m) =>
+        `<button type="button" data-mult="${m}" class="${m === heightMultiplier ? 'active' : ''}" ` +
+        `aria-pressed="${m === heightMultiplier}">${m}×</button>`,
+    ).join('');
+    host.querySelectorAll('button').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        heightMultiplier = Number(btn.dataset.mult);
+        renderHeightButtons();
+        applyExtrusionHeight();
+      }),
+    );
+  }
+
+  // Flip the whole map between flat choropleth and pitched 3D skyline.
+  function set3D(on: boolean): void {
+    const heightMult = document.getElementById('height-mult');
+    if (heightMult) heightMult.hidden = !on;
+    // Swap which parcel layer is visible (extrusion vs flat fill+outline).
+    if (map.getLayer('parcels-3d'))
+      map.setLayoutProperty('parcels-3d', 'visibility', on ? 'visible' : 'none');
+    for (const id of ['parcels-fill', 'parcels-line']) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
+    }
+    map.easeTo({ pitch: on ? EXTRUSION_PITCH : 0, duration: 600 });
+  }
+
+  // Reveal + wire the 3D toggle (hidden until the extrusion layer is added).
+  function init3DToggle(): void {
+    const toggle = document.getElementById('d3-toggle') as HTMLElement | null;
+    const checkbox = document.getElementById('d3-checkbox') as HTMLInputElement | null;
+    if (!toggle || !checkbox || !map.getLayer('parcels-3d')) return;
+    revealToggles();
+    toggle.hidden = false;
+    checkbox.checked = false;
+    renderHeightButtons();
+    checkbox.addEventListener('change', () => set3D(checkbox.checked));
+  }
+
   map.on('load', async () => {
     const res = await fetch(dataUrl('parcels.geojson'));
     if (!res.ok) throw new Error(`Failed to load parcels.geojson: ${res.status}`);
@@ -215,6 +285,23 @@ import 'maplibre-gl/dist/maplibre-gl.css';
         'line-opacity': 0.6,
       },
     });
+
+    // 3D extrusion layer — the controlled stock as a skyline, height ∝
+    // controlled-unit count, coloured by the active metric. Shares the parcels
+    // source; hidden until the "3D buildings" toggle pitches the camera.
+    map.addLayer({
+      id: 'parcels-3d',
+      type: 'fill-extrusion',
+      source: 'parcels',
+      layout: { visibility: 'none' },
+      paint: {
+        'fill-extrusion-color': stepColorExpression(METRICS[activeMetric]),
+        'fill-extrusion-height': extrusionHeightExpression(heightMultiplier),
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': EXTRUSION_OPACITY,
+      },
+    });
+    init3DToggle();
 
     // City-limits overlay — a soft dim outside the boundary (mask under the
     // parcels so they stay vivid) plus a crisp outline on top. Optional: if the
@@ -302,31 +389,34 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     });
     let hovered: string | null = null;
 
-    map.on('mousemove', 'parcels-fill', (e) => {
-      const f = e.features?.[0];
-      if (!f) return;
-      map.getCanvas().style.cursor = 'pointer';
-      const id = String(f.id);
-      if (hovered !== id) {
+    // The flat fill and the 3D extrusion are mutually exclusive (the toggle hides
+    // one), so the same hover/click logic binds to both parcel layers.
+    for (const layerId of ['parcels-fill', 'parcels-3d']) {
+      map.on('mousemove', layerId, (e) => {
+        const f = e.features?.[0];
+        if (!f) return;
+        map.getCanvas().style.cursor = 'pointer';
+        const id = String(f.id);
+        if (hovered !== id) {
+          if (hovered) map.setFeatureState({ source: 'parcels', id: hovered }, { hover: false });
+          hovered = id;
+          map.setFeatureState({ source: 'parcels', id }, { hover: true });
+        }
+        popup.setLngLat(e.lngLat).setHTML(tooltipHtml(f.properties as ParcelProperties)).addTo(map);
+      });
+      map.on('mouseleave', layerId, () => {
+        map.getCanvas().style.cursor = '';
         if (hovered) map.setFeatureState({ source: 'parcels', id: hovered }, { hover: false });
-        hovered = id;
-        map.setFeatureState({ source: 'parcels', id }, { hover: true });
-      }
-      popup.setLngLat(e.lngLat).setHTML(tooltipHtml(f.properties as ParcelProperties)).addTo(map);
-    });
-    map.on('mouseleave', 'parcels-fill', () => {
-      map.getCanvas().style.cursor = '';
-      if (hovered) map.setFeatureState({ source: 'parcels', id: hovered }, { hover: false });
-      hovered = null;
-      popup.remove();
-    });
-
-    // Click: lazy-load the per-APN detail and open the side panel.
-    map.on('click', 'parcels-fill', (e) => {
-      const f = e.features?.[0];
-      if (!f) return;
-      void openParcel(String(f.id));
-    });
+        hovered = null;
+        popup.remove();
+      });
+      // Click: lazy-load the per-APN detail and open the side panel.
+      map.on('click', layerId, (e) => {
+        const f = e.features?.[0];
+        if (!f) return;
+        void openParcel(String(f.id));
+      });
+    }
 
     // Deep link: open + fly to a parcel named in the URL hash (#apn=...).
     const initial = apnFromHash();
@@ -399,7 +489,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   function setMetric(key: MetricKey): void {
     if (key === activeMetric || !(key in METRICS)) return;
     activeMetric = key;
-    map.setPaintProperty('parcels-fill', 'fill-color', stepColorExpression(METRICS[key]));
+    const colorExpr = stepColorExpression(METRICS[key]);
+    map.setPaintProperty('parcels-fill', 'fill-color', colorExpr);
+    if (map.getLayer('parcels-3d'))
+      map.setPaintProperty('parcels-3d', 'fill-extrusion-color', colorExpr);
     renderSwitch();
     renderLegend();
   }
@@ -597,6 +690,45 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   .map-toggle input {
     accent-color: var(--accent);
     cursor: pointer;
+  }
+
+  .height-mult {
+    display: grid;
+    gap: 0.3rem;
+    padding-left: 1.4rem;
+  }
+  .height-mult[hidden] {
+    display: none;
+  }
+  .hm-label {
+    font-size: 0.66rem;
+    color: var(--muted);
+  }
+  .hm-buttons {
+    display: flex;
+    border-radius: 0.4rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--muted) 32%, transparent);
+    width: max-content;
+  }
+  /* Buttons are injected via innerHTML at runtime → outside Astro's scope, so
+     target them with :global (matches the legend-swatch pattern above). */
+  .hm-buttons :global(button) {
+    border: none;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    color: var(--fg);
+    padding: 0.2rem 0.42rem;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .hm-buttons :global(button + button) {
+    border-left: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  }
+  .hm-buttons :global(button.active) {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
   }
 
   .metric-switch {

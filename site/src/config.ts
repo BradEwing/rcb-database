@@ -24,6 +24,25 @@ export const BOUNDARY_LINE_WIDTH = 1.6;
 export const BOUNDARY_MASK_COLOR = '#1d2b3a';
 export const BOUNDARY_MASK_OPACITY = 0.16;
 
+/** 3D unit-density extrusion (charts-and-density.md #3) — a VoteHub-style read of
+ *  the controlled stock as an extruded skyline: each parcel polygon is raised to
+ *  a height proportional to its CONTROLLED-unit count, coloured by the active
+ *  choropleth metric. A toggleable mode (OFF by default) that pitches the camera;
+ *  big complexes become towers, single-family lots stay flat. Tunables here. */
+/** Camera pitch (deg) when 3D is on; 0 restores the flat top-down view. */
+export const EXTRUSION_PITCH = 52;
+/** Metres of height per controlled unit, before the user's multiplier. Tuned so
+ *  the 1× default already reads as a skyline at the city framing zoom (≈16 m/px
+ *  there). Linear in unit count — honest, VoteHub-style; the lone ~530-unit
+ *  complex genuinely spikes. */
+export const EXTRUSION_METERS_PER_UNIT = 7;
+/** Height-multiplier presets (the 1×–5× control). */
+export const EXTRUSION_MULTIPLIERS = [1, 2, 3, 4, 5] as const;
+/** Multiplier selected when 3D is first switched on. */
+export const EXTRUSION_DEFAULT_MULTIPLIER = 1;
+/** Extrusion fill opacity (slightly < 1 so overlapping towers read as solids). */
+export const EXTRUSION_OPACITY = 0.92;
+
 export interface ChoroplethMetric {
   /** Feature property to colour by. */
   property: keyof import('./lib/types').ParcelProperties;
@@ -70,6 +89,17 @@ export function stepColorExpression(metric: ChoroplethMetric): ExpressionSpecifi
     expr.push(metric.stops[i], metric.colors[i + 1]);
   }
   return expr as ExpressionSpecification;
+}
+
+/** `fill-extrusion-height` expression for the 3D mode: controlled-unit count ×
+ *  metres-per-unit × the chosen multiplier. coalesce guards parcels missing the
+ *  property (renders flat). */
+export function extrusionHeightExpression(multiplier: number): ExpressionSpecification {
+  return [
+    '*',
+    ['coalesce', ['get', 'controlled_count'], 0],
+    EXTRUSION_METERS_PER_UNIT * multiplier,
+  ] as unknown as ExpressionSpecification;
 }
 
 /** Base-relative URL for a build-time data artifact (Project Pages base path). */

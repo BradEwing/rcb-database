@@ -3,9 +3,9 @@
 **Status:** partially shipped · **Scope:** new site charts section + one map
 layer · **Depends on:** the registry CSVs (shipped) + the static site (shipped)
 
-**Progress:** #1 (tenancy-vintage scatter) and #2 (rent by bedroom) are
-**shipped** — see each section's "Shipped" note below. #3 (map density) remains
-planned.
+**Progress:** all three are **shipped** — see each section's "Shipped" note
+below. #1 (tenancy-vintage scatter), #2 (rent by bedroom), and #3 (3D unit-
+density extrusion).
 
 ## Goal
 
@@ -17,8 +17,9 @@ controlled stock. Three deliverables, each shippable on its own:
    month-year a tenancy began (the Costa-Hawkins "rent by vintage" story). *(shipped)*
 2. **Average / median MAR by bedroom count** — what a controlled 0/1/2/3+ BR unit
    rents for. *(shipped)*
-3. **Map density view** — unit count rendered as a heat/density layer, not just
-   the existing per-parcel choropleth. *(planned)*
+3. **Map density view** — controlled-unit count rendered as a 3D extruded
+   skyline (parcels raised by unit count), not just the existing per-parcel
+   choropleth. *(shipped)*
 
 All three are build-time aggregates over the source CSVs (no backend), rendered
 with the chart stack the site already ships (**Observable Plot**, used today for
@@ -125,6 +126,28 @@ re-render on resize.
 The map already has a **"Units per parcel"** choropleth (`unit_count` stepped
 fill). "Density" adds a *spatial* read that a parcel-keyed choropleth can't give
 — where controlled units concentrate regardless of parcel boundaries.
+
+### Shipped
+
+A **VoteHub-style 3D extrusion**, not a flat heatmap (an earlier heatmap
+prototype was replaced — the extruded skyline reads the controlled stock far more
+vividly and, unlike a heat surface, stays **clickable** straight through to the
+detail panel). A **"3D buildings"** toggle in the legend's map-settings group
+(alongside "City limits" / "Place labels"), **off by default**. When on, it
+pitches the camera (`EXTRUSION_PITCH` = 52°) and shows a `fill-extrusion` layer
+on the **existing `parcels` source** — each parcel polygon raised to a height ∝
+its **controlled**-unit count, **coloured by the active choropleth metric** (units
+/ median MAR / recent change — the metric switcher recolours both the flat fill
+and the extrusion). Big complexes become towers (the lone ~530-unit complex
+genuinely spikes); single-family lots stay flat. A **height-multiplier** control
+(1×–5×, default 1×) scales `fill-extrusion-height = controlled_count ×
+EXTRUSION_METERS_PER_UNIT (7) × multiplier`. Toggling off eases the pitch back to
+0 and restores the flat fill/outline. Pure **front-end** change — no new
+build-time artifact (the geometry + per-parcel counts already ride in
+`parcels.geojson`). Tunables (`EXTRUSION_*`, `extrusionHeightExpression()`) live
+in `site/src/config.ts`; the layer, toggle, multiplier, pitch, and 3D
+hover/click wiring are in `MapView.astro`. The nav compass is enabled
+(`visualizePitch`) so users can reset bearing/pitch after orbiting.
 
 - **Layer:** a MapLibre **heatmap** weighted by per-parcel `unit_count`, sourced
   from parcel centroids (we already compute `bboxCentroid` in `build-data.ts` for
