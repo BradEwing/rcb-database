@@ -3,8 +3,9 @@
 **Status:** partially shipped · **Scope:** new site charts section + one map
 layer · **Depends on:** the registry CSVs (shipped) + the static site (shipped)
 
-**Progress:** #2 (rent by bedroom) is **shipped** — see "Shipped" below. #1
-(tenancy-vintage scatter) and #3 (map density) remain planned.
+**Progress:** #1 (tenancy-vintage scatter) and #2 (rent by bedroom) are
+**shipped** — see each section's "Shipped" note below. #3 (map density) remains
+planned.
 
 ## Goal
 
@@ -13,7 +14,7 @@ that reads the registry as a dataset, plus a spatial **density** view of the
 controlled stock. Three deliverables, each shippable on its own:
 
 1. **Initial MAR by tenancy start date** — a scatter of allowed rent against the
-   month-year a tenancy began (the Costa-Hawkins "rent by vintage" story). *(planned)*
+   month-year a tenancy began (the Costa-Hawkins "rent by vintage" story). *(shipped)*
 2. **Average / median MAR by bedroom count** — what a controlled 0/1/2/3+ BR unit
    rents for. *(shipped)*
 3. **Map density view** — unit count rendered as a heat/density layer, not just
@@ -28,6 +29,41 @@ the per-parcel MAR-history chart) and MapLibre.
 Inspired by the move-in-date rent scatters in housing data journalism (e.g.
 Berkeleyside's 2023 Berkeley affordable-housing coverage,
 <https://www.berkeleyside.org/2023/10/23/berkeley-affordable-housing-construction>).
+
+### Shipped
+
+A third section on the **`/charts`** page — **"Allowed rent by tenancy
+vintage"** — renders the rent-by-vintage story as **small multiples, one facet
+per bedroom bucket** (Studio / 1 / 2 / 3+ BR). Each facet overlays a
+downsampled raw scatter underlay, a 25th–75th-percentile **band**, and the
+**median line** over **quarterly** tenancy-vintage bins. Fed by a new
+`mar_by_tenancy_vintage` aggregate in `analytics.json` (`buildMarByTenancyVintage`
+in `build-data.ts`; types in `types.ts`; `marByTenancyVintageChart` in
+`chart.ts`).
+
+Design decisions made during the build:
+
+- **Overplotting (the main risk).** Of 32,900 controlled units, **21,981 carry a
+  tenancy_date** (the plottable points); the other **10,919 have an empty
+  tenancy_date** (long-term tenancy, `&nbsp;` — no reset, no x) and are
+  **excluded and counted** in the chart note. Rather than ship a 22k-point raw
+  scatter, the primary view is **pre-binned quarterly** (median + IQR per
+  bedroom). Quarterly over monthly because the 1999–2010 years are sparse
+  per-bucket and monthly medians there would be n=1 noise. A **deterministic
+  stride-downsampled** scatter (≤1,500 points/bucket → ~5.4k total, logged)
+  underlays the bins so it still reads as a genuine scatter without bloat.
+  `analytics.json` lands at ~0.55 MB (vs the multi-MB parcels.geojson).
+- **tenancy_date is day-granular, not month-granular** as earlier docs assumed
+  (e.g. `2024-07-24`) — truncated to its month before quarter-binning.
+- **Y-axis clamp.** p99 MAR is ~$9.4k but a handful of large units reach ~$45k;
+  the axis is clamped to **$10k** (`axis_cap_cents`, surfaced in the note) so the
+  cloud stays legible. The clamp is a *display* bound only — no data is dropped
+  from the medians/IQR.
+- **Honest-data framing (on the chart note).** The y-value is the **current** MAR
+  — the rent set at tenancy start **plus every General Adjustment since** — not
+  the literal move-in rent (observations begin at the 2023 seed). The axis is
+  labelled "allowed rent — current MAR" and the section titled "by tenancy
+  *vintage*," consistent with the no-GA-formula stance.
 
 - **Plot:** one point per controlled unit — **x = `tenancy_date`** (already
   month-granular, `YYYY-MM-01`), **y = MAR** (current carry-forward value, dollars).

@@ -116,11 +116,52 @@ export interface RentOverTimeSeries {
   points: RentTimePoint[];
 }
 
+/** One quarterly bin of the tenancy-vintage chart (mirrors build-data `VintageBin`). */
+export interface VintageBin {
+  /** Quarter-start date, YYYY-MM-01 (Jan/Apr/Jul/Oct). */
+  period: string;
+  count: number;
+  median_cents: number;
+  p25_cents: number;
+  p75_cents: number;
+}
+
+/** A downsampled scatter point (month-of-tenancy, MAR). Mirrors build-data. */
+export interface VintageScatterPoint {
+  t: string;
+  mar_cents: number;
+}
+
+/** All tenancy-vintage data for one bedroom bucket (mirrors build-data `VintageBucket`). */
+export interface VintageBucket {
+  bucket: '0' | '1' | '2' | '3+';
+  label: string;
+  count: number;
+  bins: VintageBin[];
+  scatter: VintageScatterPoint[];
+}
+
+/** mar_by_tenancy_vintage — current MAR vs tenancy-start month per controlled
+ *  unit, pre-binned quarterly per bedroom bucket (mirrors build-data
+ *  `MarByTenancyVintage`). The y-value is the CURRENT MAR (tenancy-start rent +
+ *  every GA since), not the literal move-in rent — see charts-and-density.md #1. */
+export interface MarByTenancyVintage {
+  bin: 'quarter';
+  total_points: number;
+  excluded_empty_tenancy: number;
+  excluded_exempt: number;
+  axis_cap_cents: number;
+  scatter_cap_per_bucket: number;
+  scatter_count: number;
+  buckets: VintageBucket[];
+}
+
 /** analytics.json — citywide aggregates read by the /charts page. */
 export interface SiteAnalytics {
   latest_sweep: string;
   rent_by_bedroom: RentByBedroom[];
   rent_over_time: { dates: string[]; series: RentOverTimeSeries[] };
+  mar_by_tenancy_vintage: MarByTenancyVintage;
 }
 
 /** meta.json — build provenance, surfaced in the footer (later PR). */

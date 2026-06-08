@@ -2,7 +2,12 @@
  *  dynamically by the map island (only when a panel opens) so Plot/d3 stay out
  *  of the initial bundle. */
 import * as Plot from '@observablehq/plot';
-import type { MarHistoryPoint, RentByBedroom, RentOverTimeSeries } from './types';
+import type {
+  MarByTenancyVintage,
+  MarHistoryPoint,
+  RentByBedroom,
+  RentOverTimeSeries,
+} from './types';
 
 /**
  * Step lines of each unit's MAR over time. The registry's change log is sparse
@@ -142,6 +147,110 @@ export function rentOverTimeChart(
         curve: 'monotone-x',
       }),
       Plot.dot(data, { x: 'date', y: 'mar', fill: 'bedroom', r: 3.5 }),
+    ],
+  });
+}
+
+/**
+ * Allowed rent by tenancy vintage — for every controlled unit, its current MAR
+ * (y) against the month-year its tenancy began (x), the Costa-Hawkins "rent by
+ * vintage" story: recent tenancies sit near market, long ones far below. One
+ * small-multiple facet per bedroom bucket (Studio / 1 / 2 / 3+ BR), each showing
+ * a downsampled scatter underlay, a 25th–75th-percentile band, and the median
+ * line over quarterly tenancy-vintage bins.
+ *
+ * Honest-data caveat (see charts-and-density.md #1): the y-value is the CURRENT
+ * MAR — the rent set at tenancy start PLUS every General Adjustment since — not
+ * the literal move-in rent (our observations only begin at the 2023 seed). The
+ * tenancy date is the faithful reset date, hence "by vintage." Units with no
+ * tenancy_date (long-term, no reset) have no x and are excluded upstream.
+ */
+export function marByTenancyVintageChart(
+  vintage: MarByTenancyVintage,
+  width: number,
+): HTMLElement | SVGSVGElement {
+  const order = vintage.buckets.map((b) => b.label);
+  const capDollars = vintage.axis_cap_cents / 100;
+
+  const scatter = vintage.buckets.flatMap((b) =>
+    b.scatter.map((p) => ({
+      bedroom: b.label,
+      date: new Date(p.t),
+      mar: p.mar_cents / 100,
+    })),
+  );
+  const bins = vintage.buckets.flatMap((b) =>
+    b.bins.map((bin) => ({
+      bedroom: b.label,
+      date: new Date(bin.period),
+      median: bin.median_cents / 100,
+      p25: bin.p25_cents / 100,
+      p75: bin.p75_cents / 100,
+    })),
+  );
+
+  return Plot.plot({
+    width: Math.max(280, width),
+    height: 720,
+    marginLeft: 56,
+    marginRight: 14,
+    marginBottom: 34,
+    marginTop: 20,
+    style: { background: 'transparent', color: 'currentColor', fontSize: '11px' },
+    x: { label: null, grid: false },
+    y: {
+      label: 'Allowed rent — current MAR ($)',
+      grid: true,
+      domain: [0, capDollars],
+      tickFormat: (d: number) => `$${(d / 1000).toFixed(0)}k`,
+    },
+    fy: { label: null, domain: order },
+    marks: [
+      // Downsampled raw cloud (clamped to the axis cap so a few high-MAR large
+      // units don't compress the view).
+      Plot.dot(scatter, {
+        x: 'date',
+        y: 'mar',
+        fy: 'bedroom',
+        r: 1.3,
+        fill: '#3576b5',
+        fillOpacity: 0.18,
+        clip: true,
+      }),
+      // 25th–75th percentile band per quarter.
+      Plot.areaY(bins, {
+        x: 'date',
+        y1: 'p25',
+        y2: 'p75',
+        fy: 'bedroom',
+        fill: '#3576b5',
+        fillOpacity: 0.22,
+        curve: 'monotone-x',
+      }),
+      // Median line per quarter.
+      Plot.lineY(bins, {
+        x: 'date',
+        y: 'median',
+        fy: 'bedroom',
+        stroke: '#1f4e79',
+        strokeWidth: 1.6,
+        curve: 'monotone-x',
+      }),
+      // Facet label (bedroom bucket) inside each panel.
+      Plot.text(
+        vintage.buckets.map((b) => ({ bedroom: b.label, count: b.count })),
+        {
+          fy: 'bedroom',
+          frameAnchor: 'top-left',
+          dx: 6,
+          dy: 6,
+          text: (d: { bedroom: string; count: number }) =>
+            `${d.bedroom} · ${d.count.toLocaleString()} units`,
+          fontWeight: 600,
+          fill: 'currentColor',
+        },
+      ),
+      Plot.ruleY([0]),
     ],
   });
 }
