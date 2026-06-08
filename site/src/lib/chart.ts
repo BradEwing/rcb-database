@@ -165,6 +165,11 @@ export function rentOverTimeChart(
  * tenancy date is the faithful reset date, hence "by vintage." Units with no
  * tenancy_date (long-term, no reset) have no x and are excluded upstream.
  */
+/** Shared blues for the vintage chart — the legend swatches reuse these so the
+ *  key always matches the marks. */
+const VINTAGE_FILL = '#3576b5'; // scatter dots + IQR band
+const VINTAGE_LINE = '#1f4e79'; // median line
+
 export function marByTenancyVintageChart(
   vintage: MarByTenancyVintage,
   width: number,
@@ -189,7 +194,7 @@ export function marByTenancyVintageChart(
     })),
   );
 
-  return Plot.plot({
+  const chart = Plot.plot({
     width: Math.max(280, width),
     height: 720,
     marginLeft: 56,
@@ -213,7 +218,7 @@ export function marByTenancyVintageChart(
         y: 'mar',
         fy: 'bedroom',
         r: 1.3,
-        fill: '#3576b5',
+        fill: VINTAGE_FILL,
         fillOpacity: 0.18,
         clip: true,
       }),
@@ -223,7 +228,7 @@ export function marByTenancyVintageChart(
         y1: 'p25',
         y2: 'p75',
         fy: 'bedroom',
-        fill: '#3576b5',
+        fill: VINTAGE_FILL,
         fillOpacity: 0.22,
         curve: 'monotone-x',
       }),
@@ -232,7 +237,7 @@ export function marByTenancyVintageChart(
         x: 'date',
         y: 'median',
         fy: 'bedroom',
-        stroke: '#1f4e79',
+        stroke: VINTAGE_LINE,
         strokeWidth: 1.6,
         curve: 'monotone-x',
       }),
@@ -253,4 +258,18 @@ export function marByTenancyVintageChart(
       Plot.ruleY([0]),
     ],
   });
+
+  // Custom key — Plot has no single legend across three different mark types.
+  // Swatches reuse the mark colors above so the key can't drift.
+  const legend = document.createElement('div');
+  legend.className = 'plot-legend';
+  legend.innerHTML = [
+    `<span class="lk"><span class="sw" style="background:${VINTAGE_FILL};opacity:.55;border-radius:50%;width:9px;height:9px"></span>individual units</span>`,
+    `<span class="lk"><span class="sw" style="background:${VINTAGE_FILL};opacity:.30;width:15px;height:10px"></span>25th–75th percentile</span>`,
+    `<span class="lk"><span class="sw" style="background:${VINTAGE_LINE};width:15px;height:3px"></span>median</span>`,
+  ].join('');
+
+  const wrap = document.createElement('div');
+  wrap.append(legend, chart);
+  return wrap;
 }
