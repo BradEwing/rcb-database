@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Build a self-hosted registry of Santa Monica rent-controlled units by scraping the City's public Maximum Allowable Rent (MAR) lookup tool on a monthly schedule. The registry is the source of truth for tracking MAR changes over time (new tenancies, annual general adjustments, capital improvement pass-throughs, etc.) for every rent-controlled parcel in the city.
 
-Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). `mar_observations.csv` is now an **event-sourced change log** (one row per change, carry-forward semantics — see Schema), so monthly snapshots grow slowly and each `git diff` is itself the change-log. The monthly GitHub Action cron is wired up (`.github/workflows/monthly-snapshot.yml`) but has not yet run on schedule. Open: month-over-month diffing/attribution UI and the static site are not yet built.
+Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). `mar_observations.csv` is now an **event-sourced change log** (one row per change, carry-forward semantics — see Schema), so monthly snapshots grow slowly and each `git diff` is itself the change-log. The monthly GitHub Action cron is wired up (`.github/workflows/monthly-snapshot.yml`) but has not yet run on schedule. The static site — an interactive parcel map with per-unit breakdowns, change/exit layers, search, and a methodology page — is **built and deployed** to GitHub Pages at https://bradewing.github.io/rcb-database/ (delivered across PRs 1–7; see `site/` and "Hosting & Distribution"). Roadmap: use-type/vintage enrichment (ADU vs rental SFR, pre/post-1979) and a city-limits boundary overlay — see `docs/design/parcel-enrichment.md` and the Out-of-scope list in `docs/design/static-site.md`.
 
 ## Stack
 
@@ -29,6 +29,21 @@ Scraper subcommands (defined in `scraper/src/index.ts`):
 - `refresh-streets` — fetch the official street-name list and rewrite `data/streets.csv`.
 - `sweep-streets` (Phase A) — for each street in `data/streets.csv`, POST blank-number to get the property index; append to `data/parcels.csv`.
 - `drill-properties` (Phase B) — for each parcel not drilled today, POST number+street to get units and MAR; upsert `data/units.csv` (bumping `last_seen_at`); append a row to `data/mar_observations.csv` **only when a unit's MAR/tenancy changed** (event-sourced — see Schema); backfill APN on `data/parcels.csv`; record a `data/sweeps.csv` coverage row. Idempotent — re-running on the same day skips parcels already drilled and produces zero new observation rows.
+
+### Static site (`site/` — separate npm workspace)
+
+The map site is its own package in `site/` (Astro + MapLibre GL JS + Observable Plot), so its deps don't mix with the scraper's. Run from inside `site/`:
+
+```sh
+npm install
+npm run fetch-geometry   # occasional: cache City parcel polygons → data/external/ (committed)
+npm run build-data       # transform registry CSVs → site/public/data/ (gitignored build output)
+npm run check            # astro check (typecheck for .astro + island scripts)
+npm run build            # `prebuild` runs build-data first, then `astro build`
+npm run dev              # local dev server
+```
+
+`fetch-geometry`/`build-data` are TS scripts under `site/scripts/` (typecheck them with `npx tsc -p site/scripts/tsconfig.json`; they reuse the registry CSVs read-only via `site/scripts/lib/registry.ts`). Build artifacts in `site/public/data/` and `site/dist/` are gitignored — only the geometry cache (`data/external/parcels-geometry.geojson`) is committed. Deploy is `.github/workflows/pages.yml`.
 
 ## Commit Conventions
 
@@ -101,9 +116,12 @@ All tables are sorted by primary key and written deterministically so month-over
 
 ## Hosting & Distribution
 
-Target: **GitHub Pages**, with the registry data committed to the repo. Monthly job is a **GitHub Action on cron** that runs Phase B (and Phase A on a slower cadence — parcels rarely change), commits the new snapshot, and triggers a Pages rebuild. No always-on server.
+**Live** on **GitHub Pages** at https://bradewing.github.io/rcb-database/ (Pages source = GitHub Actions; framework `base` = `/rcb-database/`, so every asset/data URL must be base-relative), with the registry data committed to the repo. No always-on server. Two workflows:
 
-The static site stays TS/Node — Astro or Vite + MapLibre GL JS + Observable Plot for the map / charts. Precompute aggregates at build time; lazy-load per-parcel history on demand.
+- `.github/workflows/monthly-snapshot.yml` — cron that runs Phase B (Phase A quarterly), commits the new snapshot. Its `data/**` commit triggers the Pages rebuild, so the map tracks each monthly pull automatically.
+- `.github/workflows/pages.yml` — builds `site/` (`npm run check` then `npm run build`) and deploys via `actions/deploy-pages` on push to `main` touching `site/**` or `data/**`.
+
+The site (Astro + MapLibre + Observable Plot) precomputes aggregates at build time via `site/scripts/build-data.ts` into `site/public/data/` (`parcels.geojson` for the choropleth, one `parcels/<apn>.json` per APN lazy-loaded on click, plus `summary.json`/`exits.geojson`/`search.json`/`meta.json`). Parcel polygons come from the City **Parcels Public** FeatureServer (`services3.arcgis.com/.../Santa_Monica_public_parcels/FeatureServer/0`); the join field is **`ain`** (= APN, bare digits), ~98.9% coverage at seed. `build-data` fails the build loudly if coverage drops below 95% (stale cache / renamed field). See `docs/design/static-site.md`.
 
 ## Run Cadence
 
