@@ -21,6 +21,10 @@ import {
   observationChanged,
   upsertUnits,
 } from "./sparse.ts";
+import { historyIndex } from "./history/index-docs.ts";
+import { historyFetch } from "./history/fetch-docs.ts";
+import { historyOcr } from "./history/ocr-run.ts";
+import { historyMerge } from "./history/merge-history.ts";
 import { logger } from "./logger.ts";
 
 const REPO_ROOT = new URL("../../", import.meta.url).pathname;
@@ -89,6 +93,18 @@ async function main(): Promise<void> {
     case "drill-properties":
       await drillProperties();
       return;
+    case "history-index":
+      await historyIndex();
+      return;
+    case "history-fetch":
+      await historyFetch();
+      return;
+    case "history-ocr":
+      await historyOcr();
+      return;
+    case "history-merge":
+      await historyMerge();
+      return;
     default:
       printUsage();
       process.exit(command ? 1 : 0);
@@ -106,7 +122,20 @@ commands:
   drill-properties              Phase B: for each parcel not drilled today, POST number+street,
                                 parse gvMarData, upsert units.csv (bumping last_seen_at), append a
                                 mar_observations.csv row only when MAR/tenancy changed, backfill
-                                parcels.csv with APN, and record a sweeps.csv coverage row.`);
+                                parcels.csv with APN, and record a sweeps.csv coverage row.
+  history-index [limit]         Backfill phase 1: for each distinct APN, POST one KeywordSearch to
+                                the rentcontroldocs OnBase portal; persist the document list to
+                                data/history/doc_index.csv. Resumable (skips indexed APNs); pass an
+                                optional limit for a small validation run.
+  history-fetch [limit]         Backfill phase 2: download wanted doc types (annual MAR reports,
+                                tenancy registrations, final rent printouts) to data/raw/history/,
+                                deduped by handle. Resumable (skips fetched); optional limit.
+  history-ocr [limit]           Backfill phase 3: OCR each fetched annual MAR report's per-unit grid
+                                into data/history/mar_history.csv (keyed by in-table Parcel #).
+                                Fails loud if QA reconciliation vs registry anchors drops below 85%.
+  history-merge [--write]       Backfill phase 4: fold mar_history.csv into mar_observations.csv as
+                                earlier change rows (with a source provenance column). Dry-run by
+                                default (writes a .preview.csv); pass --write to apply.`);
 }
 
 async function refreshStreets(): Promise<void> {

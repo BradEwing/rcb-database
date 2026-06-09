@@ -30,6 +30,39 @@ Scraper subcommands (defined in `scraper/src/index.ts`):
 - `sweep-streets` (Phase A) — for each street in `data/streets.csv`, POST blank-number to get the property index; append to `data/parcels.csv`.
 - `drill-properties` (Phase B) — for each parcel not drilled today, POST number+street to get units and MAR; upsert `data/units.csv` (bumping `last_seen_at`); append a row to `data/mar_observations.csv` **only when a unit's MAR/tenancy changed** (event-sourced — see Schema); backfill APN on `data/parcels.csv`; record a `data/sweeps.csv` coverage row. Idempotent — re-running on the same day skips parcels already drilled and produces zero new observation rows.
 
+#### Deep MAR-history backfill (`scraper/src/history/`)
+
+The MAR form only returns *current* MAR, so our forward history is shallow. The
+**Rent Control document portal** (`rentcontroldocs.santamonica.gov`, a Hyland
+OnBase Public Access JSON API) carries per-unit **annual MAR reports back to ~2013**.
+A four-stage, polite (`OnBaseClient`, identifying UA, 400 ms/req, 429/503 + WAF
+back-off) family backfills it. See `docs/design/mar-history-backfill.md`.
+
+- `history-index [limit|APN…]` — for each distinct APN in `units.csv`, POST one
+  `KeywordSearch` (query 125); persist the doc list to `data/history/doc_index.csv`
+  (`apn, address, unit_id, doc_type, doc_detail, doc_year, case_number, handle, doc_id, name`).
+  Resumable (skips indexed APNs); a bare 10-digit arg (re)indexes just that APN.
+- `history-fetch [limit]` — download the wanted types (`ANNUAL MAR REPORT`,
+  `TENANCY REGISTRATION`, `FINAL RENT PRINTOUT`) as PDF to `data/raw/history/`
+  (gitignored), deduped by handle, skipping fetched. `doc_id` tokens are stable
+  across sessions, so this can run separately from indexing.
+- `history-ocr [limit]` — OCR (tesseract.js WASM; `pdftoppm` rasterizes at 300 DPI)
+  the annual reports' per-unit grid into `data/history/mar_history.csv` (`parcel,
+  infor_id, unit_id, unit_label_raw, report_year, market_rate_established, mar_cents,
+  ga_cents, new_mar_cents, source_handle`). Extracts by **word geometry + a
+  $-anchored value parse** (layout/column order varies across template eras), keys
+  rows off the in-table **Parcel #**, and resolves `unit_id` from (APN + raw label)
+  against `units.csv` (`resolve-unit.ts`). **Fails loud** if the period-aligned QA
+  reconciliation vs the registry anchors drops below 85%.
+- `history-merge [--write]` — fold `mar_history.csv` into `mar_observations.csv` as
+  earlier change rows (derived from the clean current-MAR column, dated to the Sep-1
+  GA effective date / tenancy reset, **prepended only before each unit's first
+  direct observation**), adding a `source` provenance column (`mar_tool` vs
+  `portal_mar_report`). **Dry-run by default** (writes a `.preview.csv`); `--write`
+  rewrites the committed `mar_observations.csv`. NOTE: applying `--write` requires
+  updating the `OBS_HEADERS` writers (`index.ts` drill + the two `backfill/`
+  scripts) to carry `source` so the next sweep doesn't drop the column.
+
 ### Static site (`site/` — separate npm workspace)
 
 The map site is its own package in `site/` (Astro + MapLibre GL JS + Observable Plot), so its deps don't mix with the scraper's. Run from inside `site/`:

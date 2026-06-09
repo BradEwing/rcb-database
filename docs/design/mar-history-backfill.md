@@ -1,8 +1,62 @@
 # Design: deep MAR-history backfill from rentcontroldocs (OnBase portal)
 
-**Status:** spike complete — **GO** (feasible; gated next step is a small, polite
-crawler with OCR) · **Scope:** one-time + incremental backfill of pre-2023 per-unit
-MAR history from the Rent Control document portal · **Proven on:** 854 9th St, APN
+**Status:** **IMPLEMENTED** (pipeline built + validated end-to-end on a ~24-APN /
+85-report sample; full backfill not yet run at scale) · **Scope:** one-time +
+incremental backfill of pre-2023 per-unit MAR history from the Rent Control
+document portal · **Proven on:** 854 9th St, APN `4281032011` (10 units), 10/10
+anchor match; 471/502 report rows resolved to registry unit_ids; period-aligned QA
+94.7%.
+
+## Implementation notes (what shipped vs. this spike)
+
+The four-stage family below is built in `scraper/src/history/` and wired into the
+scraper CLI as `history-index` / `history-fetch` / `history-ocr` / `history-merge`
+(see CLAUDE.md → "Deep MAR-history backfill"). Key decisions made during the build,
+none of which were visible in the spike:
+
+- **APN universe = `units.csv` (8,539), not `parcels.csv`.** Every drilled unit
+  carries its real APN; `parcels.csv` only backfills the APN on the one alias
+  address that returned `gvMarData`, so it is missing ~3,300 of them.
+- **`doc_id` tokens are stable across sessions** (verified: byte-identical refetch
+  from a fresh cookie jar), so the index-then-fetch split is sound — no need to
+  interleave or re-search.
+- **OCR engine is `tesseract.js` (WASM), not a system Tesseract.** The Homebrew
+  build is unavailable on this macOS, and the WASM build keeps the backfill
+  Node-only / self-hosted. Pages are rasterized with poppler `pdftoppm` (already a
+  repo dep) at 300 DPI; the model is cached under `data/raw/ocr-cache/`.
+- **Report layout is *not* fixed across years** — three template eras: the date
+  ("Market Rate Established") column floats between positions 2 and 3; GA prints as
+  a **percentage** (older) or a **dollar** (newer); dates are 2- or 4-digit-year;
+  the section header is `Parcel #:` (newer) or `RENT CONTROL ID#:` (older); the
+  2024+ template drops the "Established" header word. So the parser extracts by
+  **word geometry + a $-anchored value parse** (leftmost/rightmost $ = current/new
+  MAR; GA is the middle token, %, $ or N/E) keyed off the in-table APN, never a
+  fixed column order. Grid pages are detected by the section header alone.
+- **Unit-id resolution is registry-authoritative.** Report unit labels drift by era
+  ("854 9TH ST 1" → bare "1" → bare street number "933"), and the OCR'd site
+  address is too noisy to rebuild ids from. So `unit_id` is resolved from the
+  reliably-OCR'd **APN + raw label** against `units.csv` (`resolve-unit.ts`):
+  direct-slug → trailing-label → leading-street-number → sole-unit.
+- **QA gate is period-aligned.** The registry holds only two true instants
+  (2023-07-19 baseline, 2026-06-07 sweep), so the gate compares only the
+  report columns that align to those instants (a pre-Sep snapshot ↔ that year's
+  *current* MAR; the 2026 sweep ↔ the 2025 report's *new* MAR), derived from the
+  registry's own min/max dates. Reports for un-anchored years aren't checkable —
+  that is the gap the backfill fills, not an error. Residual <100% is real tenancy
+  churn between the 2025 report and the 2026 sweep.
+- **Merge is conservative + uses the clean column.** Observations are derived from
+  the monotonic **current-MAR** column only (the "new MAR" column OCRs less
+  cleanly), dated to the Sep-1 GA effective date — or the tenancy reset date when
+  later. Rows are **prepended only before each unit's first direct observation**
+  (deepening 2013→2023 without contradicting the observed era; the in-era refine is
+  deferred), collapsed to change-log semantics, with a `source` provenance column.
+  Dry-run by default; `--write` rewrites `mar_observations.csv`.
+
+---
+
+## Original spike (below) — context for the design
+
+**Spike status:** complete — **GO** · **Proven on:** 854 9th St, APN
 `4281032011` (10 units)
 
 ## TL;DR
