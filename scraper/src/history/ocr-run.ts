@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { readCsv, writeCsvSorted, type Row } from "../csv.ts";
 import { logger } from "../logger.ts";
-import { createOcrWorker, ocrReport, type UnitRecord } from "./ocr-report.ts";
+import { createOcrScheduler, ocrReport, type UnitRecord } from "./ocr-report.ts";
 import { pdfPath } from "./fetch-docs.ts";
 import { buildUnitResolver } from "./resolve-unit.ts";
 
@@ -176,25 +176,36 @@ export async function historyOcr(): Promise<void> {
   const allRecords: Array<UnitRecord & { source_handle: string }> = [];
   const allWarnings: string[] = [];
   let ocrd = 0;
-  const worker = await createOcrWorker();
-  try {
-    for (const t of todo) {
+
+  // OCR is local CPU work, so we parallelize across a worker pool. OCR_WORKERS
+  // sets both the scheduler size and how many reports render/OCR concurrently.
+  const workers = Math.max(1, Number(process.env.OCR_WORKERS ?? 10));
+  const scheduler = await createOcrScheduler(workers);
+  let cursor = 0;
+  const runLane = async (): Promise<void> => {
+    for (;;) {
+      const i = cursor++;
+      const t = todo[i];
+      if (!t) return;
       try {
-        const { records, warnings } = await ocrReport(worker, pdfPath(t.handle), t.year);
+        const { records, warnings } = await ocrReport(scheduler, pdfPath(t.handle), t.year);
         for (const r of records) allRecords.push({ ...r, source_handle: t.handle });
         for (const w of warnings) allWarnings.push(`[${t.handle}] ${w}`);
         ocrd++;
-        logger.info(
-          { handle: t.handle, units: records.length, warnings: warnings.length, i: ocrd, of: todo.length },
-          "history.ocr.doc",
-        );
+        if (ocrd % 250 === 0) {
+          logger.info({ done: ocrd, of: todo.length, units: allRecords.length }, "history.ocr.progress");
+        }
       } catch (err) {
         logger.error({ handle: t.handle, err: (err as Error).message }, "history.ocr.fail");
         allWarnings.push(`[${t.handle}] OCR threw: ${(err as Error).message}`);
       }
     }
+  };
+  logger.info({ workers, reports: todo.length }, "history.ocr.pool");
+  try {
+    await Promise.all(Array.from({ length: workers }, () => runLane()));
   } finally {
-    await worker.terminate();
+    await scheduler.terminate();
   }
 
   // Resolve each OCR'd unit to its canonical registry unit_id via (APN, raw label)

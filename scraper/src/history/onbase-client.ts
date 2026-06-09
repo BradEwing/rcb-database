@@ -62,6 +62,7 @@ export class OnBaseClient {
   public fetches = 0;
   public throttles = 0;
   public wafWaits = 0;
+  public netRetries = 0;
 
   constructor(opts: OnBaseClientOptions = {}) {
     this.minDelayMs = opts.minDelayMs ?? 400;
@@ -178,7 +179,20 @@ export class OnBaseClient {
   ): Promise<Awaited<ReturnType<typeof request>>> {
     for (let attempt = 1; ; attempt++) {
       await this.respectRateLimit();
-      const res = await this.rawRequest(url, opts);
+      let res: Awaited<ReturnType<typeof request>>;
+      try {
+        res = await this.rawRequest(url, opts);
+      } catch (err) {
+        // Transient TCP drops (ECONNRESET etc.) are common on this backend over a
+        // long crawl. Back off and retry rather than letting the caller skip the
+        // doc; only give up after MAX_RETRIES.
+        if (!isTransientNetworkError(err) || attempt > MAX_RETRIES) throw err;
+        this.netRetries++;
+        const waitMs = THROTTLE_BASE_MS * 2 ** (attempt - 1);
+        logger.warn({ err: (err as Error).message, attempt, waitMs, url }, "onbase.netretry");
+        await sleep(waitMs);
+        continue;
+      }
       const isThrottle = THROTTLE_STATUSES.has(res.statusCode);
       const isWaf = res.statusCode === 403;
       if ((!isThrottle && !isWaf) || attempt > MAX_RETRIES) return res;
@@ -228,6 +242,27 @@ export class OnBaseClient {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const TRANSIENT_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "EPIPE",
+  "EAI_AGAIN",
+  "UND_ERR_SOCKET",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+]);
+
+/** A retryable network blip (TCP drop / socket timeout), not an HTTP/WAF response. */
+export function isTransientNetworkError(err: unknown): boolean {
+  const e = err as { code?: string; cause?: { code?: string }; message?: string };
+  const code = e?.code ?? e?.cause?.code;
+  if (code && TRANSIENT_CODES.has(code)) return true;
+  const msg = e?.message ?? "";
+  return /ECONNRESET|ETIMEDOUT|socket hang up|other side closed|terminated/i.test(msg);
 }
 
 /** Map a search doc's DisplayColumnValues onto its DisplayColumns headings. */

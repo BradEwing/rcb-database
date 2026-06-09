@@ -61,15 +61,23 @@ export async function historyFetch(): Promise<void> {
   }
   mkdirSync(RAW_HISTORY_DIR, { recursive: true });
 
-  const targets = [...fetchTargets(index).values()];
-  const limitArg = Number(process.argv[3]);
+  // `--annual-only` restricts the fetch to ANNUAL MAR REPORTs (the only type with
+  // a working OCR parser); without it, all WANTED_TYPES are fetched.
+  const annualOnly = process.argv.includes("--annual-only");
+  let targets = [...fetchTargets(index).values()];
+  if (annualOnly) {
+    targets = targets.filter(
+      (t) => t.doc_type === "MAR REPORT" && t.doc_detail === "ANNUAL MAR REPORT",
+    );
+  }
+  const limitArg = Number(process.argv.find((a, i) => i >= 3 && /^\d+$/.test(a)));
   const limit = Number.isFinite(limitArg) && limitArg > 0 ? limitArg : Infinity;
 
   const pending = targets
     .filter((t) => !existsSync(pdfPath(t.handle ?? "")))
     .slice(0, limit);
   logger.info(
-    { wantedDocs: targets.length, alreadyFetched: targets.length - pending.length, pending: pending.length },
+    { annualOnly, wantedDocs: targets.length, alreadyFetched: targets.length - pending.length, pending: pending.length },
     "history.fetch.start",
   );
 
@@ -106,6 +114,7 @@ export async function historyFetch(): Promise<void> {
       fetches: client.fetches,
       throttles: client.throttles,
       wafWaits: client.wafWaits,
+      netRetries: client.netRetries,
     },
     "history.fetch.done",
   );

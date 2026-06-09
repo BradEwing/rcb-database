@@ -1,8 +1,9 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs"; // execFileSync: pdftoppm rasterization
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createWorker, type Worker } from "tesseract.js";
+import { createWorker, createScheduler, type Scheduler } from "tesseract.js";
 import { slug } from "../normalize.ts";
 
 /**
@@ -26,6 +27,7 @@ const PSM_SINGLE_BLOCK = "6";
 // tesseract.js caches its ~5MB English model. Keep it under data/raw/ (already
 // gitignored) so it never pollutes the repo or re-downloads every run.
 const OCR_CACHE_DIR = new URL("../../../data/raw/ocr-cache/", import.meta.url).pathname;
+const execFileP = promisify(execFile);
 
 export type Word = {
   text: string;
@@ -37,6 +39,14 @@ export type Word = {
   cy: number; // center y
   conf: number;
   line: number; // synthesized line index (grouped by y)
+};
+
+// The slice of tesseract.js's recognize output we read (word boxes, however the
+// version nests them). Kept local so the scheduler job result needs only a thin cast.
+type OcrWord = { text?: string; confidence: number; bbox: { x0: number; y0: number; x1: number; y1: number } };
+type RecognizeData = {
+  words?: OcrWord[];
+  blocks?: Array<{ paragraphs?: Array<{ lines?: Array<{ words?: OcrWord[] }> }> }> | null;
 };
 
 export type UnitRecord = {
@@ -57,28 +67,43 @@ export type ParseResult = {
   warnings: string[];
 };
 
-/** Render every page of a PDF to PNG at RENDER_DPI; returns image paths in order. */
-export function renderPages(pdfPath: string): { dir: string; pages: string[] } {
+/**
+ * Render every page of a PDF to PNG at RENDER_DPI; returns image paths in order.
+ * Async (non-blocking `execFile`) so that, under the worker pool, many reports
+ * rasterize concurrently and the WASM workers aren't starved by a blocking spawn.
+ */
+export async function renderPages(pdfPath: string): Promise<{ dir: string; pages: string[] }> {
   const dir = mkdtempSync(join(tmpdir(), "marocr-"));
-  execFileSync(PDFTOPPM, ["-png", "-r", String(RENDER_DPI), pdfPath, join(dir, "p")]);
+  await execFileP(PDFTOPPM, ["-png", "-r", String(RENDER_DPI), pdfPath, join(dir, "p")]);
   const pages = readdirSync(dir)
     .filter((f) => f.endsWith(".png"))
     .sort();
   return { dir, pages: pages.map((p) => join(dir, p)) };
 }
 
-/** Create a reusable OCR worker (loads the WASM engine + English data once). */
-export async function createOcrWorker(): Promise<Worker> {
-  const worker = await createWorker("eng", undefined, {
-    cachePath: OCR_CACHE_DIR,
-  });
-  await worker.setParameters({ tessedit_pageseg_mode: PSM_SINGLE_BLOCK as never });
-  return worker;
+/**
+ * Create a tesseract.js scheduler backed by `n` WASM workers. OCR is purely
+ * local CPU work (no network), so the worker count is just a parallelism knob;
+ * the scheduler load-balances recognize jobs across the pool. The English model
+ * is cached under data/raw/ocr-cache so workers don't each re-download it.
+ */
+export async function createOcrScheduler(n: number): Promise<Scheduler> {
+  const scheduler = createScheduler();
+  const workers = await Promise.all(
+    Array.from({ length: Math.max(1, n) }, async () => {
+      const worker = await createWorker("eng", undefined, { cachePath: OCR_CACHE_DIR });
+      await worker.setParameters({ tessedit_pageseg_mode: PSM_SINGLE_BLOCK as never });
+      return worker;
+    }),
+  );
+  for (const w of workers) scheduler.addWorker(w);
+  return scheduler;
 }
 
-/** OCR an image to word boxes via tesseract.js. */
-export async function ocrWords(worker: Worker, imagePath: string): Promise<Word[]> {
-  const { data } = await worker.recognize(imagePath, {}, { blocks: true });
+/** OCR an image to word boxes via a tesseract.js scheduler. */
+export async function ocrWords(scheduler: Scheduler, imagePath: string): Promise<Word[]> {
+  const result = await scheduler.addJob("recognize", imagePath, {}, { blocks: true });
+  const data = (result as { data: RecognizeData }).data;
   const flat =
     data.words && data.words.length > 0
       ? data.words
@@ -270,17 +295,17 @@ export function parseReportPage(
 
 /** Full pipeline for one PDF: render, OCR each page, parse the grid page(s). */
 export async function ocrReport(
-  worker: Worker,
+  scheduler: Scheduler,
   pdfPath: string,
   fallbackYear: string,
 ): Promise<ParseResult> {
-  const { dir, pages } = renderPages(pdfPath);
+  const { dir, pages } = await renderPages(pdfPath);
   try {
     const all: UnitRecord[] = [];
     const warnings: string[] = [];
     let gridFound = false;
     for (const img of pages) {
-      const words = await ocrWords(worker, img);
+      const words = await ocrWords(scheduler, img);
       const parsed = parseReportPage(words, fallbackYear);
       if (!parsed) continue;
       gridFound = true;
