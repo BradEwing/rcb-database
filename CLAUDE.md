@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Build a self-hosted registry of Santa Monica rent-controlled units by scraping the City's public Maximum Allowable Rent (MAR) lookup tool on a monthly schedule. The registry is the source of truth for tracking MAR changes over time (new tenancies, annual general adjustments, capital improvement pass-throughs, etc.) for every rent-controlled parcel in the city.
 
-Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). `mar_observations.csv` is now an **event-sourced change log** (one row per change, carry-forward semantics — see Schema), so monthly snapshots grow slowly and each `git diff` is itself the change-log. The monthly GitHub Action cron is wired up (`.github/workflows/monthly-snapshot.yml`) but has not yet run on schedule. The static site — an interactive parcel map with per-unit breakdowns, change/exit layers, search, and a methodology page — is **built and deployed** to GitHub Pages at https://bradewing.github.io/rcb-database/ (delivered across PRs 1–7; see `site/` and "Hosting & Distribution"). The city-limits boundary overlay (city outline + a dim of everything outside, toggleable from the legend) is **shipped** — fetched via `npm run fetch-boundary` from the City's `Santa_Monica_city_boundary` FeatureServer and cached at `data/external/city-boundary.geojson`. A **`/charts`** analytics page is **shipped** — median MAR by bedroom over time (reconstructed as-of each snapshot from the change log, deepens per sweep), the current-snapshot bar with IQR, and an **allowed-rent-by-tenancy-vintage** view (current MAR vs the month a tenancy began, faceted by bedroom — quarterly median + IQR band over a downsampled scatter; 21,981 controlled units plotted, 10,919 empty-tenancy units excluded and counted) — all built from a new `analytics.json` (`buildAnalytics` in `build-data.ts`); see `docs/design/charts-and-density.md`. The third analytics deliverable — a **3D map density view** (a VoteHub-style toggleable "3D buildings" mode that pitches the camera and extrudes each parcel by its controlled-unit count via a `fill-extrusion` layer, coloured by the active metric, with a 1×–5× height multiplier; clickable through to the detail panel) — is **shipped**; see `docs/design/charts-and-density.md` #3. Roadmap: use-type/vintage enrichment (ADU vs rental SFR, pre/post-1979) — see `docs/design/parcel-enrichment.md`.
+Status: scraper implemented and tested against fixtures; both long sweeps have been run end-to-end against the City's servers. The registry is seeded as of 2026-06-07: `streets.csv` (147), `parcels.csv` (10,714 address-rows / ~8,500 distinct APNs), `units.csv` + `mar_observations.csv` (35,419 units — 32,900 controlled, 2,519 exempt). Phase B runs as a bounded concurrent pool in ~4 min (see "Run cadence"). The ~19% overage vs the RCB report's 27,589 headline is **resolved** — it is definitional, not a scraper defect (see "Completeness / RCB reconciliation" under Core Design Problems and `docs/reconciliation-2025.md`). `mar_observations.csv` is now an **event-sourced change log** (one row per change, carry-forward semantics — see Schema), so monthly snapshots grow slowly and each `git diff` is itself the change-log. The monthly GitHub Action cron is wired up (`.github/workflows/monthly-snapshot.yml`) but has not yet run on schedule. The static site — an interactive parcel map with per-unit breakdowns, change/exit layers, search, and a methodology page — is **built and deployed** to GitHub Pages at https://bradewing.github.io/rcb-database/ (delivered across PRs 1–7; see `site/` and "Hosting & Distribution"). The city-limits boundary overlay (city outline + a dim of everything outside, toggleable from the legend) is **shipped** — fetched via `npm run fetch-boundary` from the City's `Santa_Monica_city_boundary` FeatureServer and cached at `data/external/city-boundary.geojson`. A **`/charts`** analytics page is **shipped** — median MAR by bedroom over time (reconstructed as-of each snapshot from the change log, deepens per sweep), the current-snapshot bar with IQR, and an **allowed-rent-by-tenancy-vintage** view (current MAR vs the month a tenancy began, faceted by bedroom — quarterly median + IQR band over a downsampled scatter; 21,981 controlled units plotted, 10,919 empty-tenancy units excluded and counted) — all built from a new `analytics.json` (`buildAnalytics` in `build-data.ts`); see `docs/design/charts-and-density.md`. The third analytics deliverable — a **3D map density view** (a VoteHub-style toggleable "3D buildings" mode that pitches the camera and extrudes each parcel by its controlled-unit count via a `fill-extrusion` layer, coloured by the active metric, with a 1×–5× height multiplier; clickable through to the detail panel) — is **shipped**; see `docs/design/charts-and-density.md` #3. The **deep MAR-history backfill** (per-unit annual MAR back to ~2013 from the rentcontroldocs OnBase portal) is **implemented** as a four-stage scraper family (`scraper/src/history/`, `history-index/fetch/ocr/merge` — see "Deep MAR-history backfill" below) and validated end-to-end (10/10 anchor match, period-aligned QA 94.7%); the full run is in progress (index complete: 8,524 APNs / 264k docs / 0 WAF; fetch of ~50,400 annual reports + OCR pending). The OCR'd history is **not yet merged** into the live `mar_observations.csv` — `history-merge --write` is gated on review. Roadmap: tenancy-registration / final-rent OCR parsers (pre-2013 reset values); use-type/vintage enrichment (ADU vs rental SFR, pre/post-1979) — see `docs/design/parcel-enrichment.md`.
 
 ## Stack
 
@@ -42,17 +42,21 @@ back-off) family backfills it. See `docs/design/mar-history-backfill.md`.
   `KeywordSearch` (query 125); persist the doc list to `data/history/doc_index.csv`
   (`apn, address, unit_id, doc_type, doc_detail, doc_year, case_number, handle, doc_id, name`).
   Resumable (skips indexed APNs); a bare 10-digit arg (re)indexes just that APN.
-- `history-fetch [limit]` — download the wanted types (`ANNUAL MAR REPORT`,
-  `TENANCY REGISTRATION`, `FINAL RENT PRINTOUT`) as PDF to `data/raw/history/`
-  (gitignored), deduped by handle, skipping fetched. `doc_id` tokens are stable
-  across sessions, so this can run separately from indexing.
-- `history-ocr [limit]` — OCR (tesseract.js WASM; `pdftoppm` rasterizes at 300 DPI)
-  the annual reports' per-unit grid into `data/history/mar_history.csv` (`parcel,
-  infor_id, unit_id, unit_label_raw, report_year, market_rate_established, mar_cents,
-  ga_cents, new_mar_cents, source_handle`). Extracts by **word geometry + a
-  $-anchored value parse** (layout/column order varies across template eras), keys
-  rows off the in-table **Parcel #**, and resolves `unit_id` from (APN + raw label)
-  against `units.csv` (`resolve-unit.ts`). **Fails loud** if the period-aligned QA
+- `history-fetch [limit] [--annual-only]` — download the wanted types
+  (`ANNUAL MAR REPORT`, `TENANCY REGISTRATION`, `FINAL RENT PRINTOUT`) as PDF to
+  `data/raw/history/` (gitignored), deduped by handle, skipping fetched. `doc_id`
+  tokens are stable across sessions, so this runs separately from indexing.
+  `--annual-only` restricts to annual reports (the only type with a working OCR
+  parser today — tenancy/final-rent parsers are future work).
+- `history-ocr [limit]` — OCR (tesseract.js WASM **worker pool**, `OCR_WORKERS`
+  default 10 — OCR is local CPU work, so this is pure parallelism with no server
+  contact; `pdftoppm` rasterizes at 300 DPI) the fetched annual reports' per-unit
+  grid into `data/history/mar_history.csv` (`parcel, infor_id, unit_id,
+  unit_label_raw, report_year, market_rate_established, mar_cents, ga_cents,
+  new_mar_cents, source_handle`). Extracts by **word geometry + a $-anchored value
+  parse** (layout/column order varies across template eras), keys rows off the
+  in-table **Parcel #**, and resolves `unit_id` from (APN + raw label) against
+  `units.csv` (`resolve-unit.ts`). **Fails loud** if the period-aligned QA
   reconciliation vs the registry anchors drops below 85%.
 - `history-merge [--write]` — fold `mar_history.csv` into `mar_observations.csv` as
   earlier change rows (derived from the clean current-MAR column, dated to the Sep-1
@@ -62,6 +66,18 @@ back-off) family backfills it. See `docs/design/mar-history-backfill.md`.
   rewrites the committed `mar_observations.csv`. NOTE: applying `--write` requires
   updating the `OBS_HEADERS` writers (`index.ts` drill + the two `backfill/`
   scripts) to carry `source` so the next sweep doesn't drop the column.
+
+**Run cadence / scale.** Index ≈ 8,540 APNs and fetch ≈ 50,400 annual reports.
+Both the **index and fetch phases hit the City portal and stay single-threaded**
+at `OBPA_MIN_DELAY_MS` (default 400 ms) — a full index ran with **0 throttles / 0
+WAF** over ~6.5 h, so do **not** add session concurrency (parallel Incapsula
+sessions from one IP is the riskier move; let the 429/503/403 back-off be the
+valve). The fetch is ~0.35 s/doc (~5 h). **OCR** is local CPU work, so it runs a
+parallel worker pool (`OCR_WORKERS`, default 10). All phases are resumable/idempotent
+(skip already-done APNs/handles/reports). These are long unattended jobs: on macOS,
+run them under `caffeinate -ism -w <pid>` — *maintenance/power-nap sleep silently
+suspends the process even on AC*, and plain `caffeinate -i` is not enough. `data/history/*.csv`
+is gitignored until the first full backfill completes (see `.gitignore`).
 
 ### Static site (`site/` — separate npm workspace)
 
