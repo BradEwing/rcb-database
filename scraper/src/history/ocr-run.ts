@@ -169,74 +169,90 @@ export async function historyOcr(): Promise<void> {
   const targets = reportsToOcr(index);
   const limitArg = Number(process.argv[3]);
   const limit = Number.isFinite(limitArg) && limitArg > 0 ? limitArg : Infinity;
-  const todo = targets.slice(0, limit);
 
-  logger.info({ annualReports: targets.length, todo: todo.length }, "history.ocr.start");
+  const resolve = buildUnitResolver(UNITS_CSV);
 
-  const allRecords: Array<UnitRecord & { source_handle: string }> = [];
+  // Resume state: load any mar_history already on disk into the running result map
+  // and the set of source_handles already OCR'd, so a re-run skips finished
+  // reports. mar_history is flushed after every chunk, so a crash loses at most
+  // one chunk's work — essential at 50k reports.
+  const byKey = new Map<string, Row>();
+  const doneHandles = new Set<string>();
+  for (const r of readCsv(MAR_HISTORY_CSV)) {
+    byKey.set(`${r.parcel}|${r.unit_id}|${r.report_year}`, r);
+    if (r.source_handle) doneHandles.add(r.source_handle);
+  }
+  const todo = targets.filter((t) => !doneHandles.has(t.handle)).slice(0, limit);
+
+  // Chunked so the WASM worker pool is torn down and recreated periodically — that
+  // releases the per-recognize memory that otherwise grows unbounded over a long
+  // run and OOMs the main heap. Each chunk also flushes to disk (resumability).
+  const workers = Math.max(1, Number(process.env.OCR_WORKERS ?? 10));
+  const chunkSize = Math.max(1, Number(process.env.OCR_CHUNK ?? 1500));
+  logger.info(
+    { annualReports: targets.length, alreadyDone: doneHandles.size, todo: todo.length, workers, chunkSize },
+    "history.ocr.start",
+  );
+
   const allWarnings: string[] = [];
   let ocrd = 0;
-
-  // OCR is local CPU work, so we parallelize across a worker pool. OCR_WORKERS
-  // sets both the scheduler size and how many reports render/OCR concurrently.
-  const workers = Math.max(1, Number(process.env.OCR_WORKERS ?? 10));
-  const scheduler = await createOcrScheduler(workers);
-  let cursor = 0;
-  const runLane = async (): Promise<void> => {
-    for (;;) {
-      const i = cursor++;
-      const t = todo[i];
-      if (!t) return;
-      try {
-        const { records, warnings } = await ocrReport(scheduler, pdfPath(t.handle), t.year);
-        for (const r of records) allRecords.push({ ...r, source_handle: t.handle });
-        for (const w of warnings) allWarnings.push(`[${t.handle}] ${w}`);
-        ocrd++;
-        if (ocrd % 250 === 0) {
-          logger.info({ done: ocrd, of: todo.length, units: allRecords.length }, "history.ocr.progress");
-        }
-      } catch (err) {
-        logger.error({ handle: t.handle, err: (err as Error).message }, "history.ocr.fail");
-        allWarnings.push(`[${t.handle}] OCR threw: ${(err as Error).message}`);
-      }
-    }
-  };
-  logger.info({ workers, reports: todo.length }, "history.ocr.pool");
-  try {
-    await Promise.all(Array.from({ length: workers }, () => runLane()));
-  } finally {
-    await scheduler.terminate();
-  }
-
-  // Resolve each OCR'd unit to its canonical registry unit_id via (APN, raw label)
-  // — the OCR'd id is only a provisional slug. Unresolved rows keep their
-  // provisional id (so nothing is dropped) but are counted; they surface as
-  // orphans at merge time (units no longer in the registry, or a bad APN read).
-  const resolve = buildUnitResolver(UNITS_CSV);
   let resolved = 0;
   let unresolved = 0;
-  for (const r of allRecords) {
-    const id = resolve(r.parcel, r.unit_label_raw);
-    if (id) {
-      r.unit_id = id;
-      resolved++;
-    } else {
-      unresolved++;
+  let conflicts = 0;
+
+  for (let start = 0; start < todo.length; start += chunkSize) {
+    const chunk = todo.slice(start, start + chunkSize);
+    const scheduler = await createOcrScheduler(workers);
+    const chunkRecords: Array<UnitRecord & { source_handle: string }> = [];
+    let cursor = 0;
+    const runLane = async (): Promise<void> => {
+      for (;;) {
+        const t = chunk[cursor++];
+        if (!t) return;
+        try {
+          const { records, warnings } = await ocrReport(scheduler, pdfPath(t.handle), t.year);
+          for (const r of records) chunkRecords.push({ ...r, source_handle: t.handle });
+          for (const w of warnings) allWarnings.push(`[${t.handle}] ${w}`);
+          ocrd++;
+          if (ocrd % 250 === 0) {
+            logger.info({ done: ocrd, of: todo.length, rows: byKey.size + chunkRecords.length }, "history.ocr.progress");
+          }
+        } catch (err) {
+          logger.error({ handle: t.handle, err: (err as Error).message }, "history.ocr.fail");
+          allWarnings.push(`[${t.handle}] OCR threw: ${(err as Error).message}`);
+        }
+      }
+    };
+    try {
+      await Promise.all(Array.from({ length: workers }, () => runLane()));
+    } finally {
+      await scheduler.terminate(); // free the pool's memory before the next chunk
     }
+
+    // Resolve provisional unit_ids to registry ids (APN + raw label), dedup within
+    // the chunk, fold into the running map, and flush so progress survives a crash.
+    for (const r of chunkRecords) {
+      const id = resolve(r.parcel, r.unit_label_raw);
+      if (id) {
+        r.unit_id = id;
+        resolved++;
+      } else {
+        unresolved++;
+      }
+    }
+    const { rows, conflicts: c } = dedupRecords(chunkRecords);
+    conflicts += c;
+    for (const r of rows) byKey.set(`${r.parcel}|${r.unit_id}|${r.report_year}`, r);
+    writeCsvSorted(MAR_HISTORY_CSV, MAR_HISTORY_HEADERS, [...byKey.values()], [
+      "parcel",
+      "unit_id",
+      "report_year",
+    ]);
+    if (typeof globalThis.gc === "function") globalThis.gc(); // reclaim between chunks if --expose-gc
   }
 
-  const { rows, conflicts } = dedupRecords(allRecords);
-  // Merge with any prior mar_history rows so re-running a subset is additive.
-  const existing = readCsv(MAR_HISTORY_CSV);
-  const byKey = new Map<string, Row>();
-  for (const r of existing) byKey.set(`${r.parcel}|${r.unit_id}|${r.report_year}`, r);
-  for (const r of rows) byKey.set(`${r.parcel}|${r.unit_id}|${r.report_year}`, r);
-  const merged = [...byKey.values()];
-  writeCsvSorted(MAR_HISTORY_CSV, MAR_HISTORY_HEADERS, merged, [
-    "parcel",
-    "unit_id",
-    "report_year",
-  ]);
+  const rows = [...byKey.values()];
+  const merged = rows;
 
   const qa = qaReconcile(merged, readCsv(OBS_CSV));
   logger.info(
