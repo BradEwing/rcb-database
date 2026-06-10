@@ -188,7 +188,10 @@ export async function historyOcr(): Promise<void> {
   // releases the per-recognize memory that otherwise grows unbounded over a long
   // run and OOMs the main heap. Each chunk also flushes to disk (resumability).
   const workers = Math.max(1, Number(process.env.OCR_WORKERS ?? 10));
-  const chunkSize = Math.max(1, Number(process.env.OCR_CHUNK ?? 1500));
+  // tesseract.js retains each recognize result until the worker pool is torn down,
+  // so the per-chunk size caps peak main-heap usage. 1500 reached ~6GB and OOM'd
+  // even with --max-old-space-size=6144; 500 keeps the peak comfortably bounded.
+  const chunkSize = Math.max(1, Number(process.env.OCR_CHUNK ?? 500));
   logger.info(
     { annualReports: targets.length, alreadyDone: doneHandles.size, todo: todo.length, workers, chunkSize },
     "history.ocr.start",
