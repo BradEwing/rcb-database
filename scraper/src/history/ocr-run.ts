@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, appendFileSync } from "node:fs";
 import { readCsv, writeCsvSorted, type Row } from "../csv.ts";
 import { logger } from "../logger.ts";
 import { createOcrScheduler, ocrReport, type UnitRecord } from "./ocr-report.ts";
@@ -10,6 +10,11 @@ const REPO_ROOT = new URL("../../../", import.meta.url).pathname;
 const DATA_DIR = join(REPO_ROOT, "data");
 const DOC_INDEX_CSV = join(DATA_DIR, "history", "doc_index.csv");
 const MAR_HISTORY_CSV = join(DATA_DIR, "history", "mar_history.csv");
+// Append-only list of every report handle we've OCR'd — including ones that
+// yielded no rows (exempt/no-grid). mar_history alone can't track these (they
+// produce no source_handle row), so a batch-looped resume would re-OCR them
+// forever. This is the authoritative "attempted" set for resumability.
+const ATTEMPTED_FILE = join(DATA_DIR, "history", "ocr_attempted.txt");
 const OBS_CSV = join(DATA_DIR, "mar_observations.csv");
 const UNITS_CSV = join(DATA_DIR, "units.csv");
 
@@ -177,12 +182,17 @@ export async function historyOcr(): Promise<void> {
   // reports. mar_history is flushed after every chunk, so a crash loses at most
   // one chunk's work — essential at 50k reports.
   const byKey = new Map<string, Row>();
-  const doneHandles = new Set<string>();
+  const attempted = new Set<string>();
   for (const r of readCsv(MAR_HISTORY_CSV)) {
     byKey.set(`${r.parcel}|${r.unit_id}|${r.report_year}`, r);
-    if (r.source_handle) doneHandles.add(r.source_handle);
+    if (r.source_handle) attempted.add(r.source_handle); // yielded rows ⇒ attempted
   }
-  const todo = targets.filter((t) => !doneHandles.has(t.handle)).slice(0, limit);
+  if (existsSync(ATTEMPTED_FILE)) {
+    for (const h of readFileSync(ATTEMPTED_FILE, "utf8").split("\n")) {
+      if (h.trim()) attempted.add(h.trim()); // incl. zero-yield reports
+    }
+  }
+  const todo = targets.filter((t) => !attempted.has(t.handle)).slice(0, limit);
 
   // Chunked so the WASM worker pool is torn down and recreated periodically — that
   // releases the per-recognize memory that otherwise grows unbounded over a long
@@ -193,7 +203,7 @@ export async function historyOcr(): Promise<void> {
   // even with --max-old-space-size=6144; 500 keeps the peak comfortably bounded.
   const chunkSize = Math.max(1, Number(process.env.OCR_CHUNK ?? 500));
   logger.info(
-    { annualReports: targets.length, alreadyDone: doneHandles.size, todo: todo.length, workers, chunkSize },
+    { annualReports: targets.length, alreadyAttempted: attempted.size, todo: todo.length, workers, chunkSize },
     "history.ocr.start",
   );
 
@@ -251,6 +261,9 @@ export async function historyOcr(): Promise<void> {
       "unit_id",
       "report_year",
     ]);
+    // Record EVERY handle in this chunk as attempted (even zero-yield ones) so a
+    // batch-looped resume never re-OCRs them.
+    appendFileSync(ATTEMPTED_FILE, chunk.map((t) => t.handle).join("\n") + "\n");
     if (typeof globalThis.gc === "function") globalThis.gc(); // reclaim between chunks if --expose-gc
   }
 

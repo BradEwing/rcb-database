@@ -19,3 +19,9 @@ data/history/*.csv
 .vscode/
 .idea/
 *.swp
+
+# Transient backfill handoff note
+.mar-history-resume.md
+
+# OCR attempted-handle resume list (transient)
+data/history/ocr_attempted.txt
