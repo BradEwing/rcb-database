@@ -590,6 +590,125 @@ function buildMarByTenancyVintage(
   };
 }
 
+/** new_tenancy_rent in analytics.json — the "going rate for new tenancies" time
+ *  series (companion to mar_by_tenancy_vintage, which plots CURRENT MAR by
+ *  vintage). Here both axes are anchored at the reset: for each tenancy
+ *  establishment event, the rent set AT that time, binned quarterly by the
+ *  tenancy-start month. Mirrors `NewTenancyRent` in site/src/lib/types.ts. */
+type NewTenancyRent = {
+  bin: "quarter";
+  /** Establishment events that made it onto the chart. */
+  total_events: number;
+  /** Events excluded because a Sep-1 GA fell between the tenancy start and our
+   *  first observation of it — the observed MAR embeds the GA, not the reset rent. */
+  excluded_ga_lag: number;
+  /** Events with an impossible tenancy date (future-dated / pre-1971 noise). */
+  excluded_invalid: number;
+  buckets: VintageBucket[];
+};
+
+/** First Sep 1 strictly after a date — the next GA effective date. */
+function nextGaDate(date: string): string {
+  const y = parseInt(date.slice(0, 4), 10);
+  return date < `${y}-09-01` ? `${y}-09-01` : `${y + 1}-09-01`;
+}
+
+/** New-tenancy reset rents over time. Every distinct (unit, tenancy_date) in the
+ *  observation log is one establishment event; its rent is the EARLIEST
+ *  positive-MAR observation carrying that tenancy_date. Unlike the vintage view,
+ *  the y-value here is the rent as-of the reset itself, so an event only counts
+ *  when that earliest observation is GA-clean — no Sep-1 GA between the tenancy
+ *  start and the observation (we filter, never reconstruct the GA — project
+ *  stance). The portal merge dates mid-period resets to the tenancy date itself
+ *  with the report's pre-GA MAR column (see merge-history.ts), so portal-era
+ *  events pass this filter whenever a surviving filing covers the reset period;
+ *  first-sighting baselines carrying an old tenancy are correctly excluded.
+ *  Quarterly median + IQR per bedroom bucket, same shape as the vintage view.
+ *  See docs/design/charts-and-density.md #4. */
+function buildNewTenancyRent(units: Row[], obs: Row[]): NewTenancyRent {
+  const bedroomByUnit = new Map<string, string>();
+  for (const u of units) bedroomByUnit.set(g(u, "unit_id"), bedroomBucket(g(u, "bedrooms")));
+
+  // Earliest positive-MAR observation per (unit, tenancy_date) establishment event.
+  const earliest = new Map<string, { at: string; cents: number; ten: string; unit: string }>();
+  for (const o of obs) {
+    const ten = (g(o, "tenancy_date") ?? "").trim();
+    if (!ten) continue; // long-term tenancy / no reset recorded — no event
+    const cents = intOf(o, "mar_amount_cents");
+    if (cents <= 0) continue; // exempt rows carry no reset rent
+    const at = g(o, "observed_at");
+    const key = `${g(o, "unit_id")} ${ten}`;
+    const prev = earliest.get(key);
+    if (!prev || at < prev.at) earliest.set(key, { at, cents, ten, unit: g(o, "unit_id") });
+  }
+
+  const pointsByBucket = new Map<string, VintagePoint[]>();
+  for (const b of BEDROOM_ORDER) pointsByBucket.set(b, []);
+  let totalEvents = 0;
+  let excludedGaLag = 0;
+  let excludedInvalid = 0;
+  let excludedUnknownBedroom = 0;
+
+  for (const e of earliest.values()) {
+    // Impossible dates: future-dated relative to the observation (e.g. a 2923
+    // form typo) or before rent control could plausibly anchor a tenancy.
+    if (e.ten > e.at || e.ten < "1971-01-01") {
+      excludedInvalid++;
+      continue;
+    }
+    // GA-clean only: a Sep-1 between tenancy start and observation means the
+    // observed MAR includes that GA bump — not the reset rent.
+    if (e.at >= nextGaDate(e.ten)) {
+      excludedGaLag++;
+      continue;
+    }
+    const bucket = bedroomByUnit.get(e.unit);
+    if (!bucket || bucket === "unknown") {
+      excludedUnknownBedroom++;
+      continue;
+    }
+    pointsByBucket.get(bucket)!.push({ t: `${e.ten.slice(0, 7)}-01`, mar_cents: e.cents });
+    totalEvents++;
+  }
+
+  const buckets: VintageBucket[] = BEDROOM_ORDER.map((b) => {
+    const pts = pointsByBucket.get(b)!;
+    const byQuarter = new Map<string, number[]>();
+    for (const p of pts) {
+      const q = quarterStart(p.t);
+      const arr = byQuarter.get(q);
+      if (arr) arr.push(p.mar_cents);
+      else byQuarter.set(q, [p.mar_cents]);
+    }
+    const bins: VintageBin[] = [...byQuarter.entries()]
+      .map(([period, vals]) => ({
+        period,
+        count: vals.length,
+        median_cents: median(vals),
+        p25_cents: percentile(vals, 25),
+        p75_cents: percentile(vals, 75),
+      }))
+      .sort((x, y) => x.period.localeCompare(y.period));
+
+    return { bucket: b, label: BEDROOM_LABELS[b] ?? b, count: pts.length, bins };
+  });
+
+  if (excludedUnknownBedroom > 0) {
+    process.stdout.write(
+      `  new-tenancy-rent: ${excludedUnknownBedroom} GA-clean events with ` +
+        `unparseable bedrooms excluded\n`,
+    );
+  }
+
+  return {
+    bin: "quarter",
+    total_events: totalEvents,
+    excluded_ga_lag: excludedGaLag,
+    excluded_invalid: excludedInvalid,
+    buckets,
+  };
+}
+
 /** Per-UNIT MAR reconstructed "as of" the end of each year, grouped by parcel —
  *  the dataset behind the configurable MAR-change choropleth. For any chosen
  *  baseline/end year the map computes EACH unit's own % move (over units
@@ -707,6 +826,7 @@ function buildAnalytics(
     rent_by_bedroom: rentByBedroom,
     rent_over_time: buildRentOverTime(units, obs),
     mar_by_tenancy_vintage: buildMarByTenancyVintage(units, latestMar),
+    new_tenancy_rent: buildNewTenancyRent(units, obs),
   };
 }
 
@@ -910,6 +1030,7 @@ function main(): void {
   const analyticsPath = join(SITE_DATA_DIR, "analytics.json");
   writeFileSync(analyticsPath, JSON.stringify(analyticsJson, null, 2) + "\n");
   const vintage = analyticsJson.mar_by_tenancy_vintage as MarByTenancyVintage;
+  const newTenancy = analyticsJson.new_tenancy_rent as NewTenancyRent;
 
   // Per-parcel median-MAR-by-year matrix for the configurable change choropleth.
   const marByYear = buildMarByYear(parcelUnits, obs, sweepDate);
@@ -925,7 +1046,9 @@ function main(): void {
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${summaryPath}\n` +
       `Wrote ${analyticsPath} (tenancy-vintage: ${vintage.total_points} controlled points, ` +
-      `${vintage.excluded_empty_tenancy} excluded for empty tenancy_date)\n` +
+      `${vintage.excluded_empty_tenancy} excluded for empty tenancy_date; ` +
+      `new-tenancy-rent: ${newTenancy.total_events} GA-clean events, ` +
+      `${newTenancy.excluded_ga_lag} GA-lag + ${newTenancy.excluded_invalid} invalid excluded)\n` +
       `Wrote ${marByYearPath} (${marByYear.years.length} years ${marByYear.years[0]}–` +
       `${marByYear.years[marByYear.years.length - 1]}, ${Object.keys(marByYear.parcels).length} parcels)\n` +
       `Wrote ${metaPath}\n`,

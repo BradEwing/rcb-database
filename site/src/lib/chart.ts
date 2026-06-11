@@ -2,7 +2,13 @@
  *  dynamically by the map island (only when a panel opens) so Plot/d3 stay out
  *  of the initial bundle. */
 import * as Plot from '@observablehq/plot';
-import type { MarByTenancyVintage, MarHistoryPoint, RentOverTimeSeries } from './types';
+import type {
+  MarByTenancyVintage,
+  MarHistoryPoint,
+  NewTenancyRent,
+  RentOverTimeSeries,
+  VintageBucket,
+} from './types';
 
 /**
  * Step lines of each unit's MAR over time. The registry's change log is sparse
@@ -129,7 +135,35 @@ export function marByTenancyVintageChart(
   vintage: MarByTenancyVintage,
   width: number,
 ): HTMLElement | SVGSVGElement {
-  const shown = vintage.buckets.filter((b) => b.bucket !== '3+');
+  return quarterlyBandChart(vintage.buckets, width, 'Current MAR ($)');
+}
+
+/**
+ * New-tenancy rents over time — the vintage chart's companion, with the y-value
+ * anchored at the reset instead of today: for tenancies established in each
+ * quarter (x), the rent actually set at that time (earliest GA-clean observation
+ * of each establishment event — see charts-and-density.md #4). Where the vintage
+ * chart answers "what do tenants who moved in then pay NOW," this answers "what
+ * was the going rate for a new tenancy THEN." Same bands, smoothing, and legend
+ * toggles; 3+ BR excluded to match.
+ */
+export function newTenancyRentChart(
+  data: NewTenancyRent,
+  width: number,
+): HTMLElement | SVGSVGElement {
+  return quarterlyBandChart(data.buckets, width, 'New-tenancy rent ($)');
+}
+
+/** Shared renderer for the two quarterly median+IQR-by-bedroom charts: one
+ *  colour per bucket, legend-chip toggles, rolling-mean smoothing. 3+ BR is
+ *  dropped here (small, spiky bins — and it stays out of every chart pending
+ *  issue #11). */
+function quarterlyBandChart(
+  buckets: VintageBucket[],
+  width: number,
+  yLabel: string,
+): HTMLElement {
+  const shown = buckets.filter((b) => b.bucket !== '3+');
   const labels = shown.map((b) => b.label);
   const active = new Set(labels);
 
@@ -169,12 +203,15 @@ export function marByTenancyVintageChart(
         style: { background: 'transparent', color: 'currentColor', fontSize: '11px' },
         x: { label: null, grid: false, domain: xDomain },
         y: {
-          label: 'Current MAR ($)',
+          label: yLabel,
           labelArrow: 'none',
           grid: true,
           domain: [0, maxDollars],
           nice: true,
-          tickFormat: (d: number) => `$${(d / 1000).toFixed(d < 1000 ? 1 : 0)}k`,
+          // Integer thousands stay terse ($3k); off-grid ticks keep one decimal
+          // ($4.5k) so 500-step tick domains don't round into duplicate labels.
+          tickFormat: (d: number) =>
+            `$${Number.isInteger(d / 1000) ? d / 1000 : (d / 1000).toFixed(1)}k`,
         },
         color: { domain: labels, range: labels.map((l) => VINTAGE_COLORS[l]!) },
         marks: [

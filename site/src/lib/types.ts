@@ -153,12 +153,27 @@ export interface MarByTenancyVintage {
   buckets: VintageBucket[];
 }
 
+/** new_tenancy_rent — the "going rate for new tenancies" series (mirrors
+ *  build-data `NewTenancyRent`). Companion to mar_by_tenancy_vintage: here the
+ *  y-value is the rent set AT the tenancy start (earliest GA-clean observation
+ *  of each establishment event), binned quarterly by tenancy-start month per
+ *  bedroom bucket. Events whose first observation lagged past a Sep-1 GA are
+ *  excluded (counted) — see charts-and-density.md #4. */
+export interface NewTenancyRent {
+  bin: 'quarter';
+  total_events: number;
+  excluded_ga_lag: number;
+  excluded_invalid: number;
+  buckets: VintageBucket[];
+}
+
 /** analytics.json — citywide aggregates read by the /charts page. */
 export interface SiteAnalytics {
   latest_sweep: string;
   rent_by_bedroom: RentByBedroom[];
   rent_over_time: { dates: string[]; series: RentOverTimeSeries[] };
   mar_by_tenancy_vintage: MarByTenancyVintage;
+  new_tenancy_rent: NewTenancyRent;
 }
 
 /** mar_by_year.json — per-UNIT MAR (cents) "as of" the end of each year, grouped by

@@ -165,6 +165,44 @@ hover/click wiring are in `MapView.astro`. The nav compass is enabled
   toggle in the legend's map-settings group, alongside "City limits" / "Place
   labels"). Build the points in `build-data.ts`; no new external data needed.
 
+## 4. New-tenancy rents over time (reset-anchored)
+
+Companion to #1 with the y-value anchored at the reset instead of today: for
+tenancies established in each quarter (x), the median rent actually set **at
+that time** — the going market rate for a new tenancy then, where #1 shows what
+those tenants pay *now* (reset rent + every GA since).
+
+### Shipped
+
+A fourth `/charts` section — **"New-tenancy rents over time"** — fed by a
+`new_tenancy_rent` aggregate in `analytics.json` (`buildNewTenancyRent` in
+`build-data.ts`; `newTenancyRentChart` in `chart.ts`, sharing the #1 renderer
+via `quarterlyBandChart`: quarterly median + IQR band per bedroom bucket,
+legend-chip toggles, 5-quarter smoothing, 3+ BR excluded to match).
+
+Methodology (decided up front, all counts surfaced in the chart note / JSON):
+
+- **Event = distinct `(unit_id, tenancy_date)`** in the observation log — every
+  turnover is a point, not just each unit's current tenancy (a unit that turned
+  over in 2015 and 2022 contributes to both quarters). Its rent is the
+  **earliest positive-MAR observation** carrying that tenancy_date.
+- **GA-clean filter (the core rule).** An event only counts when **no Sep-1 GA
+  falls between the tenancy start and that earliest observation** — otherwise
+  the observed MAR embeds the GA, overstating the reset rent. We *filter*, never
+  reconstruct the GA (project stance). This works back to 2012 because
+  `merge-history.ts` dates mid-period resets **at the tenancy date itself** with
+  the report's **pre-GA MAR column** — so a portal-era reset is clean whenever a
+  surviving filing covers its period. First-sighting baselines carrying an old
+  tenancy (the MAR embeds years of GAs) are exactly what the filter excludes:
+  at seed, **14,005 clean events** kept of ~51.5k (37,448 GA-lag excluded, 1
+  invalid — a `2923` form typo, future-dated tenancies are dropped).
+- **Coverage sawtooth (known, accepted).** Clean events run ~700–1,250/yr, but
+  quarter-to-quarter coverage oscillates (e.g. mid-2021→mid-2022 and
+  mid-2024→mid-2025 are thin): a reset is only caught clean if a surviving
+  report / the 2023 snapshot / a live sweep observes it before the next Sep-1,
+  so quarters between surviving report compilations go thin. Thin bins are
+  noisier, not biased; the 5-quarter smoothing damps it (same trade-off as #1).
+
 ## Where it lives
 
 - Charts 1–2: a new static page (e.g. `/charts` or fold into `/about`'s
