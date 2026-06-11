@@ -10,11 +10,6 @@ data/raw/
 # guard the repo root too in case the cache path env is overridden.
 *.traineddata
 
-# MAR-history backfill outputs are gitignored UNTIL the first full backfill run —
-# the current files are only a ~24-APN validation sample. Remove this stanza and
-# commit doc_index.csv + mar_history.csv once the full index/fetch/ocr has run.
-data/history/*.csv
-
 # Editor / OS
 .vscode/
 .idea/
