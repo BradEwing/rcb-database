@@ -169,7 +169,8 @@ export function marByTenancyVintageChart(
         style: { background: 'transparent', color: 'currentColor', fontSize: '11px' },
         x: { label: null, grid: false, domain: xDomain },
         y: {
-          label: 'Allowed rent — current MAR ($)',
+          label: 'Current MAR ($)',
+          labelArrow: 'none',
           grid: true,
           domain: [0, maxDollars],
           nice: true,
