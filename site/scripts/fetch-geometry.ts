@@ -13,6 +13,11 @@
  * "optionally clip to keep it small"), so build-data can still report the truly
  * unmatched APNs by comparing units.csv against this cache.
  *
+ * Besides geometry, each feature carries the layer's `usetype`/`usedescrip`
+ * (county assessor use attributes — raw, per the keep-raw convention); the
+ * derived use class is computed downstream (build-data, reconcile). See
+ * docs/design/parcel-enrichment.md (increment 1).
+ *
  * Run: `npm run fetch-geometry`  (from the site/ directory)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -44,7 +49,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function fetchPage(offset: number): Promise<GeoFeature[]> {
   const url =
     `${SERVICE_URL}/query?where=1%3D1` +
-    `&outFields=ain&returnGeometry=true&outSR=4326` +
+    `&outFields=ain,usetype,usedescrip&returnGeometry=true&outSR=4326` +
     `&geometryPrecision=${GEOM_PRECISION}` +
     `&resultOffset=${offset}&resultRecordCount=${PAGE_SIZE}&f=geojson`;
 
@@ -86,9 +91,19 @@ async function main(): Promise<void> {
     const feats = await fetchPage(offset);
     total += feats.length;
     for (const f of feats) {
-      const ain = normApn(String((f.properties as { ain?: unknown }).ain ?? ""));
+      const props = f.properties as { ain?: unknown; usetype?: unknown; usedescrip?: unknown };
+      const ain = normApn(String(props.ain ?? ""));
       if (!ain || !referenced.has(ain) || byAin.has(ain)) continue;
-      byAin.set(ain, { type: "Feature", geometry: f.geometry, properties: { ain } });
+      byAin.set(ain, {
+        type: "Feature",
+        geometry: f.geometry,
+        properties: {
+          ain,
+          // Raw county assessor use attributes (trimmed; classification downstream).
+          usetype: String(props.usetype ?? "").trim(),
+          usedescrip: String(props.usedescrip ?? "").trim(),
+        },
+      });
     }
     process.stdout.write(
       `  fetched ${total} city parcels (offset ${offset}); ${byAin.size} matched\n`,
@@ -117,6 +132,7 @@ async function main(): Promise<void> {
     metadata: {
       source: SERVICE_URL,
       join_field: "ain",
+      use_fields: ["usetype", "usedescrip"],
       out_sr: 4326,
       geometry_precision: GEOM_PRECISION,
       city_parcels_scanned: total,
