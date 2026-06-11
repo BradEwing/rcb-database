@@ -5,7 +5,8 @@
  *  the layer has no condo distinction — 'single' lumps SFR + condos. */
 export type UseClass =
   | 'single'
-  | 'two_three'
+  | 'two'
+  | 'three'
   | 'four'
   | 'five_plus'
   | 'commercial'

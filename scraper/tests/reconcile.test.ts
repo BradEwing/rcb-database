@@ -36,8 +36,8 @@ describe("sizeClassOf", () => {
 describe("useClassOf", () => {
   it("maps the City layer's residential descriptions to coarse classes", () => {
     expect(useClassOf("Residential", "Single")).toBe("single");
-    expect(useClassOf("Residential", "Two Units")).toBe("two_three");
-    expect(useClassOf("Residential", "Three Units (Any Combination)")).toBe("two_three");
+    expect(useClassOf("Residential", "Two Units")).toBe("two");
+    expect(useClassOf("Residential", "Three Units (Any Combination)")).toBe("three");
     expect(useClassOf("Residential", "Four Units (Any Combination)")).toBe("four");
     expect(useClassOf("Residential", "Five or more apartments")).toBe("five_plus");
     expect(useClassOf("Residential", "Rooming Houses")).toBe("other");
@@ -99,18 +99,24 @@ describe("classifyUnits", () => {
 
   it("prefers the assessor use class over the size proxy for rcb_comparable", () => {
     const useByApn = new Map<string, UseClass>([
-      // Assessor says parcel A (4 registry units) is really a 2-3 unit property
+      // Assessor says parcel A (4 registry units) is really a 3-unit property
       // (owner-occ exemption zone) → its controlled units drop out.
-      ["A", "two_three"],
+      ["A", "three"],
       // Assessor says parcel B (1 registry unit) is a 5+ building (the rest of
       // its units unobserved/exempt) → its controlled unit now counts.
       ["B", "five_plus"],
     ]);
     const c = classifyUnits(units, obs, useByApn);
-    expect(c.find((x) => x.unit_id === "u1")!.use_class).toBe("two_three");
+    expect(c.find((x) => x.unit_id === "u1")!.use_class).toBe("three");
     expect(c.find((x) => x.unit_id === "u1")!.rcb_comparable).toBe(false);
     expect(c.find((x) => x.unit_id === "u5")!.use_class).toBe("five_plus");
     expect(c.find((x) => x.unit_id === "u5")!.rcb_comparable).toBe(true);
+  });
+
+  it("excludes controlled units on duplex parcels (2-3 owner-occ zone)", () => {
+    const useByApn = new Map<string, UseClass>([["A", "two"]]);
+    const c = classifyUnits(units, obs, useByApn);
+    expect(c.find((x) => x.unit_id === "u1")!.rcb_comparable).toBe(false);
   });
 
   it("counts controlled units on commercial (mixed-use) parcels as comparable", () => {

@@ -140,14 +140,15 @@ export function changeLegend(stops: number[]): string[] {
 }
 
 /** Display groups for the use-type choropleth (parcel-enrichment increment 1).
- *  Categorical — `two_three` + `four` collapse into one "2–4 units" group; each
- *  legend row is also a visibility toggle (the lightweight use filter). The
- *  `unknown` class (no assessor match — ≈0 mapped parcels) renders as
- *  NO_DATA_COLOR and isn't toggleable. Colourblind-safe qualitative palette. */
+ *  Categorical — duplexes stand alone; `three`/`four`/`five_plus` collapse into
+ *  one "3+ units" group; each legend row is also a visibility toggle (the
+ *  lightweight use filter). The `unknown` class (no assessor match — ≈0 mapped
+ *  parcels) renders as NO_DATA_COLOR and isn't toggleable. Colourblind-safe
+ *  qualitative palette. */
 export const USE_TYPE_GROUPS = [
   { key: 'single', classes: ['single'], label: 'Single (SFR/condo)', color: '#e8b931' },
-  { key: 'two_four', classes: ['two_three', 'four'], label: '2–4 units', color: '#56b4e9' },
-  { key: 'five_plus', classes: ['five_plus'], label: '5+ apartments', color: '#0a4d8c' },
+  { key: 'duplex', classes: ['two'], label: 'Duplex', color: '#56b4e9' },
+  { key: 'three_plus', classes: ['three', 'four', 'five_plus'], label: '3+ units', color: '#0a4d8c' },
   { key: 'commercial', classes: ['commercial'], label: 'Commercial / mixed', color: '#d55e00' },
   { key: 'other', classes: ['other'], label: 'Other use', color: '#979a9e' },
 ] as const;

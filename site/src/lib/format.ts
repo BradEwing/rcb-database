@@ -33,7 +33,8 @@ export function sizeClassLabel(sizeClass: string): string {
  *  City layer can't split SFR from condo, so 'single' is labelled as both. */
 const USE_CLASS_LABELS: Record<string, string> = {
   single: 'Single (SFR/condo)',
-  two_three: '2–3 units',
+  two: 'Duplex',
+  three: '3 units',
   four: '4 units',
   five_plus: '5+ apartments',
   commercial: 'Commercial / mixed',

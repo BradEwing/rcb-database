@@ -34,12 +34,14 @@ geometry crosswalk already normalizes.
    (`Santa_Monica_public_parcels/FeatureServer/0`) also exposes `usetype` and
    `usedescrip` per parcel; `fetch-geometry` now pulls both onto the committed
    geometry cache (raw, per the keep-raw convention). A derived `use_class`
-   (`single` / `two_three` / `four` / `five_plus` / `commercial` / `other` /
+   (`single` / `two` / `three` / `four` / `five_plus` / `commercial` / `other` /
    `unknown`, mirrored in `reconcile.ts` and `site/scripts/lib/registry.ts`)
    feeds `unit_categories.csv`, the map's "Use type" choropleth + legend-toggle
-   filter, the detail panel ("County use: …"), and a re-based `rcb_comparable`
-   (controlled units NOT on assessor-single / two-three parcels; size-proxy
-   fallback for unmatched APNs). Coverage at ship: 8,442/8,539 registry APNs
+   filter (display groups: Single / Duplex / 3+ units / Commercial / Other),
+   the detail panel ("County use: …"), and a re-based `rcb_comparable`
+   (controlled units NOT on assessor-single / two / three parcels — the SFR/condo
+   decontrol + 2–3 unit owner-occ exclusion zones; size-proxy fallback for
+   unmatched APNs). Coverage at ship: 8,442/8,539 registry APNs
    (98.86%), 100% use-field fill among matched; loud-fail gates in both
    `reconcile` and `build-data` at 95%.
    **Finding:** the layer has **no condo distinction** — `usedescrip: Single`

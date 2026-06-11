@@ -67,13 +67,14 @@ Live at https://bradewing.github.io/rcb-database/ (delivered across PRs 1–7; s
 
 `docs/design/parcel-enrichment.md` first increment: `fetch-geometry` now also
 caches the City layer's raw `usetype`/`usedescrip` per parcel; a derived
-`use_class` (single / two_three / four / five_plus / commercial / other —
+`use_class` (single / two / three / four / five_plus / commercial / other —
 **no condo split in this layer**, that needs the Assessor increment) flows into:
 
-- the map's **"Use type" categorical choropleth**, whose legend rows double as
-  hide/show **class filters**, plus tooltip + detail-panel "County use:" labels;
+- the map's **"Use type" categorical choropleth** (Single / Duplex / 3+ units /
+  Commercial / Other), whose legend rows double as hide/show **class filters**,
+  plus tooltip + detail-panel "County use:" labels;
 - `unit_categories.csv` (`use_class` column) and a **re-based `rcb_comparable`**:
-  controlled units NOT on assessor-single/two-three parcels (size-proxy fallback
+  controlled units NOT on assessor-single/two/three parcels (size-proxy fallback
   for the 1.1% unmatched APNs) → 26,556 vs the 27,589 report headline (-3.7%;
   legacy size-proxy figure 26,754 kept as `registry_multifamily_controlled`).
 - Coverage at ship: 98.86% of registry APNs, 100% use-field fill among matched;

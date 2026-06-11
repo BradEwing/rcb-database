@@ -111,7 +111,8 @@ export function sizeClassOf(unitCount: number): "single" | "small" | "multifamil
  *  reconcile.ts `useClassOf` (the two must stay in sync). */
 export type UseClass =
   | "single"
-  | "two_three"
+  | "two"
+  | "three"
   | "four"
   | "five_plus"
   | "commercial"
@@ -124,7 +125,8 @@ export function useClassOf(usetype: string, usedescrip: string): UseClass {
   if (t === "Commercial") return "commercial";
   if (t === "Residential") {
     if (d === "Single") return "single";
-    if (d.startsWith("Two Units") || d.startsWith("Three Units")) return "two_three";
+    if (d.startsWith("Two Units")) return "two";
+    if (d.startsWith("Three Units")) return "three";
     if (d.startsWith("Four Units")) return "four";
     if (d === "Five or more apartments") return "five_plus";
     return d ? "other" : "unknown"; // rooming houses, mobile homes, …

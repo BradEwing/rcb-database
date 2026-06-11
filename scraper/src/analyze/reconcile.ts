@@ -54,7 +54,8 @@ export type MarStatus = "controlled" | "zero_mar";
  */
 export type UseClass =
   | "single"
-  | "two_three"
+  | "two"
+  | "three"
   | "four"
   | "five_plus"
   | "commercial"
@@ -76,9 +77,10 @@ export type UnitClass = {
   /**
    * Counts toward the RCB-comparable "controlled" estimate: positive MAR on a
    * parcel the assessor does NOT class as single (SFR/condo rent-level
-   * decontrol) or two_three (the owner-occupied exemption zone). Falls back to
-   * the parcel-size proxy (4+ units) when the APN has no assessor match. Still
-   * a documented proxy — not a per-unit exemption determination.
+   * decontrol), two, or three (the 2–3 unit owner-occupied exemption zone).
+   * Falls back to the parcel-size proxy (4+ units) when the APN has no
+   * assessor match. Still a documented proxy — not a per-unit exemption
+   * determination.
    */
   rcb_comparable: boolean;
 };
@@ -90,7 +92,8 @@ export function useClassOf(usetype: string, usedescrip: string): UseClass {
   if (t === "Commercial") return "commercial";
   if (t === "Residential") {
     if (d === "Single") return "single";
-    if (d.startsWith("Two Units") || d.startsWith("Three Units")) return "two_three";
+    if (d.startsWith("Two Units")) return "two";
+    if (d.startsWith("Three Units")) return "three";
     if (d.startsWith("Four Units")) return "four";
     if (d === "Five or more apartments") return "five_plus";
     return d ? "other" : "unknown"; // rooming houses, mobile homes, …
@@ -187,7 +190,7 @@ export function classifyUnits(
     const comparableParcel =
       use_class === "unknown"
         ? size_class === "multifamily"
-        : use_class !== "single" && use_class !== "two_three";
+        : use_class !== "single" && use_class !== "two" && use_class !== "three";
     return {
       unit_id: g(u, "unit_id"),
       apn,
@@ -220,7 +223,8 @@ export function buildBridge(classes: UnitClass[]): Bridge {
   const bySize: Record<SizeClass, number> = { single: 0, small: 0, multifamily: 0 };
   const byUse: Record<UseClass, number> = {
     single: 0,
-    two_three: 0,
+    two: 0,
+    three: 0,
     four: 0,
     five_plus: 0,
     commercial: 0,
@@ -271,7 +275,8 @@ function printReport(b: Bridge): void {
   lines.push("");
   lines.push("  Controlled by assessor use class (City Parcels Public layer):");
   lines.push(`    single (SFR/condo) ............. ${pad(b.controlledByUse.single, 6)}  (report excludes ${r.excluded.rentLevelDecontrolledSfrCondo} rent-level decontrolled)`);
-  lines.push(`    two-three units ................ ${pad(b.controlledByUse.two_three, 6)}  (report excludes ${r.excluded.ownerOccupied2to3Unit} owner-occupied)`);
+  lines.push(`    two units (duplex) ............. ${pad(b.controlledByUse.two, 6)}`);
+  lines.push(`    three units .................... ${pad(b.controlledByUse.three, 6)}  (2-3 zone: report excludes ${r.excluded.ownerOccupied2to3Unit} owner-occupied)`);
   lines.push(`    four units ..................... ${pad(b.controlledByUse.four, 6)}`);
   lines.push(`    five or more apartments ........ ${pad(b.controlledByUse.five_plus, 6)}`);
   lines.push(`    commercial / mixed ............. ${pad(b.controlledByUse.commercial, 6)}`);
@@ -356,7 +361,8 @@ function main(): void {
     { metric: "controlled_small_parcel", value: String(bridge.controlledBySize.small) },
     { metric: "controlled_multifamily_parcel", value: String(bridge.controlledBySize.multifamily) },
     { metric: "controlled_use_single", value: String(bridge.controlledByUse.single) },
-    { metric: "controlled_use_two_three", value: String(bridge.controlledByUse.two_three) },
+    { metric: "controlled_use_two", value: String(bridge.controlledByUse.two) },
+    { metric: "controlled_use_three", value: String(bridge.controlledByUse.three) },
     { metric: "controlled_use_four", value: String(bridge.controlledByUse.four) },
     { metric: "controlled_use_five_plus", value: String(bridge.controlledByUse.five_plus) },
     { metric: "controlled_use_commercial", value: String(bridge.controlledByUse.commercial) },
