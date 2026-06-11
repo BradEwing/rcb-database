@@ -4,6 +4,8 @@ import {
   buildBridge,
   normBedrooms,
   sizeClassOf,
+  useClassOf,
+  type UseClass,
 } from "../src/analyze/reconcile.ts";
 import type { Row } from "../src/csv.ts";
 
@@ -28,6 +30,28 @@ describe("sizeClassOf", () => {
     expect(sizeClassOf(3)).toBe("small");
     expect(sizeClassOf(4)).toBe("multifamily");
     expect(sizeClassOf(532)).toBe("multifamily");
+  });
+});
+
+describe("useClassOf", () => {
+  it("maps the City layer's residential descriptions to coarse classes", () => {
+    expect(useClassOf("Residential", "Single")).toBe("single");
+    expect(useClassOf("Residential", "Two Units")).toBe("two_three");
+    expect(useClassOf("Residential", "Three Units (Any Combination)")).toBe("two_three");
+    expect(useClassOf("Residential", "Four Units (Any Combination)")).toBe("four");
+    expect(useClassOf("Residential", "Five or more apartments")).toBe("five_plus");
+    expect(useClassOf("Residential", "Rooming Houses")).toBe("other");
+  });
+  it("maps commercial and non-residential use types", () => {
+    expect(useClassOf("Commercial", "Store Combination")).toBe("commercial");
+    expect(useClassOf("Commercial", "Hotel & Motels")).toBe("commercial");
+    expect(useClassOf("Institutional", "Homes For Aged & Others")).toBe("other");
+    expect(useClassOf("Industrial", "Warehousing, Distribution, Storage")).toBe("other");
+  });
+  it("treats blank fields as unknown", () => {
+    expect(useClassOf("", "")).toBe("unknown");
+    expect(useClassOf(" ", " ")).toBe("unknown");
+    expect(useClassOf("Residential", "")).toBe("unknown");
   });
 });
 
@@ -62,14 +86,43 @@ describe("classifyUnits", () => {
     expect(c.find((x) => x.unit_id === "u1")!.mar_status).toBe("controlled");
   });
 
-  it("flags rcb_comparable only for controlled multifamily units", () => {
-    const c = classifyUnits(units, obs);
-    // u1 controlled + multifamily -> true
+  it("falls back to the size proxy for rcb_comparable when no assessor match", () => {
+    const c = classifyUnits(units, obs); // no useByApn → every parcel "unknown"
+    expect(c.find((x) => x.unit_id === "u1")!.use_class).toBe("unknown");
+    // u1 controlled + multifamily-by-size -> true
     expect(c.find((x) => x.unit_id === "u1")!.rcb_comparable).toBe(true);
     // u3 exempt multifamily -> false
     expect(c.find((x) => x.unit_id === "u3")!.rcb_comparable).toBe(false);
     // u5 controlled but single parcel -> false (excluded as SFD/condo proxy)
     expect(c.find((x) => x.unit_id === "u5")!.rcb_comparable).toBe(false);
+  });
+
+  it("prefers the assessor use class over the size proxy for rcb_comparable", () => {
+    const useByApn = new Map<string, UseClass>([
+      // Assessor says parcel A (4 registry units) is really a 2-3 unit property
+      // (owner-occ exemption zone) → its controlled units drop out.
+      ["A", "two_three"],
+      // Assessor says parcel B (1 registry unit) is a 5+ building (the rest of
+      // its units unobserved/exempt) → its controlled unit now counts.
+      ["B", "five_plus"],
+    ]);
+    const c = classifyUnits(units, obs, useByApn);
+    expect(c.find((x) => x.unit_id === "u1")!.use_class).toBe("two_three");
+    expect(c.find((x) => x.unit_id === "u1")!.rcb_comparable).toBe(false);
+    expect(c.find((x) => x.unit_id === "u5")!.use_class).toBe("five_plus");
+    expect(c.find((x) => x.unit_id === "u5")!.rcb_comparable).toBe(true);
+  });
+
+  it("counts controlled units on commercial (mixed-use) parcels as comparable", () => {
+    const useByApn = new Map<string, UseClass>([["B", "commercial"]]);
+    const c = classifyUnits(units, obs, useByApn);
+    expect(c.find((x) => x.unit_id === "u5")!.rcb_comparable).toBe(true);
+  });
+
+  it("never flags exempt units regardless of use class", () => {
+    const useByApn = new Map<string, UseClass>([["A", "five_plus"]]);
+    const c = classifyUnits(units, obs, useByApn);
+    expect(c.find((x) => x.unit_id === "u3")!.rcb_comparable).toBe(false);
   });
 });
 
@@ -121,6 +174,8 @@ describe("buildBridge", () => {
     expect(b.controlled).toBe(4); // u3 is $0
     expect(b.zeroMar).toBe(1);
     expect(b.multifamilyControlled).toBe(3); // u1,u2,u4 (u5 is single, u3 is exempt)
+    // No assessor data → rcb_comparable falls back to the size proxy.
+    expect(b.rcbComparable).toBe(3);
   });
 
   it("tallies controlled units by bedroom and size", () => {
@@ -130,5 +185,17 @@ describe("buildBridge", () => {
     expect(b.controlledByBedroom["3+"]).toBe(2); // u4 (3BR) + u5 (4BR)
     expect(b.controlledBySize.multifamily).toBe(3);
     expect(b.controlledBySize.single).toBe(1);
+  });
+
+  it("tallies controlled units by assessor use class and re-bases rcbComparable", () => {
+    const useByApn = new Map<string, UseClass>([
+      ["A", "five_plus"],
+      ["B", "single"],
+    ]);
+    const b = buildBridge(classifyUnits(units, obs, useByApn));
+    expect(b.controlledByUse.five_plus).toBe(3); // u1,u2,u4 (u3 exempt)
+    expect(b.controlledByUse.single).toBe(1); // u5
+    expect(b.rcbComparable).toBe(3); // u5 excluded by assessor single
+    expect(b.multifamilyControlled).toBe(3); // legacy proxy unchanged
   });
 });

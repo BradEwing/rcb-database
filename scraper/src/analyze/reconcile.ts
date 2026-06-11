@@ -11,14 +11,17 @@
  * DEFINITIONAL, not a scraper double-count: cross-address dedup is correct and
  * confirmed-duplicate rows are ≈0.
  *
- * This module classifies each unit along the dimensions we CAN derive from the
- * scraped fields (MAR status + parcel size, the single-family/condo proxy) and
- * prints a bridge from the registry total to the report headline. It does not
- * mutate the source-of-truth CSVs; it writes derived artifacts under
- * data/derived/ and a human-readable bridge to stdout.
+ * This module classifies each unit along independently-derivable dimensions —
+ * MAR status, parcel size (the legacy single-family/condo proxy), and the
+ * parcel's county-assessor use class (from the cached City "Parcels Public"
+ * layer; see docs/design/parcel-enrichment.md) — and prints a bridge from the
+ * registry total to the report headline. It does not mutate the source-of-truth
+ * CSVs; it writes derived artifacts under data/derived/ and a human-readable
+ * bridge to stdout.
  *
  * Run: `npm run reconcile`
  */
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { readCsv, writeCsvSorted, type Row } from "../csv.ts";
 
@@ -29,12 +32,34 @@ const OBS_CSV = join(DATA_DIR, "mar_observations.csv");
 const DERIVED_DIR = join(DATA_DIR, "derived");
 const CATEGORIES_CSV = join(DERIVED_DIR, "unit_categories.csv");
 const BRIDGE_CSV = join(DERIVED_DIR, "reconciliation_summary.csv");
+const GEOMETRY_CACHE = join(DATA_DIR, "external", "parcels-geometry.geojson");
+
+/** Minimum fraction of registry APNs that must carry assessor use attributes in
+ *  the geometry cache. Observed 98.86% (= geometry coverage — same layer); below
+ *  this the cache is stale or pre-enrichment, so fail loudly (repo convention). */
+const MIN_USE_MATCH_RATE = 0.95;
 
 /** Bedroom buckets, matching the report's "0 / 1 / 2 / 3(or more)" grouping. */
 export type BedroomBucket = "0" | "1" | "2" | "3+" | "unknown";
 /** Parcel size classes. "single" is the single-family-home / condo proxy. */
 export type SizeClass = "single" | "small" | "multifamily";
 export type MarStatus = "controlled" | "zero_mar";
+
+/**
+ * County-assessor use class, derived per APN from the City "Parcels Public"
+ * layer's `usetype`/`usedescrip` (cached with the geometry — see
+ * docs/design/parcel-enrichment.md). NOTE: the layer has no condo distinction;
+ * "single" lumps SFR + condos (the split needs the Assessor increment).
+ * Mirrored in site/scripts/lib/registry.ts `useClassOf` — keep in sync.
+ */
+export type UseClass =
+  | "single"
+  | "two_three"
+  | "four"
+  | "five_plus"
+  | "commercial"
+  | "other"
+  | "unknown";
 
 export type UnitClass = {
   unit_id: string;
@@ -46,13 +71,55 @@ export type UnitClass = {
   parcel_unit_count: number;
   /** single = 1 unit/parcel (SFD/condo), small = 2-3 (owner-occ exemption zone), multifamily = 4+. */
   size_class: SizeClass;
+  /** Assessor use class of the unit's parcel ("unknown" when the APN isn't in the cache). */
+  use_class: UseClass;
   /**
-   * Heuristic: counts toward the RCB-comparable "controlled" estimate
-   * (positive MAR on a 4+ unit parcel). A documented proxy — see the memo —
-   * not a per-unit exemption determination, which the tool does not expose.
+   * Counts toward the RCB-comparable "controlled" estimate: positive MAR on a
+   * parcel the assessor does NOT class as single (SFR/condo rent-level
+   * decontrol) or two_three (the owner-occupied exemption zone). Falls back to
+   * the parcel-size proxy (4+ units) when the APN has no assessor match. Still
+   * a documented proxy — not a per-unit exemption determination.
    */
   rcb_comparable: boolean;
 };
+
+/** Derive the coarse use class from the layer's raw `usetype`/`usedescrip`. */
+export function useClassOf(usetype: string, usedescrip: string): UseClass {
+  const t = (usetype ?? "").trim();
+  const d = (usedescrip ?? "").trim();
+  if (t === "Commercial") return "commercial";
+  if (t === "Residential") {
+    if (d === "Single") return "single";
+    if (d.startsWith("Two Units") || d.startsWith("Three Units")) return "two_three";
+    if (d.startsWith("Four Units")) return "four";
+    if (d === "Five or more apartments") return "five_plus";
+    return d ? "other" : "unknown"; // rooming houses, mobile homes, …
+  }
+  return t ? "other" : "unknown"; // institutional, industrial, government, …
+}
+
+/** apn → use class from the committed geometry cache (which carries the raw
+ *  assessor attributes per feature). Fails loudly when the cache is absent —
+ *  the monthly CI runs reconcile and must not silently fall back wholesale. */
+export function loadUseByApn(path: string = GEOMETRY_CACHE): Map<string, UseClass> {
+  if (!existsSync(path)) {
+    throw new Error(
+      `Geometry cache missing at ${path} — run \`npm run fetch-geometry\` (site/) first; ` +
+        `reconciliation needs its assessor use attributes.`,
+    );
+  }
+  const cache = JSON.parse(readFileSync(path, "utf8")) as {
+    features: Array<{ properties?: { ain?: unknown; usetype?: unknown; usedescrip?: unknown } }>;
+  };
+  const byApn = new Map<string, UseClass>();
+  for (const f of cache.features) {
+    const p = f.properties ?? {};
+    const ain = String(p.ain ?? "").replace(/\D/g, "");
+    if (!ain || byApn.has(ain)) continue;
+    byApn.set(ain, useClassOf(String(p.usetype ?? ""), String(p.usedescrip ?? "")));
+  }
+  return byApn;
+}
 
 /**
  * RCB 2025 Annual Report figures (as of 2025-12-31). Source: Santa Monica Rent
@@ -90,10 +157,17 @@ export function sizeClassOf(parcelUnitCount: number): SizeClass {
 }
 
 /**
- * Classify every unit using only independently-derivable signals: MAR status
- * (from the latest observation) and parcel size (units sharing an APN).
+ * Classify every unit using independently-derivable signals: MAR status (from
+ * the latest observation), parcel size (units sharing an APN), and the parcel's
+ * assessor use class (from the cached City layer). RCB-comparable = controlled
+ * and not on an assessor single (SFR/condo) or two_three (owner-occ zone)
+ * parcel; APNs without an assessor match fall back to the size proxy.
  */
-export function classifyUnits(units: Row[], obs: Row[]): UnitClass[] {
+export function classifyUnits(
+  units: Row[],
+  obs: Row[],
+  useByApn: Map<string, UseClass> = new Map(),
+): UnitClass[] {
   const cents = new Map<string, number>();
   for (const o of obs) {
     cents.set(g(o, "unit_id"), parseInt(g(o, "mar_amount_cents") || "0", 10));
@@ -109,6 +183,11 @@ export function classifyUnits(units: Row[], obs: Row[]): UnitClass[] {
     const size = parcelSize.get(apn) ?? 0;
     const size_class = sizeClassOf(size);
     const mar_status: MarStatus = c > 0 ? "controlled" : "zero_mar";
+    const use_class = useByApn.get(apn) ?? "unknown";
+    const comparableParcel =
+      use_class === "unknown"
+        ? size_class === "multifamily"
+        : use_class !== "single" && use_class !== "two_three";
     return {
       unit_id: g(u, "unit_id"),
       apn,
@@ -116,7 +195,8 @@ export function classifyUnits(units: Row[], obs: Row[]): UnitClass[] {
       mar_status,
       parcel_unit_count: size,
       size_class,
-      rcb_comparable: mar_status === "controlled" && size_class === "multifamily",
+      use_class,
+      rcb_comparable: mar_status === "controlled" && comparableParcel,
     };
   });
 }
@@ -125,26 +205,42 @@ export type Bridge = {
   totalUnits: number;
   controlled: number;
   zeroMar: number;
+  /** Legacy size-proxy estimate (controlled on a 4+ unit parcel) — kept for comparison. */
   multifamilyControlled: number;
+  /** The published estimate: controlled units flagged rcb_comparable (assessor-based). */
+  rcbComparable: number;
   controlledByBedroom: Record<BedroomBucket, number>;
   controlledBySize: Record<SizeClass, number>;
+  controlledByUse: Record<UseClass, number>;
 };
 
 export function buildBridge(classes: UnitClass[]): Bridge {
   const controlled = classes.filter((c) => c.mar_status === "controlled");
   const byBedroom: Record<BedroomBucket, number> = { "0": 0, "1": 0, "2": 0, "3+": 0, unknown: 0 };
   const bySize: Record<SizeClass, number> = { single: 0, small: 0, multifamily: 0 };
+  const byUse: Record<UseClass, number> = {
+    single: 0,
+    two_three: 0,
+    four: 0,
+    five_plus: 0,
+    commercial: 0,
+    other: 0,
+    unknown: 0,
+  };
   for (const c of controlled) {
     byBedroom[c.bedrooms]++;
     bySize[c.size_class]++;
+    byUse[c.use_class]++;
   }
   return {
     totalUnits: classes.length,
     controlled: controlled.length,
     zeroMar: classes.length - controlled.length,
     multifamilyControlled: controlled.filter((c) => c.size_class === "multifamily").length,
+    rcbComparable: controlled.filter((c) => c.rcb_comparable).length,
     controlledByBedroom: byBedroom,
     controlledBySize: bySize,
+    controlledByUse: byUse,
   };
 }
 
@@ -173,6 +269,15 @@ function printReport(b: Bridge): void {
   lines.push(`    small  (2-3 units) ............. ${pad(b.controlledBySize.small, 6)}`);
   lines.push(`    multifamily (4+ units) ......... ${pad(b.controlledBySize.multifamily, 6)}`);
   lines.push("");
+  lines.push("  Controlled by assessor use class (City Parcels Public layer):");
+  lines.push(`    single (SFR/condo) ............. ${pad(b.controlledByUse.single, 6)}  (report excludes ${r.excluded.rentLevelDecontrolledSfrCondo} rent-level decontrolled)`);
+  lines.push(`    two-three units ................ ${pad(b.controlledByUse.two_three, 6)}  (report excludes ${r.excluded.ownerOccupied2to3Unit} owner-occupied)`);
+  lines.push(`    four units ..................... ${pad(b.controlledByUse.four, 6)}`);
+  lines.push(`    five or more apartments ........ ${pad(b.controlledByUse.five_plus, 6)}`);
+  lines.push(`    commercial / mixed ............. ${pad(b.controlledByUse.commercial, 6)}`);
+  lines.push(`    other (instit., industrial…) ... ${pad(b.controlledByUse.other, 6)}`);
+  lines.push(`    unknown (no assessor match) .... ${pad(b.controlledByUse.unknown, 6)}  (size-proxy fallback)`);
+  lines.push("");
   lines.push("  Bridge to the report headline:");
   const ex = r.excluded;
   const reportPositiveMar = r.controlledTotal - r.byType.zeroMar;
@@ -186,8 +291,9 @@ function printReport(b: Bridge): void {
   lines.push(`   ${pad("+" + r.byType.zeroMar, 9)}  $0-MAR units the report counts as controlled`);
   lines.push(`    ${pad(r.controlledTotal, 8)}  = RCB ${r.asOf} headline`);
   lines.push("");
-  lines.push(`  RCB-comparable estimate (multifamily controlled): ${b.multifamilyControlled}`);
-  lines.push(`  vs report headline ${r.controlledTotal} → ${((b.multifamilyControlled / r.controlledTotal - 1) * 100).toFixed(1)}%`);
+  lines.push(`  RCB-comparable estimate (assessor-based): ${b.rcbComparable}`);
+  lines.push(`  vs report headline ${r.controlledTotal} → ${((b.rcbComparable / r.controlledTotal - 1) * 100).toFixed(1)}%`);
+  lines.push(`  (legacy size-proxy estimate, 4+ unit parcels: ${b.multifamilyControlled})`);
   // eslint-disable-next-line no-console
   console.log(lines.join("\n"));
 }
@@ -198,12 +304,33 @@ function main(): void {
   if (units.length === 0) {
     throw new Error(`No units found at ${UNITS_CSV} — run the scraper first.`);
   }
-  const classes = classifyUnits(units, obs);
+  const useByApn = loadUseByApn();
+
+  // Loud coverage QA (repo convention): if the cache no longer matches the
+  // registry's APNs — or predates the use-attribute enrichment — abort rather
+  // than silently classifying everything "unknown" (which would quietly revert
+  // rcb_comparable to the size proxy).
+  const apns = new Set(units.map((u) => g(u, "apn")).filter(Boolean));
+  let matched = 0;
+  for (const apn of apns) {
+    const cls = useByApn.get(apn);
+    if (cls && cls !== "unknown") matched++;
+  }
+  const useRate = apns.size ? matched / apns.size : 0;
+  if (useRate < MIN_USE_MATCH_RATE) {
+    throw new Error(
+      `Assessor use coverage ${(useRate * 100).toFixed(2)}% < ${(MIN_USE_MATCH_RATE * 100).toFixed(0)}% ` +
+        `(${matched}/${apns.size} APNs). The geometry cache is stale or predates the ` +
+        `use-attribute fields — re-run \`npm run fetch-geometry\` (site/).`,
+    );
+  }
+
+  const classes = classifyUnits(units, obs, useByApn);
   const bridge = buildBridge(classes);
 
   writeCsvSorted(
     CATEGORIES_CSV,
-    ["unit_id", "apn", "bedrooms", "mar_status", "parcel_unit_count", "size_class", "rcb_comparable"],
+    ["unit_id", "apn", "bedrooms", "mar_status", "parcel_unit_count", "size_class", "use_class", "rcb_comparable"],
     classes.map((c) => ({
       unit_id: c.unit_id,
       apn: c.apn,
@@ -211,6 +338,7 @@ function main(): void {
       mar_status: c.mar_status,
       parcel_unit_count: String(c.parcel_unit_count),
       size_class: c.size_class,
+      use_class: c.use_class,
       rcb_comparable: c.rcb_comparable ? "1" : "0",
     })),
     ["unit_id"],
@@ -220,10 +348,20 @@ function main(): void {
     { metric: "registry_units_total", value: String(bridge.totalUnits) },
     { metric: "registry_controlled_positive_mar", value: String(bridge.controlled) },
     { metric: "registry_zero_mar", value: String(bridge.zeroMar) },
+    // The published estimate (assessor-based) + the legacy size-proxy figure,
+    // kept so stale readers of the old key never blank (cf. 4493454).
+    { metric: "registry_rcb_comparable", value: String(bridge.rcbComparable) },
     { metric: "registry_multifamily_controlled", value: String(bridge.multifamilyControlled) },
     { metric: "controlled_single_parcel", value: String(bridge.controlledBySize.single) },
     { metric: "controlled_small_parcel", value: String(bridge.controlledBySize.small) },
     { metric: "controlled_multifamily_parcel", value: String(bridge.controlledBySize.multifamily) },
+    { metric: "controlled_use_single", value: String(bridge.controlledByUse.single) },
+    { metric: "controlled_use_two_three", value: String(bridge.controlledByUse.two_three) },
+    { metric: "controlled_use_four", value: String(bridge.controlledByUse.four) },
+    { metric: "controlled_use_five_plus", value: String(bridge.controlledByUse.five_plus) },
+    { metric: "controlled_use_commercial", value: String(bridge.controlledByUse.commercial) },
+    { metric: "controlled_use_other", value: String(bridge.controlledByUse.other) },
+    { metric: "controlled_use_unknown", value: String(bridge.controlledByUse.unknown) },
     { metric: "report_controlled_total", value: String(RCB_2025.controlledTotal) },
     { metric: "report_as_of", value: RCB_2025.asOf },
   ];
