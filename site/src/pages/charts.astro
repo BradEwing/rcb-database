@@ -83,10 +83,17 @@ const base = import.meta.env.BASE_URL;
         ),
       );
     }
+    // Guarded: a cached pre-deploy analytics.json (Pages caches data for ~10
+    // min) can lack this key right after a deploy — degrade to the unavailable
+    // message instead of throwing and blanking every chart via the fetch catch.
     if (newTenancyHost) {
-      newTenancyHost.replaceChildren(
-        newTenancyRentChart(analytics.new_tenancy_rent, newTenancyHost.clientWidth || 640),
-      );
+      if (analytics.new_tenancy_rent) {
+        newTenancyHost.replaceChildren(
+          newTenancyRentChart(analytics.new_tenancy_rent, newTenancyHost.clientWidth || 640),
+        );
+      } else {
+        newTenancyHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
+      }
     }
   }
 
