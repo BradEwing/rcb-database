@@ -1,8 +1,9 @@
 name: monthly-snapshot
 
 # Monthly MAR pull. Drills every parcel (Phase B), re-sweeps streets quarterly
-# (Phase A — parcels rarely change), reconciles against the RCB headline, and
-# commits the appended snapshot so month-over-month `git diff` is the change log.
+# (Phase A — parcels rarely change), commits the raw snapshot, then regenerates
+# and commits the derived artifacts (reconcile/changes/exits) in a second
+# commit — month-over-month `git diff` is the change log.
 #
 # Timing note: the 1st-of-month run at 09:00 UTC lands ~02:00 PT. The annual
 # General Adjustment is effective ~Sept 1, so the Sept run is the one that
@@ -77,8 +78,32 @@ jobs:
           MAR_MIN_DELAY_MS: "200"
         run: npm run scraper -- drill-properties
 
-      # Regenerate the derived artifacts from the fresh snapshot. Order is
-      # independent (each reads the source CSVs), but keep them after Phase B.
+      # Commit the raw snapshot BEFORE any derived step. Derived steps can fail
+      # (e.g. reconcile hard-fails on stale geometry coverage) and a failure
+      # there must not hold the month's scrape hostage — the raw scrape is the
+      # irreplaceable part. Commit only the tracked CSVs (data/raw/ is
+      # gitignored). Under the sparse change-log model an observation row is
+      # appended only when a unit's MAR/tenancy moved, but every run still
+      # rewrites units.csv last_seen_at and the sweeps table, so there is
+      # normally a diff; guard anyway so a genuine no-op run doesn't create an
+      # empty commit.
+      - name: Commit & push raw snapshot
+        run: |
+          set -euo pipefail
+          today=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data ':(exclude)data/derived'
+          if git diff --cached --quiet; then
+            echo "No raw data changes to commit."
+            exit 0
+          fi
+          git commit -m "data: monthly snapshot (${today})"
+          git push
+
+      # Regenerate the derived artifacts from the fresh snapshot. These run
+      # after the raw commit on purpose: a failure here still fails the job (so
+      # it surfaces), but the scrape is already safely pushed.
       - name: Reconcile against RCB headline
         run: npm run reconcile
 
@@ -88,21 +113,14 @@ jobs:
       - name: Derive disappearance (exit) report
         run: npm run exits
 
-      # Commit only the tracked CSVs (data/raw/ is gitignored). Under the sparse
-      # change-log model an observation row is appended only when a unit's
-      # MAR/tenancy moved, but every run still rewrites units.csv last_seen_at
-      # and the sweeps/derived tables, so there is normally a diff; guard anyway
-      # so a genuine no-op run doesn't create an empty commit.
-      - name: Commit & push snapshot
+      - name: Commit & push derived artifacts
         run: |
           set -euo pipefail
           today=$(date -u +%Y-%m-%d)
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/
+          git add data/derived
           if git diff --cached --quiet; then
-            echo "No data changes to commit."
+            echo "No derived changes to commit."
             exit 0
           fi
-          git commit -m "data: monthly snapshot (${today})"
+          git commit -m "analysis: refresh derived artifacts (${today})"
           git push
