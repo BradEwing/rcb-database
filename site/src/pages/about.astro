@@ -13,14 +13,12 @@ const repo = 'https://github.com/BradEwing/rcb-database';
       An unofficial, independent map of Santa Monica's rent-controlled housing,
       rebuilt each month from the City's public Maximum Allowable Rent (MAR)
       lookup tool. The MAR is the legal rent ceiling for a controlled unit; a
-      <strong>$0</strong> MAR means the unit is currently exempt.
+      <strong>$0</strong> MAR means the unit is marked as exempt.
     </p>
 
     <h2>Status &amp; accuracy</h2>
     <p>
-      This site is <strong>not</strong> the source of truth — the Santa Monica
-      Rent Control Board is. Everything here is derived from the City's public
-      records and can lag, miss, or misread them; for anything that matters,
+      Everything here is derived from the City's public records and can lag, miss, or misread them; for anything that matters,
       verify against the
       <a href="https://www.smgov.net/departments/rentcontrol/mar.aspx">City's MAR lookup tool</a>.
       One known definitional difference: the MAR tool lists every unit with an
@@ -29,10 +27,10 @@ const repo = 'https://github.com/BradEwing/rcb-database';
       <a href={`${repo}/blob/main/docs/reconciliation-2025.md`}>reconciliation memo</a>).
     </p>
     <p>
-      Data ingestion and validation are <strong>in progress</strong> and the
-      registry should not be considered complete. QA so far is local — smoke
+      Data ingestion and validation are a work in progress and the
+      registry should not be considered complete. Local smoke
       testing plus spot checks against parcels with known histories, including
-      buildings I've lived in, which have matched the official records. If you
+      buildings I've lived in, have matched the official records. If you
       notice something incorrect, or have any other feedback, please
       <a href={`${repo}/issues`}>open a GitHub issue</a>.
     </p>
