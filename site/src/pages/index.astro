@@ -43,8 +43,12 @@ import MapView from '../components/MapView.astro';
   // (higher z-index) bar, swallowing its clicks.
   const topbar = document.querySelector<HTMLElement>('.topbar');
   if (topbar) {
+    let lastHeight = 0;
     const setTopbarHeight = (): void => {
-      document.documentElement.style.setProperty('--topbar-h', `${topbar.offsetHeight}px`);
+      const height = topbar.offsetHeight;
+      if (height === lastHeight) return; // observer also fires on width-only resizes
+      lastHeight = height;
+      document.documentElement.style.setProperty('--topbar-h', `${height}px`);
     };
     new ResizeObserver(setTopbarHeight).observe(topbar);
     setTopbarHeight();

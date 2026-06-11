@@ -104,14 +104,14 @@ export function useClassOf(usetype: string, usedescrip: string): UseClass {
 /** apn → use class from the committed geometry cache (which carries the raw
  *  assessor attributes per feature). Fails loudly when the cache is absent —
  *  the monthly CI runs reconcile and must not silently fall back wholesale. */
-export function loadUseByApn(path: string = GEOMETRY_CACHE): Map<string, UseClass> {
-  if (!existsSync(path)) {
+function loadUseByApn(): Map<string, UseClass> {
+  if (!existsSync(GEOMETRY_CACHE)) {
     throw new Error(
-      `Geometry cache missing at ${path} — run \`npm run fetch-geometry\` (site/) first; ` +
+      `Geometry cache missing at ${GEOMETRY_CACHE} — run \`npm run fetch-geometry\` (site/) first; ` +
         `reconciliation needs its assessor use attributes.`,
     );
   }
-  const cache = JSON.parse(readFileSync(path, "utf8")) as {
+  const cache = JSON.parse(readFileSync(GEOMETRY_CACHE, "utf8")) as {
     features: Array<{ properties?: { ain?: unknown; usetype?: unknown; usedescrip?: unknown } }>;
   };
   const byApn = new Map<string, UseClass>();

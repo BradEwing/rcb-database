@@ -63,8 +63,8 @@ export function renderParcelDetail(d: ParcelDetail): string {
   // Guarded for older cached detail JSON without the field.
   let useLine = '';
   if (d.use_class && d.use_class !== 'unknown') {
-    const raw = d.use_descrip || useClassLabel(d.use_class);
     const cls = useClassLabel(d.use_class);
+    const raw = d.use_descrip || cls;
     const suffix = raw !== cls ? ` <span class="muted">(${escapeHtml(cls)})</span>` : '';
     useLine = `<p class="useline muted">County use: ${escapeHtml(raw)}${suffix}</p>`;
   }

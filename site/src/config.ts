@@ -157,7 +157,7 @@ export type UseTypeGroupKey = (typeof USE_TYPE_GROUPS)[number]['key'];
 /** Categorical `match` colour expression on `use_class` for the use-type metric. */
 export function useTypeColorExpression(): ExpressionSpecification {
   const expr: unknown[] = ['match', ['get', 'use_class']];
-  for (const g of USE_TYPE_GROUPS) expr.push([...g.classes], g.color);
+  for (const g of USE_TYPE_GROUPS) expr.push(g.classes, g.color);
   expr.push(NO_DATA_COLOR); // unknown / unexpected values
   return expr as ExpressionSpecification;
 }
@@ -169,9 +169,7 @@ export function useTypeFilterExpression(
   hidden: ReadonlySet<UseTypeGroupKey>,
 ): ExpressionSpecification | null {
   if (hidden.size === 0) return null;
-  const hiddenClasses = USE_TYPE_GROUPS.filter((g) => hidden.has(g.key)).flatMap((g) => [
-    ...g.classes,
-  ]);
+  const hiddenClasses = USE_TYPE_GROUPS.filter((g) => hidden.has(g.key)).flatMap((g) => g.classes);
   return ['match', ['get', 'use_class'], hiddenClasses, false, true] as ExpressionSpecification;
 }
 
@@ -216,6 +214,15 @@ export const METRICS = {
 } satisfies Record<string, ChoroplethMetric>;
 
 export type MetricKey = keyof typeof METRICS;
+
+/** Colour expression for a metric key, dispatching categorical (`use_type`,
+ *  a `match`) vs numeric (`step`) where the metric is defined — so callers
+ *  never accidentally paint the categorical metric with its zero-stop seed.
+ *  `recent_change` is window-dependent; MapView recolors it at runtime via
+ *  `recentChangeColorExpression` instead of calling this. */
+export function colorExpressionFor(key: MetricKey): ExpressionSpecification {
+  return key === 'use_type' ? useTypeColorExpression() : stepColorExpression(METRICS[key]);
+}
 
 /** Build a MapLibre `step` colour expression for a choropleth metric. */
 export function stepColorExpression(metric: ChoroplethMetric): ExpressionSpecification {

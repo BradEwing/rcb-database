@@ -50,14 +50,13 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     INITIAL_ZOOM,
     PARCEL_ATTRIBUTION,
     METRICS,
-    stepColorExpression,
+    colorExpressionFor,
     recentChangeColorExpression,
     changeStops,
     changeLegend,
     RECENT_CHANGE_COLORS,
     NO_DATA_COLOR,
     USE_TYPE_GROUPS,
-    useTypeColorExpression,
     useTypeFilterExpression,
     type UseTypeGroupKey,
     RECENT_CHANGE_DEFAULT_BASELINE,
@@ -294,7 +293,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       type: 'fill',
       source: 'parcels',
       paint: {
-        'fill-color': stepColorExpression(METRICS[activeMetric]),
+        'fill-color': colorExpressionFor(activeMetric),
         'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.95, 0.72],
       },
     });
@@ -330,7 +329,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       source: 'parcels',
       layout: { visibility: 'none' },
       paint: {
-        'fill-extrusion-color': stepColorExpression(METRICS[activeMetric]),
+        'fill-extrusion-color': colorExpressionFor(activeMetric),
         'fill-extrusion-height': extrusionHeightExpression(heightMultiplier),
         'fill-extrusion-base': 0,
         'fill-extrusion-opacity': EXTRUSION_OPACITY,
@@ -517,18 +516,24 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     return Math.max(1, endYear - baselineYear);
   }
 
-  const swatchLi = (color: string, label: string): string =>
-    `<li><span class="swatch" style="background:${color}"></span>${escapeHtml(label)}</li>`;
+  const swatchLi = (color: string, label: string, liAttrs = ''): string =>
+    `<li${liAttrs ? ` ${liAttrs}` : ''}><span class="swatch" style="background:${color}"></span>${escapeHtml(label)}</li>`;
 
   // ---- Use-type filter --------------------------------------------------------
   // Hidden display groups for the use-type metric. The legend rows double as
   // toggles; the resulting filter applies to every parcel layer (fill, line, 3d)
   // and is cleared whenever the metric switches away.
   const hiddenUseGroups = new Set<UseTypeGroupKey>();
+  let useFilterApplied = false;
 
   function applyUseFilter(): void {
     const filter =
       activeMetric === 'use_type' ? useTypeFilterExpression(hiddenUseGroups) : null;
+    // Clearing an already-clear filter is NOT a no-op in MapLibre (it reloads
+    // the whole GeoJSON source) — skip it to keep plain metric switches on the
+    // cheap paint-property path.
+    if (filter === null && !useFilterApplied) return;
+    useFilterApplied = filter !== null;
     for (const id of ['parcels-fill', 'parcels-line', 'parcels-3d']) {
       if (map.getLayer(id)) map.setFilter(id, filter);
     }
@@ -538,10 +543,11 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   function renderUseLegend(): void {
     legendBody.innerHTML = USE_TYPE_GROUPS.map((g) => {
       const off = hiddenUseGroups.has(g.key);
-      return (
-        `<li class="use-toggle${off ? ' off' : ''}" data-group="${g.key}" role="button" ` +
-        `tabindex="0" aria-pressed="${!off}">` +
-        `<span class="swatch" style="background:${g.color}"></span>${escapeHtml(g.label)}</li>`
+      return swatchLi(
+        g.color,
+        g.label,
+        `class="use-toggle${off ? ' off' : ''}" data-group="${g.key}" role="button" ` +
+          `tabindex="0" aria-pressed="${!off}"`,
       );
     }).join('');
     legendBody.querySelectorAll<HTMLLIElement>('li.use-toggle').forEach((li) => {
@@ -696,8 +702,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       await ensureMarByYear();
       recolorChange();
     } else {
-      const colorExpr =
-        key === 'use_type' ? useTypeColorExpression() : stepColorExpression(METRICS[key]);
+      const colorExpr = colorExpressionFor(key);
       map.setPaintProperty('parcels-fill', 'fill-color', colorExpr);
       if (map.getLayer('parcels-3d'))
         map.setPaintProperty('parcels-3d', 'fill-extrusion-color', colorExpr);
