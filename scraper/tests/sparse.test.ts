@@ -61,6 +61,7 @@ describe("observationChanged", () => {
     observed_at: "2026-06-07",
     mar_amount_cents,
     tenancy_date,
+    source: "mar_tool",
   });
 
   it("is true for a first sighting (unit absent from latest)", () => {
@@ -69,6 +70,7 @@ describe("observationChanged", () => {
       observed_at: "2026-06-07",
       mar_amount_cents: "0",
       tenancy_date: "",
+      source: "mar_tool",
     };
     expect(observationChanged(latest, fresh)).toBe(true);
   });

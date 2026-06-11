@@ -36,7 +36,7 @@ const DIFF_CSV = join(DATA_DIR, "derived", "mar_change_2023_2026.csv");
 /** The snapshot's frozen date — used as `observed_at` for the backfilled rows. */
 const SNAPSHOT_DATE = "2023-07-19";
 
-const OBS_HEADERS = ["unit_id", "observed_at", "mar_amount_cents", "tenancy_date"];
+const OBS_HEADERS = ["unit_id", "observed_at", "mar_amount_cents", "tenancy_date", "source"];
 const DIFF_HEADERS = [
   "unit_id",
   "apn",
@@ -134,6 +134,7 @@ async function main(): Promise<void> {
         observed_at: SNAPSHOT_DATE,
         mar_amount_cents: String(cents2023),
         tenancy_date: tenancy2023,
+        source: "mar_tool",
       });
       const cents2026 = latestMar.get(id) ?? 0;
       const ten2026 = latestTenancy.get(id) ?? "";

@@ -2,10 +2,24 @@ node_modules/
 dist/
 .DS_Store
 
-# Per-street raw HTML snapshots — large, regeneratable via `npm run scraper enumerate`
+# Per-street raw HTML snapshots + fetched history PDFs + OCR model cache — large,
+# regeneratable (re-fetch from the City form / the rentcontrol document portal).
 data/raw/
+
+# tesseract.js downloads its ~5MB English model; cache lives under data/raw/ but
+# guard the repo root too in case the cache path env is overridden.
+*.traineddata
 
 # Editor / OS
 .vscode/
 .idea/
 *.swp
+
+# Transient backfill handoff note
+.mar-history-resume.md
+
+# OCR attempted-handle resume list (transient)
+data/history/ocr_attempted.txt
+
+# merge dry-run preview output (transient)
+data/history/mar_observations.preview.csv
