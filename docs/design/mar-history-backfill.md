@@ -1,11 +1,32 @@
 # Design: deep MAR-history backfill from rentcontroldocs (OnBase portal)
 
-**Status:** **IMPLEMENTED** (pipeline built + validated end-to-end on a ~24-APN /
-85-report sample; full backfill not yet run at scale) · **Scope:** one-time +
-incremental backfill of pre-2023 per-unit MAR history from the Rent Control
-document portal · **Proven on:** 854 9th St, APN `4281032011` (10 units), 10/10
-anchor match; 471/502 report rows resolved to registry unit_ids; period-aligned QA
-94.7%.
+**Status:** **COMPLETE — full backfill run and merged** (index: 8,524 APNs / 264k
+docs / 0 WAF; `history-merge --write` applied; `mar_observations.csv` carries a
+`source` column with ~195.7k `portal_mar_report` rows 2012→present, commit
+`50988bb`) · **Scope:** one-time + incremental backfill of pre-2023 per-unit MAR
+history from the Rent Control document portal · **Proven on:** 854 9th St, APN
+`4281032011` (10 units), 10/10 anchor match; 471/502 report rows resolved to
+registry unit_ids; period-aligned QA 94.7%. Remaining future work:
+tenancy-registration / final-rent OCR parsers (pre-2013 reset values).
+
+## Operational learnings (full run)
+
+- **Index ≈ 8,540 APNs, fetch ≈ 50,400 annual reports.** Both the index and fetch
+  phases hit the City portal and stay **single-threaded** at `OBPA_MIN_DELAY_MS`
+  (default 400 ms) — the full index ran with **0 throttles / 0 WAF** over ~6.5 h,
+  so do **not** add session concurrency (parallel Incapsula sessions from one IP is
+  the riskier move; let the 429/503/403 back-off be the valve). The fetch is
+  ~0.35 s/doc (~5 h).
+- **OCR is local CPU work** — it runs a parallel worker pool (`OCR_WORKERS`,
+  default 10) with no server contact.
+- All phases are **resumable/idempotent** (skip already-done APNs/handles/reports).
+- These are long unattended jobs: on macOS, run them under
+  `caffeinate -ism -w <pid>` — *maintenance/power-nap sleep silently suspends the
+  process even on AC*, and plain `caffeinate -i` is not enough.
+- Applying `history-merge --write` required updating the `OBS_HEADERS` writers
+  (`index.ts` drill + the two `backfill/` scripts) to carry `source` so the next
+  sweep doesn't drop the column — **done**; any future observation writer must
+  carry it too.
 
 ## Implementation notes (what shipped vs. this spike)
 
