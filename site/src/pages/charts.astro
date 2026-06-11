@@ -12,8 +12,8 @@ const base = import.meta.env.BASE_URL;
 
     <ul class="notes" aria-label="About these figures">
       <li><strong>Controlled units only</strong> — exempt ($0&nbsp;MAR) units excluded.</li>
-      <li><strong>History to 2012</strong> — monthly scrapes of the City's MAR lookup began June 2026; the 2023-07 snapshot comes from an RCB archive, and earlier dates are back-filled from annual Rent Control portal filings (only units with surviving filings).</li>
-      <li>All figures are <strong>medians</strong> (rents are right-skewed); bands span the 25th–75th percentile.</li>
+      <li><strong>History to 2012</strong> — back-filled from annual Rent Control filings; live scrapes began June 2026.</li>
+      <li><strong>All figures are medians</strong> — bands span the 25th–75th percentile.</li>
     </ul>
 
     <section class="chart-block">
@@ -32,6 +32,14 @@ const base = import.meta.env.BASE_URL;
     </section>
 
     <section class="chart-block">
+      <h2>New-tenancy rents over time</h2>
+      <p class="chart-note">
+        <span id="new-tenancy-note"></span>
+      </p>
+      <figure id="new-tenancy-rent" class="chart"><p class="loading">Loading chart…</p></figure>
+    </section>
+
+    <section class="chart-block">
       <h2>MAR vs Tenancy Start Date</h2>
       <p class="chart-note">
         Each line tracks the maximum rent of a tenancy today against the month it
@@ -40,14 +48,6 @@ const base = import.meta.env.BASE_URL;
         <span id="vintage-note"></span>
       </p>
       <figure id="mar-by-vintage" class="chart"><p class="loading">Loading chart…</p></figure>
-    </section>
-
-    <section class="chart-block">
-      <h2>New-tenancy rents over time</h2>
-      <p class="chart-note">
-        <span id="new-tenancy-note"></span>
-      </p>
-      <figure id="new-tenancy-rent" class="chart"><p class="loading">Loading chart…</p></figure>
     </section>
 
     <p class="more"><a href={`${base}/about/`}>About this registry →</a></p>
