@@ -1,6 +1,7 @@
 # Design: parcel/unit enrichment — ADU vs SFR vs multifamily, legacy vs new
 
-**Status:** proposed (roadmap) · **Scope:** build-time enrichment join over external
+**Status:** increment 1 (City-layer use class) shipped 2026-06; Assessor/permit
+increments still proposed · **Scope:** build-time enrichment join over external
 parcel/permit data · **Depends on:** the registry CSVs + the geometry crosswalk (shipped)
 
 ## Goal
@@ -28,13 +29,23 @@ determination. To *confirm* ADU vs SFR vs main-house we need an external join.
 Ordered cheapest-first. All keyed on **APN/AIN** (bare digits), the same key the
 geometry crosswalk already normalizes.
 
-1. **City "Parcels Public" layer `usetype` / `usedescrip` — already in hand.**
+1. **City "Parcels Public" layer `usetype` / `usedescrip` — SHIPPED (2026-06).**
    The FeatureServer we fetch for geometry
    (`Santa_Monica_public_parcels/FeatureServer/0`) also exposes `usetype` and
-   `usedescrip` per parcel; `fetch-geometry` currently requests only `ain`.
-   **First increment:** also pull these two fields, carry them onto each parcel,
-   and surface a coarse use class (SFR / condo / 2–4 / 5+ / commercial-mixed).
-   Near-zero cost — same request, same cache, ~99% coverage already proven.
+   `usedescrip` per parcel; `fetch-geometry` now pulls both onto the committed
+   geometry cache (raw, per the keep-raw convention). A derived `use_class`
+   (`single` / `two_three` / `four` / `five_plus` / `commercial` / `other` /
+   `unknown`, mirrored in `reconcile.ts` and `site/scripts/lib/registry.ts`)
+   feeds `unit_categories.csv`, the map's "Use type" choropleth + legend-toggle
+   filter, the detail panel ("County use: …"), and a re-based `rcb_comparable`
+   (controlled units NOT on assessor-single / two-three parcels; size-proxy
+   fallback for unmatched APNs). Coverage at ship: 8,442/8,539 registry APNs
+   (98.86%), 100% use-field fill among matched; loud-fail gates in both
+   `reconcile` and `build-data` at 95%.
+   **Finding:** the layer has **no condo distinction** — `usedescrip: Single`
+   lumps SFR + condos, so the SFR-vs-condo split (and ADU/vintage) genuinely
+   needs increment 2; `use_class: single` is labelled "Single (SFR/condo)"
+   everywhere it surfaces.
 
 2. **LA County Assessor parcel/improvement data** (LA County GIS / Assessor
    Portal). Gives **`YearBuilt`, units count, bedrooms/baths, use code, building

@@ -1,6 +1,6 @@
 # Project status & roadmap
 
-Last updated: 2026-06-10. This is the running record of what's shipped and what's
+Last updated: 2026-06-11. This is the running record of what's shipped and what's
 planned. Design specs (current and historical) are indexed at the bottom; CLAUDE.md
 carries only the durable operating knowledge.
 
@@ -63,6 +63,22 @@ Live at https://bradewing.github.io/rcb-database/ (delivered across PRs 1–7; s
     14,005 kept / 37.4k GA-lag-excluded at seed; same renderer/bands.
 - **GoatCounter analytics**: cookie-free page-view tracking, prod builds only.
 
+### Parcel use-class enrichment — increment 1 (shipped 2026-06)
+
+`docs/design/parcel-enrichment.md` first increment: `fetch-geometry` now also
+caches the City layer's raw `usetype`/`usedescrip` per parcel; a derived
+`use_class` (single / two_three / four / five_plus / commercial / other —
+**no condo split in this layer**, that needs the Assessor increment) flows into:
+
+- the map's **"Use type" categorical choropleth**, whose legend rows double as
+  hide/show **class filters**, plus tooltip + detail-panel "County use:" labels;
+- `unit_categories.csv` (`use_class` column) and a **re-based `rcb_comparable`**:
+  controlled units NOT on assessor-single/two-three parcels (size-proxy fallback
+  for the 1.1% unmatched APNs) → 26,556 vs the 27,589 report headline (-3.7%;
+  legacy size-proxy figure 26,754 kept as `registry_multifamily_controlled`).
+- Coverage at ship: 98.86% of registry APNs, 100% use-field fill among matched;
+  95% loud-fail gates in both `reconcile` and `build-data`.
+
 ### Change attribution
 
 `npm run changes` → `data/derived/mar_changes.csv`; map UI for changes/exits
@@ -74,8 +90,9 @@ decisions that must not regress").
 - **Tenancy-registration / final-rent OCR parsers** — pre-2013 reset values. The
   docs are already indexed and fetchable (`history-fetch` without `--annual-only`);
   only the OCR parsers are missing.
-- **Use-type / vintage enrichment** (ADU vs rental SFR, pre/post-1979) — see
-  `docs/design/parcel-enrichment.md`.
+- **Use-type / vintage enrichment, increments 2+** (ADU vs rental SFR,
+  pre/post-1979 vintage, SFR-vs-condo split via LA County Assessor data) — see
+  `docs/design/parcel-enrichment.md`; increment 1 (City-layer use class) shipped.
 - **Issue #11** — diagnose the 3+ BR median discontinuity at the 2023 portal→sweep
   boundary; restore 3+ BR to the over-time and vintage charts.
 - **First scheduled monthly snapshot** — the cron is wired but hasn't fired yet;
@@ -89,6 +106,6 @@ decisions that must not regress").
 | `docs/design/charts-and-density.md` | /charts analytics + 3D density view | shipped (3+ BR pending issue #11) |
 | `docs/design/mar-history-backfill.md` | OnBase portal backfill (4-stage scraper) | shipped; tenancy/final-rent parsers future |
 | `docs/design/sparse-observations.md` | Event-sourced observation change log | shipped |
-| `docs/design/parcel-enrichment.md` | Use-type/vintage enrichment | planned |
+| `docs/design/parcel-enrichment.md` | Use-type/vintage enrichment | increment 1 shipped; Assessor/permits planned |
 | `docs/reconciliation-2025.md` | RCB 2025 Annual Report bridge | resolved; re-run monthly |
 | `docs/backfill-2023.md` | One-time 2023 baseline backfill | historical |
