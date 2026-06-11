@@ -10,60 +10,32 @@ const repo = 'https://github.com/BradEwing/rcb-database';
 
     <h1>About this registry</h1>
     <p class="lede">
-      A self-hosted map of Santa Monica's rent-controlled housing, rebuilt each
-      month from the City's public Maximum Allowable Rent (MAR) lookup tool. It's
-      the source of truth for tracking how the MAR of every controlled unit
-      changes over time.
+      An unofficial, independent map of Santa Monica's rent-controlled housing,
+      rebuilt each month from the City's public Maximum Allowable Rent (MAR)
+      lookup tool. The MAR is the legal rent ceiling for a controlled unit; a
+      <strong>$0</strong> MAR means the unit is currently exempt.
     </p>
 
-    <h2>What is the MAR?</h2>
+    <h2>Status &amp; accuracy</h2>
     <p>
-      The <strong>Maximum Allowable Rent</strong> is the legal rent ceiling for a
-      rent-controlled unit. It moves with the annual General Adjustment (effective
-      around September 1), Board-approved adjustments, and tenancy resets. A
-      <strong>$0</strong> MAR means the unit is currently exempt (e.g. Costa-Hawkins
-      vacancy decontrol, Ellis-withdrawn, or post-1978 exempt).
+      This site is <strong>not</strong> the source of truth — the Santa Monica
+      Rent Control Board is. Everything here is derived from the City's public
+      records and can lag, miss, or misread them; for anything that matters,
+      verify against the
+      <a href="https://www.smgov.net/departments/rentcontrol/mar.aspx">City's MAR lookup tool</a>.
+      One known definitional difference: the MAR tool lists every unit with an
+      established MAR, a superset of the Board's published "controlled units"
+      count, so totals here run above it by design (see the
+      <a href={`${repo}/blob/main/docs/reconciliation-2025.md`}>reconciliation memo</a>).
     </p>
-
-    <h2>Counts &amp; the RCB caveat</h2>
     <p>
-      The MAR tool returns a row for every unit with an established MAR — a
-      <em>superset</em> of the Rent Control Board's published "controlled units"
-      headline, which excludes rent-level-decontrolled single-family homes and
-      condos, owner-occupied 2–3 unit exemptions, and other use-exempt units that
-      can still carry a positive MAR. So the registry's positive-MAR total runs
-      above the RCB headline by design — it is definitional, not a scraping error.
-      We publish both the registry total and an RCB-comparable estimate
-      (controlled units on 4+ unit parcels). See the
-      <a href={`${repo}/blob/main/docs/reconciliation-2025.md`}>reconciliation memo</a>.
+      Data ingestion and validation are <strong>in progress</strong> and the
+      registry should not be considered complete. QA so far is local — smoke
+      testing plus spot checks against parcels with known histories, including
+      buildings I've lived in, which have matched the official records. If you
+      notice something incorrect, or have any other feedback, please
+      <a href={`${repo}/issues`}>open a GitHub issue</a>.
     </p>
-
-    <h2>How the map is built</h2>
-    <ul>
-      <li>Each unit is grouped under its <strong>APN</strong> (LA County parcel number).</li>
-      <li>
-        Parcel polygons come from the City's
-        <strong>Parcels Public</strong> layer, joined to the registry by APN
-        (~99% coverage; unmatched parcels are reported in the footer).
-      </li>
-      <li>
-        The observation history is an event-sourced change log — one row per
-        change, carried forward — so the colour and the per-parcel change list
-        reflect real MAR movements, attributed by whether the tenancy date moved
-        (new tenancy) or not (adjustment). No GA formula is reconstructed.
-      </li>
-      <li>
-        The <strong>MAR change</strong> layer colours each parcel by the
-        <strong>median of its units' own % MAR change</strong> between two years
-        you choose (default 2020 → latest), counting only units that were
-        controlled in both years — so a building with a mix of rises and falls
-        reflects its typical per-unit move. Each unit's MAR is reconstructed
-        as-of each year from the change log; a parcel is greyed out when no unit
-        was controlled in both chosen years. Reliable history begins ~2012, and
-        pre-2023 depth comes from the City's annual-MAR-report backfill, so
-        deeper baselines cover fewer parcels.
-      </li>
-    </ul>
 
     <h2>Sources</h2>
     <ul>
