@@ -37,6 +37,19 @@ import MapView from '../components/MapView.astro';
   import { formatCount } from '../lib/format';
   import type { SiteSummary } from '../lib/types';
 
+  // Publish the topbar's real height as --topbar-h so the map controls anchor
+  // below it even when it wraps to two rows (≤~1400px) or grows when the
+  // summary stats load — a fixed offset left the metric switch underneath the
+  // (higher z-index) bar, swallowing its clicks.
+  const topbar = document.querySelector<HTMLElement>('.topbar');
+  if (topbar) {
+    const setTopbarHeight = (): void => {
+      document.documentElement.style.setProperty('--topbar-h', `${topbar.offsetHeight}px`);
+    };
+    new ResizeObserver(setTopbarHeight).observe(topbar);
+    setTopbarHeight();
+  }
+
   const el = document.getElementById('summary-stats');
   if (el) {
     fetch(dataUrl('summary.json'))

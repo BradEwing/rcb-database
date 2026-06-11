@@ -8,6 +8,7 @@ import {
   formatPct,
   changeReasonLabel,
   sizeClassLabel,
+  useClassLabel,
 } from './format';
 import type { ParcelChange, ParcelDetail, ParcelExit, UnitDetail } from './types';
 
@@ -58,6 +59,16 @@ export function renderParcelDetail(d: ParcelDetail): string {
     (s.exempt > 0 ? ` · ${formatCount(s.exempt)} exempt` : '') +
     ` · median MAR ${formatMarCents(s.median_mar_cents)}`;
 
+  // County assessor use (raw description, classed label when they differ).
+  // Guarded for older cached detail JSON without the field.
+  let useLine = '';
+  if (d.use_class && d.use_class !== 'unknown') {
+    const raw = d.use_descrip || useClassLabel(d.use_class);
+    const cls = useClassLabel(d.use_class);
+    const suffix = raw !== cls ? ` <span class="muted">(${escapeHtml(cls)})</span>` : '';
+    useLine = `<p class="useline muted">County use: ${escapeHtml(raw)}${suffix}</p>`;
+  }
+
   const table =
     `<table class="units"><thead><tr>` +
     `<th>Unit</th><th class="num">BR</th><th class="num">MAR</th><th>Tenancy</th><th>Status</th>` +
@@ -76,6 +87,7 @@ export function renderParcelDetail(d: ParcelDetail): string {
     `<header class="detail-head">` +
     addressBlock +
     `<p class="apn muted">APN ${escapeHtml(d.apn)}</p>` +
+    useLine +
     `<p class="statline">${statline}</p>` +
     `</header>` +
     table +

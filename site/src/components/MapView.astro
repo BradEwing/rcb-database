@@ -56,6 +56,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     changeLegend,
     RECENT_CHANGE_COLORS,
     NO_DATA_COLOR,
+    USE_TYPE_GROUPS,
+    useTypeColorExpression,
+    useTypeFilterExpression,
+    type UseTypeGroupKey,
     RECENT_CHANGE_DEFAULT_BASELINE,
     dataUrl,
     BOUNDARY_LINE_COLOR,
@@ -69,7 +73,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     extrusionHeightExpression,
     type MetricKey,
   } from '../config';
-  import { formatCount, formatMarCents, formatPct } from '../lib/format';
+  import { formatCount, formatMarCents, formatPct, useClassLabel } from '../lib/format';
   import { renderParcelDetail } from '../lib/detail';
   import type { ParcelProperties, ParcelDetail, MarByYear } from '../lib/types';
 
@@ -105,6 +109,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   function tooltipHtml(p: ParcelProperties): string {
     const controlled = `${formatCount(p.controlled_count)} controlled`;
     const exempt = p.exempt_count > 0 ? ` · ${formatCount(p.exempt_count)} exempt` : '';
+    const use =
+      activeMetric === 'use_type'
+        ? `<span class="row">Use: ${escapeHtml(useClassLabel(p.use_class))} (County assessor)</span>`
+        : '';
     let change = '';
     if (activeMetric === 'recent_change' && marByYear) {
       change = p.range_has_data
@@ -118,6 +126,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       `<span class="apn">APN ${escapeHtml(p.apn)}</span>` +
       `<span class="row">${formatCount(p.unit_count)} units — ${controlled}${exempt}</span>` +
       `<span class="row">Median MAR ${formatMarCents(p.median_mar_cents)}</span>` +
+      use +
       change
     );
   }
@@ -511,6 +520,48 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   const swatchLi = (color: string, label: string): string =>
     `<li><span class="swatch" style="background:${color}"></span>${escapeHtml(label)}</li>`;
 
+  // ---- Use-type filter --------------------------------------------------------
+  // Hidden display groups for the use-type metric. The legend rows double as
+  // toggles; the resulting filter applies to every parcel layer (fill, line, 3d)
+  // and is cleared whenever the metric switches away.
+  const hiddenUseGroups = new Set<UseTypeGroupKey>();
+
+  function applyUseFilter(): void {
+    const filter =
+      activeMetric === 'use_type' ? useTypeFilterExpression(hiddenUseGroups) : null;
+    for (const id of ['parcels-fill', 'parcels-line', 'parcels-3d']) {
+      if (map.getLayer(id)) map.setFilter(id, filter);
+    }
+  }
+
+  // Legend rows as hide/show toggles for the use-type metric.
+  function renderUseLegend(): void {
+    legendBody.innerHTML = USE_TYPE_GROUPS.map((g) => {
+      const off = hiddenUseGroups.has(g.key);
+      return (
+        `<li class="use-toggle${off ? ' off' : ''}" data-group="${g.key}" role="button" ` +
+        `tabindex="0" aria-pressed="${!off}">` +
+        `<span class="swatch" style="background:${g.color}"></span>${escapeHtml(g.label)}</li>`
+      );
+    }).join('');
+    legendBody.querySelectorAll<HTMLLIElement>('li.use-toggle').forEach((li) => {
+      const toggle = (): void => {
+        const key = li.dataset.group as UseTypeGroupKey;
+        if (hiddenUseGroups.has(key)) hiddenUseGroups.delete(key);
+        else hiddenUseGroups.add(key);
+        applyUseFilter();
+        renderUseLegend();
+      };
+      li.addEventListener('click', toggle);
+      li.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    });
+  }
+
   function renderLegend(): void {
     const m = METRICS[activeMetric];
     legendTitle.textContent = m.label;
@@ -523,6 +574,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       legendNote.textContent = marByYear
         ? `Median per-unit MAR change, ${baselineYear} → ${endYear}.`
         : 'Loading…';
+    } else if (activeMetric === 'use_type') {
+      renderUseLegend();
+      rangePicker.hidden = true;
+      legendNote.textContent = 'County assessor use class. Click a class to hide/show it.';
     } else {
       legendBody.innerHTML = m.legend.map((label, i) => swatchLi(m.colors[i]!, label)).join('');
       rangePicker.hidden = true;
@@ -641,11 +696,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       await ensureMarByYear();
       recolorChange();
     } else {
-      const colorExpr = stepColorExpression(METRICS[key]);
+      const colorExpr =
+        key === 'use_type' ? useTypeColorExpression() : stepColorExpression(METRICS[key]);
       map.setPaintProperty('parcels-fill', 'fill-color', colorExpr);
       if (map.getLayer('parcels-3d'))
         map.setPaintProperty('parcels-3d', 'fill-extrusion-color', colorExpr);
     }
+    // Applies the use filter while on use_type; clears it when switching away.
+    applyUseFilter();
     renderSwitch();
     renderLegend();
   }
@@ -917,7 +975,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   .metric-switch {
     position: absolute;
     left: 1rem;
-    top: 4.2rem;
+    /* Below the topbar's REAL height (it wraps at narrower widths; the page
+       publishes --topbar-h via ResizeObserver). Fallback ≈ the unwrapped bar. */
+    top: calc(var(--topbar-h, 3.6rem) + 0.6rem);
     z-index: 2;
     display: flex;
     border-radius: 0.5rem;
@@ -963,6 +1023,19 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     border-radius: 2px;
     border: 1px solid rgb(0 0 0 / 0.2);
     flex: none;
+  }
+  /* Use-type legend rows double as hide/show toggles (injected via innerHTML →
+     :global, like the swatches above). Hidden classes dim + strike through. */
+  .legend :global(li.use-toggle) {
+    cursor: pointer;
+    user-select: none;
+  }
+  .legend :global(li.use-toggle:hover) {
+    color: var(--accent);
+  }
+  .legend :global(li.use-toggle.off) {
+    opacity: 0.45;
+    text-decoration: line-through;
   }
 
   .detail-panel {
@@ -1069,7 +1142,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     padding-left: 1.1rem;
     font-size: 0.85rem;
   }
-  .detail-head .apn {
+  .detail-head .apn,
+  .detail-head .useline {
     margin: 0.15rem 0 0;
     font-size: 0.74rem;
   }

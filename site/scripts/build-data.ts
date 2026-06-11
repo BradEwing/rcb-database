@@ -37,6 +37,8 @@ import {
   median,
   sizeClassOf,
   bedroomBucket,
+  useClassOf,
+  type UseClass,
   type Row,
   type LatestMar,
 } from "./lib/registry.ts";
@@ -45,6 +47,12 @@ import {
  *  Observed coverage at seed is 98.86%; 0.95 leaves margin for month-to-month
  *  drift while still catching a real join regression (wrong field, stale cache). */
 const MIN_MATCH_RATE = 0.95;
+
+/** Fail the build if fewer than this fraction of geometry-matched parcels carry
+ *  an assessor use class. Observed fill is 100% among matched (the layer has no
+ *  blank use fields on registry parcels); anything well below that means the
+ *  committed cache predates the use-attribute enrichment. */
+const MIN_USE_RATE = 0.95;
 
 /** One row of the per-APN detail's unit table. Mirrors the `UnitDetail` type in
  *  site/src/lib/types.ts (the two must stay in sync). */
@@ -319,14 +327,17 @@ function buildSummary(
   const recon = new Map(reconSummary.map((r) => [g(r, "metric"), g(r, "value")]));
   const recentChanges = changes.filter((c) => g(c, "observed_at") === sweepDate).length;
 
+  // Prefer the assessor-based estimate; fall back to the legacy size-proxy key
+  // so a stale derived CSV degrades gracefully instead of blanking the stat.
+  const rcbComparable =
+    recon.get("registry_rcb_comparable") ?? recon.get("registry_multifamily_controlled");
+
   return {
     units_total: units.length,
     controlled_total: controlled,
     exempt_total: exempt,
     bedroom_mix: bedroomMix,
-    rcb_comparable: recon.get("registry_multifamily_controlled")
-      ? Number(recon.get("registry_multifamily_controlled"))
-      : null,
+    rcb_comparable: rcbComparable ? Number(rcbComparable) : null,
     rcb_report_total: recon.get("report_controlled_total")
       ? Number(recon.get("report_controlled_total"))
       : null,
@@ -866,15 +877,23 @@ function main(): void {
     if (g(c, "observed_at") === sweepDate) recentlyChanged.add(normApn(g(c, "apn")));
   }
 
-  // Load the cached geometry and join by APN.
+  // Load the cached geometry and join by APN. Each feature also carries the
+  // county assessor's raw use attributes (usetype/usedescrip) — kept verbatim on
+  // the per-APN detail, classified into a coarse use class for the map.
   const cache = JSON.parse(readFileSync(GEOMETRY_CACHE, "utf8")) as {
     metadata?: Record<string, unknown>;
     features: GeoFeature[];
   };
   const geomByApn = new Map<string, unknown>();
+  const useByApn = new Map<string, { usetype: string; usedescrip: string; cls: UseClass }>();
   for (const f of cache.features) {
-    const ain = normApn(String((f.properties as { ain?: unknown }).ain ?? ""));
-    if (ain && !geomByApn.has(ain)) geomByApn.set(ain, f.geometry);
+    const p = f.properties as { ain?: unknown; usetype?: unknown; usedescrip?: unknown };
+    const ain = normApn(String(p.ain ?? ""));
+    if (!ain || geomByApn.has(ain)) continue;
+    geomByApn.set(ain, f.geometry);
+    const usetype = String(p.usetype ?? "").trim();
+    const usedescrip = String(p.usedescrip ?? "").trim();
+    useByApn.set(ain, { usetype, usedescrip, cls: useClassOf(usetype, usedescrip) });
   }
 
   // Per-APN detail JSON, lazy-loaded on parcel click. Written for EVERY APN (not
@@ -886,9 +905,11 @@ function main(): void {
   const exitFeatures: GeoFeature[] = [];
   const searchIndex: Array<{ apn: string; label: string; addr: string[] }> = [];
   const unmatchedApns: string[] = [];
+  let useClassified = 0;
   for (const [apn, parcelUnitList] of parcelUnits) {
     const summary = summarize(parcelUnitList);
     const addresses = addressesOf(parcelUnitList);
+    const use = useByApn.get(apn);
 
     writeFileSync(
       join(parcelsDir, `${apn}.json`),
@@ -896,6 +917,9 @@ function main(): void {
         apn,
         addresses,
         summary,
+        use_class: use?.cls ?? "unknown",
+        use_type: use?.usetype ?? "",
+        use_descrip: use?.usedescrip ?? "",
         units: parcelUnitList,
         changes: changesFor.get(apn) ?? [],
         exited: exitsFor.get(apn) ?? [],
@@ -908,6 +932,7 @@ function main(): void {
       unmatchedApns.push(apn);
       continue;
     }
+    if (use && use.cls !== "unknown") useClassified++;
     // Searchable only for mapped parcels (search flies to geometry).
     searchIndex.push({ apn, label: addresses[0] ?? "", addr: addresses });
 
@@ -923,6 +948,7 @@ function main(): void {
         exempt_count: summary.exempt,
         median_mar_cents: summary.median_mar_cents,
         size_class: sizeClassOf(summary.unit_count),
+        use_class: use?.cls ?? "unknown",
         has_recent_change: recentlyChanged.has(apn),
         recent_change_count: change.count,
         recent_change_pct: change.medianPct,
@@ -946,10 +972,12 @@ function main(): void {
   const referenced = parcelUnits.size;
   const matched = features.length;
   const rate = referenced ? matched / referenced : 0;
+  const useRate = matched ? useClassified / matched : 0;
 
   process.stdout.write(
     `Parcels (distinct APNs): ${referenced}\n` +
       `Geometry matched: ${matched} (${(rate * 100).toFixed(2)}%)\n` +
+      `Use class on matched: ${useClassified} (${(useRate * 100).toFixed(2)}%)\n` +
       `Unmatched (no City polygon): ${unmatchedApns.length}\n`,
   );
   if (unmatchedApns.length) {
@@ -963,6 +991,15 @@ function main(): void {
       `Geometry coverage ${(rate * 100).toFixed(2)}% < ${(MIN_MATCH_RATE * 100).toFixed(0)}% ` +
         `(${matched}/${referenced}). The geometry cache is likely stale or the join ` +
         `field changed — re-run \`npm run fetch-geometry\` or check the City layer.`,
+    );
+  }
+  // Same convention for the assessor use class: a fill cliff means the committed
+  // cache predates the use-attribute enrichment, not that parcels lost a use.
+  if (useRate < MIN_USE_RATE) {
+    throw new Error(
+      `Assessor use coverage ${(useRate * 100).toFixed(2)}% < ${(MIN_USE_RATE * 100).toFixed(0)}% ` +
+        `(${useClassified}/${matched} mapped parcels). The geometry cache likely predates ` +
+        `the usetype/usedescrip fields — re-run \`npm run fetch-geometry\`.`,
     );
   }
 
@@ -1017,6 +1054,8 @@ function main(): void {
     parcels_mapped: matched,
     parcels_unmatched: unmatchedApns.length,
     match_rate: Number(rate.toFixed(4)),
+    parcels_use_classified: useClassified,
+    use_rate: Number(useRate.toFixed(4)),
     units_total: units.length,
   };
   const metaPath = join(SITE_DATA_DIR, "meta.json");

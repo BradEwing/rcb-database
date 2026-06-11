@@ -104,3 +104,30 @@ export function sizeClassOf(unitCount: number): "single" | "small" | "multifamil
   if (unitCount <= 3) return "small";
   return "multifamily";
 }
+
+/** County-assessor use class derived from the City "Parcels Public" layer's raw
+ *  `usetype`/`usedescrip` (cached on each geometry feature). NOTE: the layer has
+ *  no condo distinction — "single" lumps SFR + condos. Matches scraper
+ *  reconcile.ts `useClassOf` (the two must stay in sync). */
+export type UseClass =
+  | "single"
+  | "two_three"
+  | "four"
+  | "five_plus"
+  | "commercial"
+  | "other"
+  | "unknown";
+
+export function useClassOf(usetype: string, usedescrip: string): UseClass {
+  const t = (usetype ?? "").trim();
+  const d = (usedescrip ?? "").trim();
+  if (t === "Commercial") return "commercial";
+  if (t === "Residential") {
+    if (d === "Single") return "single";
+    if (d.startsWith("Two Units") || d.startsWith("Three Units")) return "two_three";
+    if (d.startsWith("Four Units")) return "four";
+    if (d === "Five or more apartments") return "five_plus";
+    return d ? "other" : "unknown"; // rooming houses, mobile homes, …
+  }
+  return t ? "other" : "unknown"; // institutional, industrial, government, …
+}

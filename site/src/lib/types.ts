@@ -1,5 +1,17 @@
 /** Shapes of the build-time data artifacts (see site/scripts/build-data.ts). */
 
+/** County-assessor use class of a parcel (City "Parcels Public" layer; derived
+ *  by build-data — mirrors `UseClass` in site/scripts/lib/registry.ts). NOTE:
+ *  the layer has no condo distinction — 'single' lumps SFR + condos. */
+export type UseClass =
+  | 'single'
+  | 'two_three'
+  | 'four'
+  | 'five_plus'
+  | 'commercial'
+  | 'other'
+  | 'unknown';
+
 /** One feature per APN in parcels.geojson — everything the map layer needs
  *  without a detail fetch. */
 export interface ParcelProperties {
@@ -10,6 +22,7 @@ export interface ParcelProperties {
   exempt_count: number;
   median_mar_cents: number;
   size_class: 'single' | 'small' | 'multifamily';
+  use_class: UseClass;
   has_recent_change: boolean;
   /** Units changed at the latest sweep. */
   recent_change_count: number;
@@ -76,6 +89,11 @@ export interface ParcelDetail {
   apn: string;
   addresses: string[];
   summary: ParcelSummary;
+  /** Derived assessor use class ('unknown' when the APN has no City-layer match). */
+  use_class: UseClass;
+  /** Raw assessor attributes, verbatim from the City layer (may be ''). */
+  use_type: string;
+  use_descrip: string;
   units: UnitDetail[];
   changes: ParcelChange[];
   exited: ParcelExit[];
@@ -199,5 +217,7 @@ export interface SiteMeta {
   parcels_mapped: number;
   parcels_unmatched: number;
   match_rate: number;
+  parcels_use_classified: number;
+  use_rate: number;
   units_total: number;
 }

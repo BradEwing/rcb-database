@@ -29,6 +29,22 @@ export function sizeClassLabel(sizeClass: string): string {
   return SIZE_LABELS[sizeClass] ?? sizeClass;
 }
 
+/** Human labels for the assessor use class (see `UseClass` in types.ts). The
+ *  City layer can't split SFR from condo, so 'single' is labelled as both. */
+const USE_CLASS_LABELS: Record<string, string> = {
+  single: 'Single (SFR/condo)',
+  two_three: '2–3 units',
+  four: '4 units',
+  five_plus: '5+ apartments',
+  commercial: 'Commercial / mixed',
+  other: 'Other use',
+  unknown: 'Unknown use',
+};
+
+export function useClassLabel(useClass: string): string {
+  return USE_CLASS_LABELS[useClass] ?? useClass;
+}
+
 /** Signed whole-dollar delta, e.g. -30900 → "−$309", 10900 → "+$109". */
 export function formatSignedCents(cents: number): string {
   const sign = cents < 0 ? '−' : '+';

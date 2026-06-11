@@ -139,10 +139,48 @@ export function changeLegend(stops: number[]): string[] {
   ];
 }
 
+/** Display groups for the use-type choropleth (parcel-enrichment increment 1).
+ *  Categorical — `two_three` + `four` collapse into one "2–4 units" group; each
+ *  legend row is also a visibility toggle (the lightweight use filter). The
+ *  `unknown` class (no assessor match — ≈0 mapped parcels) renders as
+ *  NO_DATA_COLOR and isn't toggleable. Colourblind-safe qualitative palette. */
+export const USE_TYPE_GROUPS = [
+  { key: 'single', classes: ['single'], label: 'Single (SFR/condo)', color: '#e8b931' },
+  { key: 'two_four', classes: ['two_three', 'four'], label: '2–4 units', color: '#56b4e9' },
+  { key: 'five_plus', classes: ['five_plus'], label: '5+ apartments', color: '#0a4d8c' },
+  { key: 'commercial', classes: ['commercial'], label: 'Commercial / mixed', color: '#d55e00' },
+  { key: 'other', classes: ['other'], label: 'Other use', color: '#979a9e' },
+] as const;
+export type UseTypeGroupKey = (typeof USE_TYPE_GROUPS)[number]['key'];
+
+/** Categorical `match` colour expression on `use_class` for the use-type metric. */
+export function useTypeColorExpression(): ExpressionSpecification {
+  const expr: unknown[] = ['match', ['get', 'use_class']];
+  for (const g of USE_TYPE_GROUPS) expr.push([...g.classes], g.color);
+  expr.push(NO_DATA_COLOR); // unknown / unexpected values
+  return expr as ExpressionSpecification;
+}
+
+/** Layer filter hiding the use-type groups in `hidden` (null = show everything,
+ *  i.e. clear the filter). Parcels with `use_class` outside every group (the
+ *  `unknown` remainder) stay visible — they're not toggleable. */
+export function useTypeFilterExpression(
+  hidden: ReadonlySet<UseTypeGroupKey>,
+): ExpressionSpecification | null {
+  if (hidden.size === 0) return null;
+  const hiddenClasses = USE_TYPE_GROUPS.filter((g) => hidden.has(g.key)).flatMap((g) => [
+    ...g.classes,
+  ]);
+  return ['match', ['get', 'use_class'], hiddenClasses, false, true] as ExpressionSpecification;
+}
+
 /** Choropleth metrics, selectable via the switcher. `recent_change` colours by
  *  `range_change_pct` — a client-computed % move in the parcel's median MAR
  *  between a user-chosen baseline and end year (see MapView). Mostly-increasing,
- *  so a single decrease bin then a sequential ramp; no-data parcels render grey. */
+ *  so a single decrease bin then a sequential ramp; no-data parcels render grey.
+ *  `use_type` is CATEGORICAL: its colors/legend mirror USE_TYPE_GROUPS (stops
+ *  unused) and MapView special-cases its painting (match expression) and its
+ *  legend (toggle rows), like it does `recent_change`. */
 export const METRICS = {
   unit_count: {
     property: 'unit_count',
@@ -157,6 +195,13 @@ export const METRICS = {
     stops: [150000, 220000, 300000, 400000],
     colors: ['#f2e6f7', '#d8b3e0', '#b87fc9', '#8f4baa', '#5d2a78'],
     legend: ['< $1.5k', '$1.5–2.2k', '$2.2–3k', '$3–4k', '$4k+'],
+  },
+  use_type: {
+    property: 'use_class',
+    label: 'Use type',
+    stops: [],
+    colors: USE_TYPE_GROUPS.map((g) => g.color),
+    legend: USE_TYPE_GROUPS.map((g) => g.label),
   },
   recent_change: {
     property: 'range_change_pct',
