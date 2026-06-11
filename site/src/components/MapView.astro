@@ -8,6 +8,11 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 <div class="legend">
   <p id="legend-title" class="legend-title"></p>
+  <div id="range-picker" class="range-picker" hidden>
+    <label>From <select id="range-from" aria-label="Baseline year"></select></label>
+    <span class="rp-arrow">→</span>
+    <label>to <select id="range-to" aria-label="End year"></select></label>
+  </div>
   <ul id="legend-body"></ul>
   <p id="legend-note" class="legend-note"></p>
   <div id="map-toggles" class="map-toggles" hidden>
@@ -46,6 +51,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     PARCEL_ATTRIBUTION,
     METRICS,
     stepColorExpression,
+    recentChangeColorExpression,
+    changeStops,
+    changeLegend,
+    RECENT_CHANGE_COLORS,
+    NO_DATA_COLOR,
+    RECENT_CHANGE_DEFAULT_BASELINE,
     dataUrl,
     BOUNDARY_LINE_COLOR,
     BOUNDARY_LINE_WIDTH,
@@ -60,9 +71,19 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   } from '../config';
   import { formatCount, formatMarCents, formatPct } from '../lib/format';
   import { renderParcelDetail } from '../lib/detail';
-  import type { ParcelProperties, ParcelDetail } from '../lib/types';
+  import type { ParcelProperties, ParcelDetail, MarByYear } from '../lib/types';
 
   let activeMetric: MetricKey = 'unit_count';
+
+  // ---- Configurable MAR-change choropleth state -----------------------------
+  // The loaded parcels GeoJSON (kept so we can rewrite per-feature change % and
+  // push it back with setData when the year range changes), the per-parcel
+  // median-MAR-by-year matrix, and the currently selected comparison window.
+  let parcelsGeojson: GeoJSON.FeatureCollection | null = null;
+  let marByYear: MarByYear | null = null;
+  let marByYearPromise: Promise<void> | null = null;
+  let baselineYear = 0;
+  let endYear = 0;
 
   const map = new maplibregl.Map({
     container: 'map',
@@ -84,10 +105,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   function tooltipHtml(p: ParcelProperties): string {
     const controlled = `${formatCount(p.controlled_count)} controlled`;
     const exempt = p.exempt_count > 0 ? ` · ${formatCount(p.exempt_count)} exempt` : '';
-    const change =
-      p.recent_change_count > 0
-        ? `<span class="row">Recent change ${formatPct(p.recent_change_pct)} · ${formatCount(p.recent_change_count)} unit(s)</span>`
-        : '';
+    let change = '';
+    if (activeMetric === 'recent_change' && marByYear) {
+      change = p.range_has_data
+        ? `<span class="row">MAR change ${baselineYear}→${endYear}: ${formatPct(p.range_change_pct ?? 0)} (median unit)</span>`
+        : `<span class="row">No unit controlled in both ${baselineYear} &amp; ${endYear}</span>`;
+    } else if (p.recent_change_count > 0) {
+      change = `<span class="row">Recent change ${formatPct(p.recent_change_pct)} · ${formatCount(p.recent_change_count)} unit(s)</span>`;
+    }
     return (
       `<strong>${escapeHtml(p.label_address)}</strong>` +
       `<span class="apn">APN ${escapeHtml(p.apn)}</span>` +
@@ -251,6 +276,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     const res = await fetch(dataUrl('parcels.geojson'));
     if (!res.ok) throw new Error(`Failed to load parcels.geojson: ${res.status}`);
     const geojson = (await res.json()) as GeoJSON.FeatureCollection;
+    parcelsGeojson = geojson;
 
     map.addSource('parcels', { type: 'geojson', data: geojson, promoteId: 'apn' });
 
@@ -459,6 +485,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   const legendTitle = document.getElementById('legend-title') as HTMLElement;
   const legendBody = document.getElementById('legend-body') as HTMLElement;
   const legendNote = document.getElementById('legend-note') as HTMLElement;
+  const rangePicker = document.getElementById('range-picker') as HTMLElement;
+  const rangeFrom = document.getElementById('range-from') as HTMLSelectElement;
+  const rangeTo = document.getElementById('range-to') as HTMLSelectElement;
 
   function renderSwitch(): void {
     switchEl.innerHTML = Object.entries(METRICS)
@@ -469,30 +498,154 @@ import 'maplibre-gl/dist/maplibre-gl.css';
       )
       .join('');
     switchEl.querySelectorAll('button').forEach((btn) =>
-      btn.addEventListener('click', () => setMetric(btn.dataset.metric as MetricKey)),
+      btn.addEventListener('click', () => void setMetric(btn.dataset.metric as MetricKey)),
     );
   }
+
+  // Length of the selected comparison window in years (≥1); drives the change
+  // colour breaks so a single-GA year and a 14-year span both read with contrast.
+  function changeWindow(): number {
+    return Math.max(1, endYear - baselineYear);
+  }
+
+  const swatchLi = (color: string, label: string): string =>
+    `<li><span class="swatch" style="background:${color}"></span>${escapeHtml(label)}</li>`;
 
   function renderLegend(): void {
     const m = METRICS[activeMetric];
     legendTitle.textContent = m.label;
-    legendBody.innerHTML = m.legend
-      .map(
-        (label, i) =>
-          `<li><span class="swatch" style="background:${m.colors[i]}"></span>${escapeHtml(label)}</li>`,
-      )
-      .join('');
-    legendNote.textContent =
-      activeMetric === 'recent_change' ? 'Change since the 2023 baseline.' : '';
+    if (activeMetric === 'recent_change') {
+      const labels = changeLegend(changeStops(changeWindow()));
+      legendBody.innerHTML =
+        labels.map((label, i) => swatchLi(RECENT_CHANGE_COLORS[i]!, label)).join('') +
+        swatchLi(NO_DATA_COLOR, 'no data');
+      rangePicker.hidden = false;
+      legendNote.textContent = marByYear
+        ? `Median per-unit MAR change, ${baselineYear} → ${endYear}.`
+        : 'Loading…';
+    } else {
+      legendBody.innerHTML = m.legend.map((label, i) => swatchLi(m.colors[i]!, label)).join('');
+      rangePicker.hidden = true;
+      legendNote.textContent = '';
+    }
   }
 
-  function setMetric(key: MetricKey): void {
+  // Paint the change choropleth with breaks scaled to the current window. Both the
+  // value (range_change_pct) and the colour breaks depend on the window, so this
+  // runs whenever the years change — not just on metric switch.
+  function recolorChange(): void {
+    const expr = recentChangeColorExpression(changeStops(changeWindow()));
+    map.setPaintProperty('parcels-fill', 'fill-color', expr);
+    if (map.getLayer('parcels-3d'))
+      map.setPaintProperty('parcels-3d', 'fill-extrusion-color', expr);
+  }
+
+  // ---- Configurable MAR-change choropleth -----------------------------------
+  // Load the per-parcel median-MAR-by-year matrix once (lazily, on first use of
+  // the change metric), seed the default comparison window, and colour the map.
+  async function ensureMarByYear(): Promise<void> {
+    if (marByYear) return;
+    if (!marByYearPromise) {
+      marByYearPromise = (async () => {
+        const r = await fetch(dataUrl('mar_by_year.json'));
+        if (!r.ok) throw new Error(`Failed to load mar_by_year.json: ${r.status}`);
+        marByYear = (await r.json()) as MarByYear;
+        const yrs = marByYear.years;
+        endYear = yrs[yrs.length - 1]!;
+        baselineYear = Math.max(yrs[0]!, Math.min(RECENT_CHANGE_DEFAULT_BASELINE, endYear - 1));
+        renderRangePicker();
+        applyRangeChange();
+      })();
+    }
+    await marByYearPromise;
+  }
+
+  // Median of a numeric list (unsorted input; returns 0 for empty — callers guard).
+  function medianOf(values: number[]): number {
+    const s = [...values].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+  }
+
+  // Recompute each parcel's change for the selected window — the MEDIAN of its
+  // units' own % moves, over units controlled (MAR > 0) in BOTH the baseline and
+  // end year — and push it back into the source. promoteId keeps feature ids
+  // stable, so hover/select feature-state survives the setData.
+  function applyRangeChange(): void {
+    if (!parcelsGeojson || !marByYear) return;
+    const bi = marByYear.years.indexOf(baselineYear);
+    const ei = marByYear.years.indexOf(endYear);
+    for (const f of parcelsGeojson.features) {
+      const props = f.properties as ParcelProperties | null;
+      if (!props) continue;
+      const vectors = bi >= 0 && ei >= 0 ? marByYear.parcels[String(props.apn)] : undefined;
+      let pct: number | null = null;
+      if (vectors) {
+        const moves: number[] = [];
+        for (const v of vectors) {
+          const b = v[bi] ?? 0;
+          const e = v[ei] ?? 0;
+          if (b > 0 && e > 0) moves.push(((e - b) / b) * 100);
+        }
+        if (moves.length) pct = medianOf(moves);
+      }
+      props.range_has_data = pct == null ? 0 : 1;
+      props.range_change_pct = pct == null ? 0 : Number(pct.toFixed(1));
+    }
+    const src = map.getSource('parcels') as maplibregl.GeoJSONSource | undefined;
+    src?.setData(parcelsGeojson);
+  }
+
+  // Populate the from/to year dropdowns to mirror the current selection.
+  function renderRangePicker(): void {
+    if (!marByYear) return;
+    const fill = (sel: HTMLSelectElement, opts: number[], chosen: number): void => {
+      sel.innerHTML = opts
+        .map((y) => `<option value="${y}"${y === chosen ? ' selected' : ''}>${y}</option>`)
+        .join('');
+    };
+    // The baseline can't be the last year, nor the end the first — so every pick
+    // leaves a valid window on the other side.
+    fill(rangeFrom, marByYear.years.slice(0, -1), baselineYear);
+    fill(rangeTo, marByYear.years.slice(1), endYear);
+  }
+
+  rangeFrom.addEventListener('change', () => {
+    if (!marByYear) return;
+    baselineYear = Number(rangeFrom.value);
+    // Keep the window ordered (baseline strictly before end).
+    if (baselineYear >= endYear) {
+      endYear = Math.min(marByYear.years[marByYear.years.length - 1]!, baselineYear + 1);
+    }
+    renderRangePicker();
+    applyRangeChange();
+    recolorChange();
+    renderLegend();
+  });
+  rangeTo.addEventListener('change', () => {
+    if (!marByYear) return;
+    endYear = Number(rangeTo.value);
+    if (endYear <= baselineYear) {
+      baselineYear = Math.max(marByYear.years[0]!, endYear - 1);
+    }
+    renderRangePicker();
+    applyRangeChange();
+    recolorChange();
+    renderLegend();
+  });
+
+  async function setMetric(key: MetricKey): Promise<void> {
     if (key === activeMetric || !(key in METRICS)) return;
     activeMetric = key;
-    const colorExpr = stepColorExpression(METRICS[key]);
-    map.setPaintProperty('parcels-fill', 'fill-color', colorExpr);
-    if (map.getLayer('parcels-3d'))
-      map.setPaintProperty('parcels-3d', 'fill-extrusion-color', colorExpr);
+    if (key === 'recent_change') {
+      await ensureMarByYear();
+      recolorChange();
+    } else {
+      const colorExpr = stepColorExpression(METRICS[key]);
+      map.setPaintProperty('parcels-fill', 'fill-color', colorExpr);
+      if (map.getLayer('parcels-3d'))
+        map.setPaintProperty('parcels-3d', 'fill-extrusion-color', colorExpr);
+    }
     renderSwitch();
     renderLegend();
   }
@@ -665,6 +818,36 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   }
   .legend-note:empty {
     display: none;
+  }
+
+  .range-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0 0 0.5rem;
+    font-size: 0.74rem;
+    color: var(--muted);
+  }
+  .range-picker[hidden] {
+    display: none;
+  }
+  .range-picker label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .range-picker select {
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    padding: 0.1rem 0.25rem;
+    border-radius: 0.3rem;
+    border: 1px solid color-mix(in srgb, var(--muted) 38%, transparent);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .range-picker .rp-arrow {
+    opacity: 0.7;
   }
 
   .map-toggles {

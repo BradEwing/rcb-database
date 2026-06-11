@@ -13,8 +13,13 @@ export interface ParcelProperties {
   has_recent_change: boolean;
   /** Units changed at the latest sweep. */
   recent_change_count: number;
-  /** Median signed % MAR move among those changes (drives the change choropleth). */
+  /** Median signed % MAR move among those changes (latest-sweep, for the tooltip). */
   recent_change_pct: number;
+  /** % change in the parcel's median MAR over the selected year range — computed
+   *  client-side from mar_by_year.json and written onto the feature at runtime. */
+  range_change_pct?: number;
+  /** 1 if the year-range change is defined (controlled MAR in the baseline year). */
+  range_has_data?: 0 | 1;
 }
 
 /** One unit row in a parcel's detail (parcels/<apn>.json). Mirrors the
@@ -162,6 +167,18 @@ export interface SiteAnalytics {
   rent_by_bedroom: RentByBedroom[];
   rent_over_time: { dates: string[]; series: RentOverTimeSeries[] };
   mar_by_tenancy_vintage: MarByTenancyVintage;
+}
+
+/** mar_by_year.json — per-UNIT MAR (cents) "as of" the end of each year, grouped by
+ *  parcel; the dataset behind the configurable MAR-change choropleth. The map
+ *  computes each unit's own % move between any chosen baseline and end year (over
+ *  units controlled in both) and takes the parcel median, client-side.
+ *  Mirrors `MarByYear` in site/scripts/build-data.ts. */
+export interface MarByYear {
+  years: number[];
+  latest_sweep: string;
+  /** apn → one MAR-by-year vector per controlled unit (cents; 0 = excluded that year). */
+  parcels: Record<string, number[][]>;
 }
 
 /** meta.json — build provenance, surfaced in the footer (later PR). */

@@ -593,6 +593,89 @@ function buildMarByTenancyVintage(
   };
 }
 
+/** Per-UNIT MAR reconstructed "as of" the end of each year, grouped by parcel —
+ *  the dataset behind the configurable MAR-change choropleth. For any chosen
+ *  baseline/end year the map computes EACH unit's own % move (over units
+ *  controlled in both years) and takes the parcel's median, so a building with a
+ *  mix of rises and falls reflects its typical per-unit move rather than the shift
+ *  of a snapshot median.
+ *
+ *  As-of(year) = a unit's latest observation on or before Dec 31 of that year
+ *  (carry-forward), except the most recent year uses the latest sweep date (its
+ *  Sep-1 GA may not have landed yet). Each entry is the unit's controlled MAR in
+ *  cents, or 0 when the unit had no established/positive MAR as-of that year
+ *  (exempt or not yet present) — 0 excludes the unit from that year's comparison.
+ *  Units never controlled in any year, and parcels with no such units, are
+ *  dropped. Mirrors `MarByYear` in site/src/lib/types.ts. */
+type MarByYear = {
+  years: number[];
+  latest_sweep: string;
+  /** apn → one MAR-by-year vector per controlled unit (cents; 0 = excluded that year). */
+  parcels: Record<string, number[][]>;
+};
+
+function buildMarByYear(
+  parcelUnits: Map<string, UnitDetail[]>,
+  obs: Row[],
+  sweepDate: string,
+): MarByYear {
+  // Per-unit observations sorted ascending by date (for as-of carry-forward),
+  // plus a per-year observation count so we can floor the range at the first year
+  // with real coverage (a stray early row shouldn't add an all-zero dropdown year).
+  const obsByUnit = new Map<string, Array<{ at: string; cents: number }>>();
+  const obsPerYear = new Map<number, number>();
+  for (const o of obs) {
+    const at = g(o, "observed_at");
+    if (!at) continue;
+    const y = Number(at.slice(0, 4));
+    obsPerYear.set(y, (obsPerYear.get(y) ?? 0) + 1);
+    const rec = { at, cents: intOf(o, "mar_amount_cents") };
+    const list = obsByUnit.get(g(o, "unit_id"));
+    if (list) list.push(rec);
+    else obsByUnit.set(g(o, "unit_id"), [rec]);
+  }
+  for (const list of obsByUnit.values()) list.sort((a, b) => a.at.localeCompare(b.at));
+
+  const sweepYear = Number(sweepDate.slice(0, 4));
+  // First year with at least this many observations is the selectable floor.
+  const MIN_YEAR_OBS = 500;
+  const covered = [...obsPerYear.entries()]
+    .filter(([y, n]) => n >= MIN_YEAR_OBS && y <= sweepYear)
+    .map(([y]) => y);
+  const minYear = covered.length ? Math.min(...covered) : sweepYear;
+  const years: number[] = [];
+  for (let y = minYear; y <= sweepYear; y++) years.push(y);
+  // Cutoff per year: Dec 31 of the year, but the final year reads the live sweep.
+  const cutoffs = years.map((y) => (y >= sweepYear ? sweepDate : `${y}-12-31`));
+
+  const parcels: Record<string, number[][]> = {};
+  for (const [apn, unitList] of parcelUnits) {
+    const vectors: number[][] = [];
+    for (const u of unitList) {
+      const list = obsByUnit.get(u.unit_id);
+      if (!list) continue;
+      // Two-pointer sweep: both `cutoffs` and `list` are sorted ascending, so the
+      // carry-forward value only ever moves forward as the year cutoff advances.
+      // An exempt ($0) observation carries forward as 0 → excluded that year.
+      const vec: number[] = new Array(years.length).fill(0);
+      let li = 0;
+      let cur = 0;
+      let anyControlled = false;
+      for (let yi = 0; yi < years.length; yi++) {
+        const cutoff = cutoffs[yi]!;
+        while (li < list.length && list[li]!.at <= cutoff) cur = list[li++]!.cents;
+        if (cur > 0) {
+          vec[yi] = cur;
+          anyControlled = true;
+        }
+      }
+      if (anyControlled) vectors.push(vec);
+    }
+    if (vectors.length) parcels[apn] = vectors;
+  }
+  return { years, latest_sweep: sweepDate, parcels };
+}
+
 function buildAnalytics(
   units: Row[],
   latestMar: Map<string, LatestMar>,
@@ -831,6 +914,11 @@ function main(): void {
   writeFileSync(analyticsPath, JSON.stringify(analyticsJson, null, 2) + "\n");
   const vintage = analyticsJson.mar_by_tenancy_vintage as MarByTenancyVintage;
 
+  // Per-parcel median-MAR-by-year matrix for the configurable change choropleth.
+  const marByYear = buildMarByYear(parcelUnits, obs, sweepDate);
+  const marByYearPath = join(SITE_DATA_DIR, "mar_by_year.json");
+  writeFileSync(marByYearPath, JSON.stringify(marByYear));
+
   const bytes = Buffer.byteLength(JSON.stringify({ type: "FeatureCollection", features }));
   process.stdout.write(
     `\nWrote ${parcelsPath} (${features.length} features, ${(bytes / 1e6).toFixed(2)} MB)\n` +
@@ -842,6 +930,8 @@ function main(): void {
       `Wrote ${analyticsPath} (tenancy-vintage: ${vintage.total_points} controlled points, ` +
       `${vintage.excluded_empty_tenancy} excluded for empty tenancy_date, ` +
       `${vintage.scatter_count} scatter points after ≤${vintage.scatter_cap_per_bucket}/bucket downsample)\n` +
+      `Wrote ${marByYearPath} (${marByYear.years.length} years ${marByYear.years[0]}–` +
+      `${marByYear.years[marByYear.years.length - 1]}, ${Object.keys(marByYear.parcels).length} parcels)\n` +
       `Wrote ${metaPath}\n`,
   );
 }

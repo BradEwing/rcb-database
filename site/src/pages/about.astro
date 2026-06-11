@@ -52,6 +52,17 @@ const repo = 'https://github.com/BradEwing/rcb-database';
         reflect real MAR movements, attributed by whether the tenancy date moved
         (new tenancy) or not (adjustment). No GA formula is reconstructed.
       </li>
+      <li>
+        The <strong>MAR change</strong> layer colours each parcel by the
+        <strong>median of its units' own % MAR change</strong> between two years
+        you choose (default 2020 → latest), counting only units that were
+        controlled in both years — so a building with a mix of rises and falls
+        reflects its typical per-unit move. Each unit's MAR is reconstructed
+        as-of each year from the change log; a parcel is greyed out when no unit
+        was controlled in both chosen years. Reliable history begins ~2012, and
+        pre-2023 depth comes from the City's annual-MAR-report backfill, so
+        deeper baselines cover fewer parcels.
+      </li>
     </ul>
 
     <h2>Sources</h2>

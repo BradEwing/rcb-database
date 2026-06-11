@@ -54,8 +54,58 @@ export interface ChoroplethMetric {
   legend: string[];
 }
 
-/** Choropleth metrics, selectable via the switcher. `recent_change` is a
- *  diverging scale (the seed reflects the 2023→2026 MAR move). */
+/** Default baseline year for the MAR-change choropleth (the end year defaults to
+ *  the latest year with data). Data reliably reaches back to ~2012; 2020 gives a
+ *  meaningful multi-year window out of the box. Clamped to the available range. */
+export const RECENT_CHANGE_DEFAULT_BASELINE = 2020;
+/** Fill for parcels with no controlled MAR established in the baseline year (the
+ *  % change is undefined). A cool grey, deliberately distinct in HUE from the
+ *  warm change ramp so "no baseline" never reads as "barely changed". */
+export const NO_DATA_COLOR = '#aab3bd';
+
+/** MAR-change ramp: one green bin for a decrease, then a warm sequential ramp for
+ *  increases. The lowest increase bin is a faint warm tint (not near-white) so it
+ *  stays distinct from the cool no-data grey. Six colours → five `changeStops`. */
+export const RECENT_CHANGE_COLORS = [
+  '#2c7d3f',
+  '#ffedd6',
+  '#ffd29e',
+  '#f7a45c',
+  '#e26d31',
+  '#b03a1a',
+];
+
+/** Per-year %-change thresholds, scaled by the selected window length. A single
+ *  General Adjustment is ~6–9%/yr, so over a 1-year window a typical GA lands in
+ *  an upper bin (a clear "increase"), not the palest one — while a 14-year window
+ *  stretches the same bins to cumulative-scale breaks. Without this, fixed breaks
+ *  tuned for a multi-year window collapse every parcel in a single-GA year into
+ *  one near-white bin (the Shores-Tower "looks unchanged" bug). */
+const CHANGE_STOP_PER_YEAR = [1.8, 4, 8, 16];
+
+/** Step thresholds (length 5: a leading 0 then four scaled breaks) for a window of
+ *  `windowYears` years. The leading 0 splits decreases (green) from increases. */
+export function changeStops(windowYears: number): number[] {
+  const n = Math.max(1, windowYears);
+  return [0, ...CHANGE_STOP_PER_YEAR.map((c) => Math.round(c * n))];
+}
+
+/** Legend labels for a given `changeStops` array (length 6, matching the colours). */
+export function changeLegend(stops: number[]): string[] {
+  return [
+    '↓ decrease',
+    `0–${stops[1]}%`,
+    `${stops[1]}–${stops[2]}%`,
+    `${stops[2]}–${stops[3]}%`,
+    `${stops[3]}–${stops[4]}%`,
+    `${stops[4]}%+`,
+  ];
+}
+
+/** Choropleth metrics, selectable via the switcher. `recent_change` colours by
+ *  `range_change_pct` — a client-computed % move in the parcel's median MAR
+ *  between a user-chosen baseline and end year (see MapView). Mostly-increasing,
+ *  so a single decrease bin then a sequential ramp; no-data parcels render grey. */
 export const METRICS = {
   unit_count: {
     property: 'unit_count',
@@ -72,11 +122,13 @@ export const METRICS = {
     legend: ['< $1.5k', '$1.5–2.2k', '$2.2–3k', '$3–4k', '$4k+'],
   },
   recent_change: {
-    property: 'recent_change_pct',
-    label: 'Recent MAR change',
-    stops: [-10, -2, 2, 10],
-    colors: ['#1a7d3c', '#9bd4a8', '#ededed', '#f0a78f', '#c0322b'],
-    legend: ['↓ >10%', '↓ 2–10%', '± <2%', '↑ 2–10%', '↑ >10%'],
+    property: 'range_change_pct',
+    label: 'MAR change',
+    // stops/legend are recomputed per selected window at runtime (changeStops);
+    // these defaults (a ~6-year window) only seed the type.
+    stops: changeStops(6),
+    colors: RECENT_CHANGE_COLORS,
+    legend: changeLegend(changeStops(6)),
   },
 } satisfies Record<string, ChoroplethMetric>;
 
@@ -89,6 +141,23 @@ export function stepColorExpression(metric: ChoroplethMetric): ExpressionSpecifi
     expr.push(metric.stops[i], metric.colors[i + 1]);
   }
   return expr as ExpressionSpecification;
+}
+
+/** Colour expression for the MAR-change metric at a given set of window-scaled
+ *  `stops`: parcels carrying a defined % change (`range_has_data` === 1) use the
+ *  warm step ramp; the rest (no controlled MAR in the baseline year) render as the
+ *  flat no-data grey. */
+export function recentChangeColorExpression(stops: number[]): ExpressionSpecification {
+  const step: unknown[] = ['step', ['get', 'range_change_pct'], RECENT_CHANGE_COLORS[0]];
+  for (let i = 0; i < stops.length; i++) {
+    step.push(stops[i], RECENT_CHANGE_COLORS[i + 1]);
+  }
+  return [
+    'case',
+    ['==', ['get', 'range_has_data'], 1],
+    step,
+    NO_DATA_COLOR,
+  ] as unknown as ExpressionSpecification;
 }
 
 /** `fill-extrusion-height` expression for the 3D mode: controlled-unit count ×
