@@ -105,8 +105,8 @@ All tables are sorted by primary key and written deterministically so month-over
 
 **Live** on **GitHub Pages** at https://bradewing.github.io/rcb-database/ (Pages source = GitHub Actions; framework `base` = `/rcb-database/`, so every asset/data URL must be base-relative), with the registry data committed to the repo. No always-on server. Two workflows:
 
-- `.github/workflows/monthly-snapshot.yml` — cron that runs Phase B (Phase A quarterly), commits the new snapshot. Its `data/**` commit triggers the Pages rebuild, so the map tracks each monthly pull automatically.
-- `.github/workflows/pages.yml` — builds `site/` (`npm run check` then `npm run build`) and deploys via `actions/deploy-pages` on push to `main` touching `site/**` or `data/**`.
+- `.github/workflows/monthly-snapshot.yml` — cron that runs Phase B (Phase A quarterly), commits the raw snapshot **before** the derived steps (so a derived-step failure — e.g. reconcile's stale-geometry hard-fail — can't hold the month's scrape hostage), commits the derived artifacts second, then explicitly dispatches the Pages rebuild. The explicit dispatch is required: bot pushes made with `GITHUB_TOKEN` never fire `pages.yml`'s push trigger (GitHub's recursion guard; verified in the 2026-06-11 dry run).
+- `.github/workflows/pages.yml` — builds `site/` (`npm run check` then `npm run build`) and deploys via `actions/deploy-pages` on push to `main` touching `site/**` or `data/**` (human pushes only — see above), or on dispatch.
 
 The site precomputes aggregates at build time via `site/scripts/build-data.ts` into `site/public/data/` (`parcels.geojson`, per-APN `parcels/<apn>.json` lazy-loaded on click, `summary.json`/`exits.geojson`/`search.json`/`meta.json`/`city-boundary.geojson`/`analytics.json` — the last feeds `/charts`). Parcel polygons come from the City **Parcels Public** FeatureServer; the join field is **`ain`** (= APN, bare digits), ~98.9% coverage at seed. `build-data` fails the build loudly if coverage drops below 95% (stale cache / renamed field). See `docs/design/static-site.md` and `docs/design/charts-and-density.md`.
 

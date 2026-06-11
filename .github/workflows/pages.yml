@@ -1,9 +1,11 @@
 name: pages
 
 # Build the static site and deploy to GitHub Pages. Triggers on pushes to main
-# that touch the site or the registry data (the monthly snapshot commits data/,
-# so the map tracks each monthly pull), plus manual dispatch. Enable Pages with
-# "GitHub Actions" as the source for this to publish.
+# that touch the site or the registry data, plus manual dispatch. Note: the
+# monthly snapshot's bot commits are pushed with GITHUB_TOKEN, which never
+# fires push triggers (GitHub's recursion guard) — monthly-snapshot.yml
+# therefore dispatches this workflow explicitly after pushing. Enable Pages
+# with "GitHub Actions" as the source for this to publish.
 on:
   push:
     branches: [main]

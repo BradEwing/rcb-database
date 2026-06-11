@@ -19,9 +19,11 @@ on:
         type: boolean
         default: false
 
-# Need write access to commit the new snapshot back to the repo.
+# Need write access to commit the new snapshot back to the repo, and
+# actions: write to dispatch the Pages rebuild at the end.
 permissions:
   contents: write
+  actions: write
 
 # Never let two monthly runs interleave their commits.
 concurrency:
@@ -124,3 +126,13 @@ jobs:
           fi
           git commit -m "analysis: refresh derived artifacts (${today})"
           git push
+
+      # Pushes made with the default GITHUB_TOKEN deliberately do NOT fire
+      # other workflows (GitHub's recursion guard), so the data/** pushes above
+      # never trigger pages.yml's push trigger on their own — verified in the
+      # 2026-06-11 dry run. Dispatch the Pages rebuild explicitly; the
+      # workflow_dispatch API is exempt from the guard.
+      - name: Trigger Pages rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
