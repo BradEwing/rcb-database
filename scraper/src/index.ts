@@ -59,6 +59,7 @@ const OBS_HEADERS = [
   "observed_at",
   "mar_amount_cents",
   "tenancy_date",
+  "source",
 ];
 const SWEEP_HEADERS = [
   "sweep_date",

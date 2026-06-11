@@ -37,13 +37,18 @@ type Obs = { unit_id: string; observed_at: string; mar: string; tenancy: string;
 export function historyToObs(r: Row): Obs[] {
   const unit = r.unit_id ?? "";
   const year = r.report_year ?? "";
-  const tenancy = r.market_rate_established ?? "";
   if (!unit || !/^\d{4}$/.test(year) || (r.mar_cents ?? "") === "") return [];
-  // The current-MAR ceiling takes effect on Sep 1 of Y-1 *unless* the unit's
-  // tenancy reset more recently (a mid-year re-rental), in which case that reset
-  // is when this MAR was established. Take the later of the two so observed_at is
-  // never earlier than the tenancy it reflects.
-  const gaDate = `${Number(year) - 1}-09-01`;
+  const y = Number(year);
+  const gaDate = `${y - 1}-09-01`;
+  // A report can't establish a MAR after its own Sep-1, and rent-control tenancies
+  // don't predate the late-1970s. Reject OCR-garbled dates outside that window
+  // (e.g. a misread 2-digit year "…/29" → 2029) so they neither pollute the
+  // tenancy_date field nor push observed_at into the future.
+  let tenancy = r.market_rate_established ?? "";
+  if (tenancy && (tenancy > `${y}-09-01` || tenancy < "1971-01-01")) tenancy = "";
+  // The current-MAR ceiling takes effect Sep 1 of Y-1 unless the tenancy reset
+  // more recently (mid-year re-rental); take the later so observed_at is never
+  // earlier than the tenancy it reflects, and never beyond the report's period.
   const observed_at = tenancy && tenancy > gaDate ? tenancy : gaDate;
   return [{ unit_id: unit, observed_at, mar: r.mar_cents!, tenancy, source: SOURCE_PORTAL }];
 }
@@ -54,111 +59,114 @@ export function historyToObs(r: Row): Obs[] {
  * (keep a row only when (mar, tenancy) differs from the previously-kept value),
  * with the final row dropped if it merely restates the existing baseline.
  */
-export function prependChain(
-  candidates: Obs[],
-  earliestExisting: string,
-  baselineValue: { mar: string; tenancy: string } | null,
-): Obs[] {
-  const before = candidates
-    .filter((c) => c.observed_at < earliestExisting)
-    .sort((a, b) => a.observed_at.localeCompare(b.observed_at));
+/**
+ * Merge one unit's authoritative observations (the MAR-tool sweeps / open-data
+ * anchors) with its portal-derived candidates into a single change-log. Walks
+ * both sets in date order and keeps a row only when (mar, tenancy) differs from
+ * the previously-kept value — so unchanged years collapse. Authoritative rows are
+ * NEVER dropped and win ties: when a portal row carries a value already in effect
+ * at an authoritative row's date, the authoritative row supersedes it (we keep
+ * the real observation date + provenance). Portal rows survive wherever they
+ * introduce a value the sweeps didn't capture — both before the first sweep
+ * (deep 2013→2023 history) AND in the gaps between sweeps (e.g. the Sep-2023 /
+ * Sep-2024 GA ceilings that fall between the 2023-07-19 and 2026-06-07 anchors).
+ */
+export function mergeUnitTimeline(existing: Obs[], portal: Obs[]): Obs[] {
+  const isAuth = (o: Obs): boolean => o.source !== SOURCE_PORTAL;
+  const combined = [...existing, ...portal].sort((a, b) => {
+    if (a.observed_at !== b.observed_at) return a.observed_at.localeCompare(b.observed_at);
+    return Number(isAuth(b)) - Number(isAuth(a)); // authoritative first on a tie
+  });
   const kept: Obs[] = [];
-  let last: { mar: string; tenancy: string } | null = null;
-  for (const c of before) {
-    if (last && last.mar === c.mar && last.tenancy === c.tenancy) continue;
-    kept.push(c);
-    last = { mar: c.mar, tenancy: c.tenancy };
-  }
-  // Drop a trailing backfill row that merely restates the existing baseline.
-  while (
-    kept.length > 0 &&
-    baselineValue &&
-    kept[kept.length - 1]!.mar === baselineValue.mar &&
-    kept[kept.length - 1]!.tenancy === baselineValue.tenancy
-  ) {
-    kept.pop();
+  for (const o of combined) {
+    const last = kept[kept.length - 1];
+    if (!last || last.mar !== o.mar || last.tenancy !== o.tenancy) {
+      kept.push(o);
+    } else if (isAuth(o) && !isAuth(last)) {
+      kept[kept.length - 1] = o; // same value — prefer the authoritative observation
+    }
+    // else: redundant carry-forward — drop
   }
   return kept;
 }
 
 export type MergePlan = {
   obsRows: Row[];
-  added: number;
+  added: number; // portal rows kept (the deepening)
   unitsDeepened: number;
-  skippedInObservedEra: number;
+  inEraRefined: number; // portal rows kept at/after a unit's first sweep (gap refinement)
   orphanUnits: number;
 };
 
 export function buildMergePlan(existingObs: Row[], history: Row[], registryUnitIds: Set<string>): MergePlan {
-  // Existing timeline per unit + each unit's earliest observation (+ its value).
-  const earliest = new Map<string, { at: string; mar: string; tenancy: string }>();
-  for (const o of existingObs) {
-    const id = o.unit_id ?? "";
-    const at = o.observed_at ?? "";
-    const cur = earliest.get(id);
-    if (!cur || at < cur.at) {
-      earliest.set(id, { at, mar: o.mar_amount_cents ?? "", tenancy: o.tenancy_date ?? "" });
-    }
-  }
-
-  // Group backfill candidates by unit.
-  const candByUnit = new Map<string, Obs[]>();
-  let orphanUnits = 0;
-  const seenOrphan = new Set<string>();
-  for (const r of history) {
-    const obs = historyToObs(r);
-    for (const o of obs) {
-      if (!registryUnitIds.has(o.unit_id)) {
-        if (!seenOrphan.has(o.unit_id)) { seenOrphan.add(o.unit_id); orphanUnits++; }
-        continue;
-      }
-      const arr = candByUnit.get(o.unit_id) ?? [];
-      arr.push(o);
-      candByUnit.set(o.unit_id, arr);
-    }
-  }
-
-  const added: Obs[] = [];
-  let unitsDeepened = 0;
-  let skippedInObservedEra = 0;
-  for (const [unit, cands] of candByUnit) {
-    const base = earliest.get(unit);
-    // A unit with no existing observation shouldn't happen (registry units all
-    // carry a 2023 baseline), but if so, treat all candidates as prependable.
-    const cutoff = base?.at ?? "9999-12-31";
-    skippedInObservedEra += cands.filter((c) => c.observed_at >= cutoff).length;
-    const chain = prependChain(cands, cutoff, base ? { mar: base.mar, tenancy: base.tenancy } : null);
-    if (chain.length > 0) {
-      added.push(...chain);
-      unitsDeepened++;
-    }
-  }
-
-  // Assemble the full file: existing rows (stamped mar_tool if unsourced) + added.
-  const obsRows: Row[] = existingObs.map((o) => ({
+  const toObs = (o: Row): Obs => ({
     unit_id: o.unit_id ?? "",
     observed_at: o.observed_at ?? "",
-    mar_amount_cents: o.mar_amount_cents ?? "",
-    tenancy_date: o.tenancy_date ?? "",
+    mar: o.mar_amount_cents ?? "",
+    tenancy: o.tenancy_date ?? "",
     source: o.source && o.source !== "" ? o.source : SOURCE_MAR_TOOL,
-  }));
-  for (const a of added) {
-    obsRows.push({
-      unit_id: a.unit_id,
-      observed_at: a.observed_at,
-      mar_amount_cents: a.mar,
-      tenancy_date: a.tenancy,
-      source: a.source,
-    });
+  });
+
+  // Existing (authoritative) observations grouped by unit, + each unit's earliest date.
+  const existingByUnit = new Map<string, Obs[]>();
+  const earliestAt = new Map<string, string>();
+  for (const r of existingObs) {
+    const o = toObs(r);
+    (existingByUnit.get(o.unit_id) ?? existingByUnit.set(o.unit_id, []).get(o.unit_id)!).push(o);
+    const cur = earliestAt.get(o.unit_id);
+    if (cur === undefined || o.observed_at < cur) earliestAt.set(o.unit_id, o.observed_at);
   }
-  return { obsRows, added: added.length, unitsDeepened, skippedInObservedEra, orphanUnits };
+
+  // Portal candidates grouped by registry unit; non-registry units are orphans.
+  const portalByUnit = new Map<string, Obs[]>();
+  const orphan = new Set<string>();
+  for (const r of history) {
+    for (const o of historyToObs(r)) {
+      if (!registryUnitIds.has(o.unit_id)) {
+        orphan.add(o.unit_id);
+        continue;
+      }
+      (portalByUnit.get(o.unit_id) ?? portalByUnit.set(o.unit_id, []).get(o.unit_id)!).push(o);
+    }
+  }
+
+  const obsRows: Row[] = [];
+  let added = 0;
+  let unitsDeepened = 0;
+  let inEraRefined = 0;
+  const allUnits = new Set([...existingByUnit.keys(), ...portalByUnit.keys()]);
+  for (const unit of allUnits) {
+    const ex = existingByUnit.get(unit) ?? [];
+    const po = portalByUnit.get(unit);
+    const merged = po ? mergeUnitTimeline(ex, po) : ex;
+    let unitPortalKept = 0;
+    const cutoff = earliestAt.get(unit) ?? "9999-12-31";
+    for (const o of merged) {
+      obsRows.push({
+        unit_id: o.unit_id,
+        observed_at: o.observed_at,
+        mar_amount_cents: o.mar,
+        tenancy_date: o.tenancy,
+        source: o.source,
+      });
+      if (o.source === SOURCE_PORTAL) {
+        unitPortalKept++;
+        if (o.observed_at >= cutoff) inEraRefined++;
+      }
+    }
+    added += unitPortalKept;
+    if (unitPortalKept > 0) unitsDeepened++;
+  }
+
+  return { obsRows, added, unitsDeepened, inEraRefined, orphanUnits: orphan.size };
 }
 
 /**
- * Phase 4 of the backfill: fold OCR'd history into mar_observations.csv as earlier
- * change rows (prepended before each unit's first direct observation), adding a
- * `source` provenance column. Dry-run by default — prints the plan and writes a
- * preview to data/history/mar_observations.preview.csv; pass `--write` to apply.
+ * Phase 4 of the backfill: fold OCR'd history into mar_observations.csv as
+ * additional change rows via a full per-unit timeline merge (deep pre-2023
+ * history + gap refinement between sweeps; authoritative sweeps preserved),
+ * adding a `source` provenance column. Dry-run by default — prints the plan and
+ * writes a preview to data/history/mar_observations.preview.csv; `--write` applies.
  */
 export async function historyMerge(): Promise<void> {
   const write = process.argv.includes("--write");
@@ -176,7 +184,7 @@ export async function historyMerge(): Promise<void> {
       historyRows: history.length,
       added: plan.added,
       unitsDeepened: plan.unitsDeepened,
-      skippedInObservedEra: plan.skippedInObservedEra,
+      inEraRefined: plan.inEraRefined,
       orphanUnits: plan.orphanUnits,
       newTotal: plan.obsRows.length,
       mode: write ? "WRITE" : "dry-run",

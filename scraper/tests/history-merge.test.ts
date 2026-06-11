@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   historyToObs,
-  prependChain,
+  mergeUnitTimeline,
   buildMergePlan,
   SOURCE_MAR_TOOL,
   SOURCE_PORTAL,
@@ -37,34 +37,35 @@ describe("historyToObs", () => {
   });
 });
 
-describe("prependChain", () => {
-  const obs = (at: string, mar: string, tenancy = "t") => ({
-    unit_id: "u1",
-    observed_at: at,
-    mar,
-    tenancy,
-    source: SOURCE_PORTAL,
+describe("mergeUnitTimeline", () => {
+  const p = (at: string, mar: string, tenancy = "t") => ({
+    unit_id: "u1", observed_at: at, mar, tenancy, source: SOURCE_PORTAL,
+  });
+  const m = (at: string, mar: string, tenancy = "t") => ({
+    unit_id: "u1", observed_at: at, mar, tenancy, source: SOURCE_MAR_TOOL,
   });
 
   it("collapses carry-forward runs to one row per distinct value", () => {
-    const cands = [obs("2015-01-01", "100"), obs("2015-09-01", "100"), obs("2016-01-01", "110")];
-    const chain = prependChain(cands, "2023-07-19", null);
-    expect(chain.map((c) => [c.observed_at, c.mar])).toEqual([
-      ["2015-01-01", "100"],
-      ["2016-01-01", "110"],
+    const out = mergeUnitTimeline([], [p("2015-09-01", "100"), p("2016-09-01", "100"), p("2017-09-01", "110")]);
+    expect(out.map((o) => [o.observed_at, o.mar])).toEqual([["2015-09-01", "100"], ["2017-09-01", "110"]]);
+  });
+
+  it("preserves authoritative anchors and inserts portal points before AND between them (gap refinement)", () => {
+    const existing = [m("2023-07-19", "300"), m("2026-06-07", "350")];
+    const portal = [p("2015-09-01", "250"), p("2023-09-01", "310")]; // pre-anchor + in the 2023→2026 gap
+    const out = mergeUnitTimeline(existing, portal);
+    expect(out.map((o) => [o.observed_at, o.mar, o.source])).toEqual([
+      ["2015-09-01", "250", SOURCE_PORTAL],
+      ["2023-07-19", "300", SOURCE_MAR_TOOL],
+      ["2023-09-01", "310", SOURCE_PORTAL], // the Sep-2023 GA ceiling, in the gap
+      ["2026-06-07", "350", SOURCE_MAR_TOOL],
     ]);
   });
 
-  it("drops only candidates in the observed era (>= earliest existing)", () => {
-    const cands = [obs("2015-01-01", "100"), obs("2024-09-01", "150")];
-    const chain = prependChain(cands, "2023-07-19", null);
-    expect(chain.map((c) => c.observed_at)).toEqual(["2015-01-01"]);
-  });
-
-  it("drops a trailing backfill row that merely restates the existing baseline", () => {
-    const cands = [obs("2015-01-01", "100"), obs("2022-09-01", "120")];
-    const chain = prependChain(cands, "2023-07-19", { mar: "120", tenancy: "t" });
-    expect(chain.map((c) => c.mar)).toEqual(["100"]); // the 120 row equals the baseline → dropped
+  it("lets the authoritative observation win a value tie (same MAR, real date kept)", () => {
+    const out = mergeUnitTimeline([m("2023-07-19", "300")], [p("2022-09-01", "300")]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ observed_at: "2023-07-19", source: SOURCE_MAR_TOOL });
   });
 });
 
@@ -74,19 +75,18 @@ describe("buildMergePlan", () => {
   ];
   const registry = new Set(["u1"]);
 
-  it("prepends pre-baseline history, stamps provenance, preserves existing rows", () => {
+  it("deepens pre-2023 history AND refines the post-2023 gap, preserving the anchor", () => {
     const history = [
-      hist("u1", "2015", "250000", "255000", "2010-06-01"),
-      hist("u1", "2016", "255000", "260000", "2010-06-01"),
+      hist("u1", "2015", "250000", "255000", "2010-06-01"), // → 2014-09-01 (pre)
+      hist("u1", "2024", "310000", "317000", "2010-06-01"), // → 2023-09-01 (in-era gap)
     ];
     const plan = buildMergePlan(existing, history, registry);
-    // existing row preserved + stamped mar_tool
     const ex = plan.obsRows.find((r) => r.observed_at === "2023-07-19");
-    expect(ex?.source).toBe(SOURCE_MAR_TOOL);
-    // backfill rows added, all portal-sourced and strictly before the baseline
-    const added = plan.obsRows.filter((r) => r.source === SOURCE_PORTAL);
-    expect(added.length).toBeGreaterThan(0);
-    expect(added.every((r) => (r.observed_at ?? "") < "2023-07-19")).toBe(true);
+    expect(ex?.source).toBe(SOURCE_MAR_TOOL); // anchor preserved + stamped
+    const portal = plan.obsRows.filter((r) => r.source === SOURCE_PORTAL);
+    expect(portal.some((r) => (r.observed_at ?? "") < "2023-07-19")).toBe(true); // deep history
+    expect(portal.some((r) => (r.observed_at ?? "") > "2023-07-19")).toBe(true); // gap refinement
+    expect(plan.inEraRefined).toBeGreaterThan(0);
     expect(plan.unitsDeepened).toBe(1);
   });
 

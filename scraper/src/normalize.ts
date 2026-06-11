@@ -24,6 +24,8 @@ export type MarObservationRow = {
   observed_at: string;
   mar_amount_cents: string;
   tenancy_date: string;
+  /** Provenance: "mar_tool" for live sweeps, "portal_mar_report" for the OCR backfill. */
+  source: string;
 };
 
 /**
@@ -107,6 +109,7 @@ export function parsePhaseUnits(
       observed_at: today,
       mar_amount_cents: String(parseMarCents(marText)),
       tenancy_date: parseTenancyDate(tenancyText),
+      source: "mar_tool",
     });
   }
   return { apn, units, observations };

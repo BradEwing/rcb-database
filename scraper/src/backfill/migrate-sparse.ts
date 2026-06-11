@@ -36,7 +36,7 @@ const OBS_CSV = join(DATA_DIR, "mar_observations.csv");
 const BASELINE_DATE = "2023-07-19";
 const SNAPSHOT_DATE = "2026-06-07";
 
-const OBS_HEADERS = ["unit_id", "observed_at", "mar_amount_cents", "tenancy_date"];
+const OBS_HEADERS = ["unit_id", "observed_at", "mar_amount_cents", "tenancy_date", "source"];
 const UNIT_HEADERS = [
   "unit_id",
   "apn",
