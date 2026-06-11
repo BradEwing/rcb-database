@@ -20,3 +20,6 @@ data/raw/
 
 # OCR attempted-handle resume list (transient)
 data/history/ocr_attempted.txt
+
+# merge dry-run preview output (transient)
+data/history/mar_observations.preview.csv
