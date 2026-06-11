@@ -374,14 +374,22 @@ const BEDROOM_LABELS: Record<string, string> = {
  *  units are excluded (they'd drag every median to zero — see charts-and-density.md). */
 const BEDROOM_ORDER: Array<"0" | "1" | "2" | "3+"> = ["0", "1", "2", "3+"];
 
-/** One snapshot point of a bedroom bucket's median rent over time. */
+/** One as-of point of a bedroom bucket's median rent over time. */
 type RentTimePoint = { date: string; median_cents: number; count: number };
 
-/** Median MAR per bedroom bucket at every registry snapshot, reconstructed from
- *  the event-sourced change log: a unit's MAR as-of date D is its latest
- *  observation with `observed_at <= D` (carry-forward). The time grid is the set
- *  of distinct observation dates — currently the 2023 baseline + each sweep, so
- *  the series deepens by one point per monthly sweep. Controlled units only. */
+/** Buckets plotted in the over-time series. 3+ BR is omitted pending issue #11 —
+ *  its reconstructed median drops -15.5% at the 2023 portal→sweep boundary
+ *  (composition skew or a bucket-specific backfill defect; under investigation). */
+const OVER_TIME_BUCKETS = BEDROOM_ORDER.filter((b) => b !== "3+");
+
+/** Median MAR per bedroom bucket over time, reconstructed from the event-sourced
+ *  change log: a unit's MAR as-of date D is its latest observation with
+ *  `observed_at <= D` (carry-forward). Sampled on a MONTHLY grid (first-of-month
+ *  from the first observation through the latest sweep, which is appended as the
+ *  final point) — the raw change log has thousands of distinct dates (portal
+ *  tenancy resets land on arbitrary days) and an as-of point at each would bloat
+ *  the artifact ~15× without moving the line. Pre-2023 dates cover only units
+ *  with portal-backfilled history. Controlled units only. */
 function buildRentOverTime(
   units: Row[],
   obs: Row[],
@@ -400,8 +408,23 @@ function buildRentOverTime(
   const bedroomByUnit = new Map<string, string>();
   for (const u of units) bedroomByUnit.set(g(u, "unit_id"), bedroomBucket(g(u, "bedrooms")));
 
-  const dates = [...new Set(obs.map((o) => g(o, "observed_at")).filter(Boolean))].sort();
-  const series = BEDROOM_ORDER.map((b) => ({
+  const obsDates = [...new Set(obs.map((o) => g(o, "observed_at")).filter(Boolean))].sort();
+  const first = obsDates[0]!;
+  const last = obsDates[obsDates.length - 1]!;
+  const dates: string[] = [];
+  for (let y = +first.slice(0, 4), m = +first.slice(5, 7); ; ) {
+    const d = `${y}-${String(m).padStart(2, "0")}-01`;
+    if (d > last) break;
+    if (d >= first) dates.push(d);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  if (dates[dates.length - 1] !== last) dates.push(last);
+
+  const series = OVER_TIME_BUCKETS.map((b) => ({
     bucket: b as string,
     label: BEDROOM_LABELS[b] ?? b,
     points: [] as RentTimePoint[],
@@ -410,7 +433,7 @@ function buildRentOverTime(
   for (const d of dates) {
     const buckets = new Map<string, number[]>();
     for (const [id, list] of obsByUnit) {
-      // As-of MAR: the last observation on or before this snapshot date.
+      // As-of MAR: the last observation on or before this date.
       let cents = -1;
       for (const o of list) {
         if (o.at <= d) cents = o.cents;
@@ -442,8 +465,9 @@ type VintageBin = {
   p75_cents: number;
 };
 
-/** A downsampled raw point for the scatter underlay (month-of-tenancy, MAR). */
-type VintageScatterPoint = { t: string; mar_cents: number };
+/** One raw (month-of-tenancy, MAR) point feeding the quarterly bins. Build-time
+ *  only — analytics.json carries the binned aggregates, never raw units. */
+type VintagePoint = { t: string; mar_cents: number };
 
 /** All tenancy-vintage data for one bedroom bucket. Mirrors `VintageBucket`. */
 type VintageBucket = {
@@ -451,13 +475,12 @@ type VintageBucket = {
   label: string;
   count: number;
   bins: VintageBin[];
-  scatter: VintageScatterPoint[];
 };
 
 /** mar_by_tenancy_vintage in analytics.json — the deliverable-#1 dataset: per
  *  controlled unit, current MAR vs the month-year its tenancy began, pre-binned
- *  quarterly (median + 25th–75th band) per bedroom bucket with a downsampled
- *  scatter underlay. Mirrors `MarByTenancyVintage` in site/src/lib/types.ts. */
+ *  quarterly (median + 25th–75th band) per bedroom bucket. Mirrors
+ *  `MarByTenancyVintage` in site/src/lib/types.ts. */
 type MarByTenancyVintage = {
   bin: "quarter";
   /** Controlled units carrying a tenancy_date — the points behind the chart. */
@@ -466,12 +489,6 @@ type MarByTenancyVintage = {
   excluded_empty_tenancy: number;
   /** Exempt ($0 MAR) units — never rent data points, reported for context. */
   excluded_exempt: number;
-  /** Chart y-axis is clamped here (a few large units rent above this). */
-  axis_cap_cents: number;
-  /** Max scatter points kept per bucket (deterministic stride downsample). */
-  scatter_cap_per_bucket: number;
-  /** Total scatter points actually emitted across buckets. */
-  scatter_count: number;
   buckets: VintageBucket[];
 };
 
@@ -483,19 +500,15 @@ function quarterStart(monthDate: string): string {
   return `${year}-${String(q).padStart(2, "0")}-01`;
 }
 
-/** Y-axis clamp for the vintage chart: p99 MAR is ~$9.4k while a handful of large
- *  units reach ~$45k; clamping keeps the cloud legible (noted on the chart). */
-const VINTAGE_AXIS_CAP_CENTS = 1_000_000; // $10,000
-/** Deterministic per-bucket scatter sample size (stride pick after sorting). */
-const VINTAGE_SCATTER_CAP = 1500;
-
 /** Initial-MAR-by-tenancy-vintage aggregate (deliverable #1). Per controlled unit
  *  (mar > 0) with a tenancy_date, take the LATEST observation's (mar, tenancy);
  *  truncate tenancy to its month, bin quarterly, and emit median + IQR per
- *  bedroom bucket plus a downsampled scatter underlay. Honest-data note: the
+ *  bedroom bucket. Aggregates only — no raw-unit scatter, so a handful of very
+ *  high-MAR units can't stretch the chart's shared y-range. Honest-data note: the
  *  y-value is the CURRENT MAR (tenancy-start rent + every General Adjustment
- *  since), not the literal move-in rent — observations only begin at the 2023
- *  seed. tenancy_date is the faithful reset date, so this is "allowed rent by
+ *  since), not the literal move-in rent — direct observations only begin at the
+ *  2023 RCB-archive snapshot (live scrapes 2026-06+). tenancy_date is the
+ *  faithful reset date, so this is "allowed rent by
  *  tenancy vintage." Units with an empty tenancy_date have no x and are excluded
  *  (counted). See docs/design/charts-and-density.md #1. */
 function buildMarByTenancyVintage(
@@ -505,7 +518,7 @@ function buildMarByTenancyVintage(
   const bedroomByUnit = new Map<string, string>();
   for (const u of units) bedroomByUnit.set(g(u, "unit_id"), bedroomBucket(g(u, "bedrooms")));
 
-  const pointsByBucket = new Map<string, VintageScatterPoint[]>();
+  const pointsByBucket = new Map<string, VintagePoint[]>();
   for (const b of BEDROOM_ORDER) pointsByBucket.set(b, []);
   let totalPoints = 0;
   let excludedEmptyTenancy = 0;
@@ -533,7 +546,6 @@ function buildMarByTenancyVintage(
     totalPoints++;
   }
 
-  let scatterCount = 0;
   const buckets: VintageBucket[] = BEDROOM_ORDER.map((b) => {
     const pts = pointsByBucket.get(b)!;
     // Quarterly bins: median + IQR of MAR per tenancy-vintage quarter.
@@ -554,23 +566,11 @@ function buildMarByTenancyVintage(
       }))
       .sort((x, y) => x.period.localeCompare(y.period));
 
-    // Deterministic stride downsample for the scatter underlay. Sort by (date,
-    // mar) first so the kept points stay evenly spread across time, then take
-    // every stride-th — no Math.random (unavailable here and non-deterministic).
-    const sorted = [...pts].sort(
-      (x, y) => x.t.localeCompare(y.t) || x.mar_cents - y.mar_cents,
-    );
-    const stride = Math.max(1, Math.ceil(sorted.length / VINTAGE_SCATTER_CAP));
-    const scatter: VintageScatterPoint[] = [];
-    for (let i = 0; i < sorted.length; i += stride) scatter.push(sorted[i]!);
-    scatterCount += scatter.length;
-
     return {
       bucket: b,
       label: BEDROOM_LABELS[b] ?? b,
       count: pts.length,
       bins,
-      scatter,
     };
   });
 
@@ -586,9 +586,6 @@ function buildMarByTenancyVintage(
     total_points: totalPoints,
     excluded_empty_tenancy: excludedEmptyTenancy,
     excluded_exempt: excludedExempt,
-    axis_cap_cents: VINTAGE_AXIS_CAP_CENTS,
-    scatter_cap_per_bucket: VINTAGE_SCATTER_CAP,
-    scatter_count: scatterCount,
     buckets,
   };
 }
@@ -928,8 +925,7 @@ function main(): void {
       `Wrote ${parcelUnits.size} per-APN files to ${parcelsDir}/\n` +
       `Wrote ${summaryPath}\n` +
       `Wrote ${analyticsPath} (tenancy-vintage: ${vintage.total_points} controlled points, ` +
-      `${vintage.excluded_empty_tenancy} excluded for empty tenancy_date, ` +
-      `${vintage.scatter_count} scatter points after ≤${vintage.scatter_cap_per_bucket}/bucket downsample)\n` +
+      `${vintage.excluded_empty_tenancy} excluded for empty tenancy_date)\n` +
       `Wrote ${marByYearPath} (${marByYear.years.length} years ${marByYear.years[0]}–` +
       `${marByYear.years[marByYear.years.length - 1]}, ${Object.keys(marByYear.parcels).length} parcels)\n` +
       `Wrote ${metaPath}\n`,

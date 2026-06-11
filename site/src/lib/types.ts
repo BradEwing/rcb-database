@@ -107,14 +107,15 @@ export interface RentByBedroom {
   p75_cents: number;
 }
 
-/** One snapshot point of a bedroom bucket's median rent over time. */
+/** One monthly as-of point of a bedroom bucket's median rent over time. */
 export interface RentTimePoint {
   date: string;
   median_cents: number;
   count: number;
 }
 
-/** A bedroom bucket's median-rent time series (mirrors build-data). */
+/** A bedroom bucket's median-rent time series (mirrors build-data). 3+ BR is
+ *  omitted upstream pending issue #11. */
 export interface RentOverTimeSeries {
   bucket: string;
   label: string;
@@ -131,33 +132,24 @@ export interface VintageBin {
   p75_cents: number;
 }
 
-/** A downsampled scatter point (month-of-tenancy, MAR). Mirrors build-data. */
-export interface VintageScatterPoint {
-  t: string;
-  mar_cents: number;
-}
-
 /** All tenancy-vintage data for one bedroom bucket (mirrors build-data `VintageBucket`). */
 export interface VintageBucket {
   bucket: '0' | '1' | '2' | '3+';
   label: string;
   count: number;
   bins: VintageBin[];
-  scatter: VintageScatterPoint[];
 }
 
 /** mar_by_tenancy_vintage — current MAR vs tenancy-start month per controlled
  *  unit, pre-binned quarterly per bedroom bucket (mirrors build-data
- *  `MarByTenancyVintage`). The y-value is the CURRENT MAR (tenancy-start rent +
- *  every GA since), not the literal move-in rent — see charts-and-density.md #1. */
+ *  `MarByTenancyVintage`). Aggregates only — no raw-unit scatter. The y-value is
+ *  the CURRENT MAR (tenancy-start rent + every GA since), not the literal
+ *  move-in rent — see charts-and-density.md #1. */
 export interface MarByTenancyVintage {
   bin: 'quarter';
   total_points: number;
   excluded_empty_tenancy: number;
   excluded_exempt: number;
-  axis_cap_cents: number;
-  scatter_cap_per_bucket: number;
-  scatter_count: number;
   buckets: VintageBucket[];
 }
 

@@ -34,13 +34,16 @@ Berkeleyside's 2023 Berkeley affordable-housing coverage,
 ### Shipped
 
 A third section on the **`/charts`** page — **"Allowed rent by tenancy
-vintage"** — renders the rent-by-vintage story as **small multiples, one facet
-per bedroom bucket** (Studio / 1 / 2 / 3+ BR). Each facet overlays a
-downsampled raw scatter underlay, a 25th–75th-percentile **band**, and the
-**median line** over **quarterly** tenancy-vintage bins. Fed by a new
-`mar_by_tenancy_vintage` aggregate in `analytics.json` (`buildMarByTenancyVintage`
-in `build-data.ts`; types in `types.ts`; `marByTenancyVintageChart` in
-`chart.ts`).
+vintage"** — renders the rent-by-vintage story as **one chart overlaying
+Studio / 1 BR / 2 BR** (3+ BR excluded: small, spiky bins, and it is already
+omitted from the over-time chart pending issue #11), one colour per bucket
+(first three of tableau10, matching the over-time chart) with **legend-chip
+toggles** to show/hide each series. Each bucket shows a 25th–75th-percentile
+**band** and the **median line** over **quarterly** tenancy-vintage bins; the
+y-axis recompresses to the visible bands on toggle. Fed by a
+`mar_by_tenancy_vintage` aggregate in `analytics.json`
+(`buildMarByTenancyVintage` in `build-data.ts`; types in `types.ts`;
+`marByTenancyVintageChart` in `chart.ts`).
 
 Design decisions made during the build:
 
@@ -48,21 +51,22 @@ Design decisions made during the build:
   tenancy_date** (the plottable points); the other **10,919 have an empty
   tenancy_date** (long-term tenancy, `&nbsp;` — no reset, no x) and are
   **excluded and counted** in the chart note. Rather than ship a 22k-point raw
-  scatter, the primary view is **pre-binned quarterly** (median + IQR per
-  bedroom). Quarterly over monthly because the 1999–2010 years are sparse
-  per-bucket and monthly medians there would be n=1 noise. A **deterministic
-  stride-downsampled** scatter (≤1,500 points/bucket → ~5.4k total, logged)
-  underlays the bins so it still reads as a genuine scatter without bloat.
-  `analytics.json` lands at ~0.55 MB (vs the multi-MB parcels.geojson).
+  scatter, the view is **pre-binned quarterly** (median + IQR per bedroom).
+  Quarterly over monthly because the 1999–2010 years are sparse per-bucket and
+  monthly medians there would be n=1 noise. An earlier revision underlaid a
+  stride-downsampled raw scatter (≤1,500 points/bucket); it was **dropped** — a
+  handful of very high-MAR units forced either a clamped axis or a blown-up
+  shared y-range, and the band + median carried the story on their own.
 - **tenancy_date is day-granular, not month-granular** as earlier docs assumed
   (e.g. `2024-07-24`) — truncated to its month before quarter-binning.
-- **Y-axis clamp.** p99 MAR is ~$9.4k but a handful of large units reach ~$45k;
-  the axis is clamped to **$10k** (`axis_cap_cents`, surfaced in the note) so the
-  cloud stays legible. The clamp is a *display* bound only — no data is dropped
-  from the medians/IQR.
+- **Y-axis.** With no raw scatter, the shared facet domain derives from the band
+  itself (`[0, max p75]`, niced — ~$6.8k today), so no display clamp is needed.
+  The earlier scatter revision clamped at $10k (`axis_cap_cents`, since removed
+  from the artifact).
 - **Honest-data framing (on the chart note).** The y-value is the **current** MAR
   — the rent set at tenancy start **plus every General Adjustment since** — not
-  the literal move-in rent (observations begin at the 2023 seed). The axis is
+  the literal move-in rent (direct observations begin at the 2023 RCB-archive
+  snapshot; live scrapes 2026-06+). The axis is
   labelled "allowed rent — current MAR" and the section titled "by tenancy
   *vintage*," consistent with the no-GA-formula stance.
 

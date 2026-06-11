@@ -2,12 +2,7 @@
  *  dynamically by the map island (only when a panel opens) so Plot/d3 stay out
  *  of the initial bundle. */
 import * as Plot from '@observablehq/plot';
-import type {
-  MarByTenancyVintage,
-  MarHistoryPoint,
-  RentByBedroom,
-  RentOverTimeSeries,
-} from './types';
+import type { MarByTenancyVintage, MarHistoryPoint, RentOverTimeSeries } from './types';
 
 /**
  * Step lines of each unit's MAR over time. The registry's change log is sparse
@@ -47,67 +42,12 @@ export function marHistoryChart(history: MarHistoryPoint[], width: number): HTML
 }
 
 /**
- * Median Maximum Allowable Rent by bedroom count — a bar per bucket (Studio / 1
- * / 2 / 3+ BR) with a 25th–75th-percentile whisker overlaid to show the spread.
- * Controlled units only (exempt $0 units are excluded upstream in build-data).
- */
-export function rentByBedroomChart(
-  rows: RentByBedroom[],
-  width: number,
-): HTMLElement | SVGSVGElement {
-  const data = rows.map((r) => ({
-    bedroom: r.label,
-    median: r.median_cents / 100,
-    p25: r.p25_cents / 100,
-    p75: r.p75_cents / 100,
-    count: r.count,
-  }));
-
-  return Plot.plot({
-    width: Math.max(280, width),
-    height: 380,
-    marginLeft: 60,
-    marginBottom: 38,
-    marginTop: 24,
-    style: { background: 'transparent', color: 'currentColor', fontSize: '12px' },
-    x: { label: null, domain: data.map((d) => d.bedroom) },
-    y: {
-      label: 'Median MAR ($)',
-      grid: true,
-      zero: true,
-      tickFormat: (d: number) => `$${(d / 1000).toFixed(1)}k`,
-    },
-    marks: [
-      Plot.barY(data, { x: 'bedroom', y: 'median', fill: '#3576b5', fillOpacity: 0.85 }),
-      // 25th–75th percentile spread.
-      Plot.ruleX(data, {
-        x: 'bedroom',
-        y1: 'p25',
-        y2: 'p75',
-        stroke: 'currentColor',
-        strokeOpacity: 0.5,
-        strokeWidth: 1.5,
-      }),
-      // Median value label above each whisker.
-      Plot.text(data, {
-        x: 'bedroom',
-        y: 'p75',
-        text: (d: { median: number }) => `$${Math.round(d.median).toLocaleString()}`,
-        dy: -8,
-        fontSize: 12,
-        fontWeight: 600,
-        fill: 'currentColor',
-      }),
-      Plot.ruleY([0]),
-    ],
-  });
-}
-
-/**
- * Median MAR by bedroom count tracked across registry snapshots — one line per
- * bucket, a point at each snapshot date. History starts at the 2023 baseline and
- * gains a point per monthly sweep; with few snapshots the lines are short but
- * faithful. Controlled units only (medians computed as-of each date upstream).
+ * Median MAR by bedroom bucket over time — one line per bucket, reconstructed
+ * as-of each month from the change log (portal filings back-fill to 2012; the
+ * 2023-07 snapshot is from an RCB archive; live monthly scrapes begin 2026-06).
+ * Line-only: at ~178 monthly points per series, per-point
+ * dots are clutter. 3+ BR is omitted upstream pending issue #11. Controlled
+ * units only (medians computed as-of each date upstream).
  */
 export function rentOverTimeChart(
   series: RentOverTimeSeries[],
@@ -130,6 +70,7 @@ export function rentOverTimeChart(
     y: {
       label: 'Median MAR ($)',
       grid: true,
+      zero: true,
       tickFormat: (d: number) => `$${(d / 1000).toFixed(1)}k`,
     },
     color: {
@@ -146,7 +87,7 @@ export function rentOverTimeChart(
         strokeWidth: 1.8,
         curve: 'monotone-x',
       }),
-      Plot.dot(data, { x: 'date', y: 'mar', fill: 'bedroom', r: 3.5 }),
+      Plot.ruleY([0]),
     ],
   });
 }
@@ -154,122 +95,150 @@ export function rentOverTimeChart(
 /**
  * Allowed rent by tenancy vintage — for every controlled unit, its current MAR
  * (y) against the month-year its tenancy began (x), the Costa-Hawkins "rent by
- * vintage" story: recent tenancies sit near market, long ones far below. One
- * small-multiple facet per bedroom bucket (Studio / 1 / 2 / 3+ BR), each showing
- * a downsampled scatter underlay, a 25th–75th-percentile band, and the median
- * line over quarterly tenancy-vintage bins.
+ * vintage" story: recent tenancies sit near market, long ones far below. A
+ * single chart overlaying Studio / 1 BR / 2 BR (3+ BR is excluded — small,
+ * spiky bins, and we already omit it from the over-time chart pending issue
+ * #11), each bucket a 25th–75th-percentile band plus median line over quarterly
+ * tenancy-vintage bins, one colour per bucket, togglable from the legend chips.
+ * Deliberately no raw-unit scatter: a few very high-MAR units stretched the
+ * y-range and washed out the distributional story.
  *
  * Honest-data caveat (see charts-and-density.md #1): the y-value is the CURRENT
  * MAR — the rent set at tenancy start PLUS every General Adjustment since — not
- * the literal move-in rent (our observations only begin at the 2023 seed). The
+ * the literal move-in rent (direct MAR observations only begin with the 2023
+ * RCB-archive snapshot; live scrapes begin 2026-06). The
  * tenancy date is the faithful reset date, hence "by vintage." Units with no
  * tenancy_date (long-term, no reset) have no x and are excluded upstream.
  */
-/** Shared blues for the vintage chart — the legend swatches reuse these so the
- *  key always matches the marks. */
-const VINTAGE_FILL = '#3576b5'; // scatter dots + IQR band
-const VINTAGE_LINE = '#1f4e79'; // median line
+/** Colour per bedroom bucket — the first three of tableau10, matching the
+ *  over-time chart's scheme so a bucket keeps its colour across the page. */
+const VINTAGE_COLORS: Record<string, string> = {
+  Studio: '#4e79a7',
+  '1 BR': '#f28e2c',
+  '2 BR': '#e15759',
+};
+
+/** Centered 5-quarter (~15-month) rolling mean over the quarterly medians/IQR.
+ *  Sparse quarters (often n=10–30 units) make the raw quarterly stats jumpy —
+ *  sampling noise, not signal. A ~1-year window kills that while keeping real
+ *  multi-quarter features (e.g. the 2020–21 dip); `strict: false` averages what
+ *  exists at the series edges instead of truncating them. */
+const VINTAGE_SMOOTHING = { k: 5, anchor: 'middle', strict: false } as const;
 
 export function marByTenancyVintageChart(
   vintage: MarByTenancyVintage,
   width: number,
 ): HTMLElement | SVGSVGElement {
-  const order = vintage.buckets.map((b) => b.label);
-  const capDollars = vintage.axis_cap_cents / 100;
+  const shown = vintage.buckets.filter((b) => b.bucket !== '3+');
+  const labels = shown.map((b) => b.label);
+  const active = new Set(labels);
 
-  const scatter = vintage.buckets.flatMap((b) =>
-    b.scatter.map((p) => ({
-      bedroom: b.label,
-      date: new Date(p.t),
-      mar: p.mar_cents / 100,
-    })),
-  );
-  const bins = vintage.buckets.flatMap((b) =>
-    b.bins.map((bin) => ({
-      bedroom: b.label,
-      date: new Date(bin.period),
-      median: bin.median_cents / 100,
-      p25: bin.p25_cents / 100,
-      p75: bin.p75_cents / 100,
-    })),
-  );
-
-  const chart = Plot.plot({
-    width: Math.max(280, width),
-    height: 720,
-    marginLeft: 56,
-    marginRight: 14,
-    marginBottom: 34,
-    marginTop: 20,
-    style: { background: 'transparent', color: 'currentColor', fontSize: '11px' },
-    x: { label: null, grid: false },
-    y: {
-      label: 'Allowed rent — current MAR ($)',
-      grid: true,
-      domain: [0, capDollars],
-      tickFormat: (d: number) => `$${(d / 1000).toFixed(0)}k`,
-    },
-    fy: { label: null, domain: order },
-    marks: [
-      // Downsampled raw cloud (clamped to the axis cap so a few high-MAR large
-      // units don't compress the view).
-      Plot.dot(scatter, {
-        x: 'date',
-        y: 'mar',
-        fy: 'bedroom',
-        r: 1.3,
-        fill: VINTAGE_FILL,
-        fillOpacity: 0.18,
-        clip: true,
-      }),
-      // 25th–75th percentile band per quarter.
-      Plot.areaY(bins, {
-        x: 'date',
-        y1: 'p25',
-        y2: 'p75',
-        fy: 'bedroom',
-        fill: VINTAGE_FILL,
-        fillOpacity: 0.22,
-        curve: 'monotone-x',
-      }),
-      // Median line per quarter.
-      Plot.lineY(bins, {
-        x: 'date',
-        y: 'median',
-        fy: 'bedroom',
-        stroke: VINTAGE_LINE,
-        strokeWidth: 1.6,
-        curve: 'monotone-x',
-      }),
-      // Facet label (bedroom bucket) inside each panel.
-      Plot.text(
-        vintage.buckets.map((b) => ({ bedroom: b.label, count: b.count })),
-        {
-          fy: 'bedroom',
-          frameAnchor: 'top-left',
-          dx: 6,
-          dy: 6,
-          text: (d: { bedroom: string; count: number }) =>
-            `${d.bedroom} · ${d.count.toLocaleString()} units`,
-          fontWeight: 600,
-          fill: 'currentColor',
-        },
-      ),
-      Plot.ruleY([0]),
-    ],
-  });
-
-  // Custom key — Plot has no single legend across three different mark types.
-  // Swatches reuse the mark colors above so the key can't drift.
-  const legend = document.createElement('div');
-  legend.className = 'plot-legend';
-  legend.innerHTML = [
-    `<span class="lk"><span class="sw" style="background:${VINTAGE_FILL};opacity:.55;border-radius:50%;width:9px;height:9px"></span>individual units</span>`,
-    `<span class="lk"><span class="sw" style="background:${VINTAGE_FILL};opacity:.30;width:15px;height:10px"></span>25th–75th percentile</span>`,
-    `<span class="lk"><span class="sw" style="background:${VINTAGE_LINE};width:15px;height:3px"></span>median</span>`,
-  ].join('');
+  // x domain fixed across toggles so the time axis never jumps.
+  const allTimes = shown.flatMap((b) => b.bins.map((bin) => new Date(bin.period).getTime()));
+  const xDomain: [Date, Date] = [new Date(Math.min(...allTimes)), new Date(Math.max(...allTimes))];
 
   const wrap = document.createElement('div');
-  wrap.append(legend, chart);
+  const toggles = document.createElement('div');
+  toggles.className = 'plot-legend';
+  const chartHost = document.createElement('div');
+
+  const render = (): void => {
+    const bins = shown
+      .filter((b) => active.has(b.label))
+      .flatMap((b) =>
+        b.bins.map((bin) => ({
+          bedroom: b.label,
+          date: new Date(bin.period),
+          median: bin.median_cents / 100,
+          p25: bin.p25_cents / 100,
+          p75: bin.p75_cents / 100,
+        })),
+      );
+    // Zero-based y, compressed to the visible bands (hide 2 BR and the rest
+    // stretch to fill).
+    const maxDollars = Math.max(...bins.map((d) => d.p75));
+
+    chartHost.replaceChildren(
+      Plot.plot({
+        width: Math.max(280, width),
+        height: 420,
+        marginLeft: 56,
+        marginRight: 14,
+        marginBottom: 34,
+        marginTop: 20,
+        style: { background: 'transparent', color: 'currentColor', fontSize: '11px' },
+        x: { label: null, grid: false, domain: xDomain },
+        y: {
+          label: 'Allowed rent — current MAR ($)',
+          grid: true,
+          domain: [0, maxDollars],
+          nice: true,
+          tickFormat: (d: number) => `$${(d / 1000).toFixed(d < 1000 ? 1 : 0)}k`,
+        },
+        color: { domain: labels, range: labels.map((l) => VINTAGE_COLORS[l]!) },
+        marks: [
+          // 25th–75th percentile band, smoothed like the line so they agree.
+          Plot.areaY(
+            bins,
+            Plot.windowY(VINTAGE_SMOOTHING, {
+              x: 'date',
+              y1: 'p25',
+              y2: 'p75',
+              fill: 'bedroom',
+              fillOpacity: 0.16,
+              curve: 'monotone-x',
+            }),
+          ),
+          // Median line: rolling mean of the quarterly medians.
+          Plot.lineY(
+            bins,
+            Plot.windowY(VINTAGE_SMOOTHING, {
+              x: 'date',
+              y: 'median',
+              stroke: 'bedroom',
+              strokeWidth: 1.8,
+              curve: 'monotone-x',
+            }),
+          ),
+          Plot.ruleY([0]),
+        ],
+      }),
+    );
+  };
+
+  // Legend chips double as show/hide toggles, one per bucket.
+  for (const b of shown) {
+    const color = VINTAGE_COLORS[b.label]!;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lk plot-toggle';
+    btn.setAttribute('aria-pressed', 'true');
+    btn.innerHTML =
+      `<span class="sw" style="background:${color};width:12px;height:12px;border-radius:3px"></span>` +
+      `${b.label} · ${b.count.toLocaleString()}`;
+    btn.addEventListener('click', () => {
+      if (active.has(b.label)) {
+        if (active.size === 1) return; // keep at least one bucket visible
+        active.delete(b.label);
+      } else {
+        active.add(b.label);
+      }
+      const on = active.has(b.label);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.style.opacity = on ? '' : '0.4';
+      render();
+    });
+    toggles.append(btn);
+  }
+  // Static key for the two mark types (shared across buckets).
+  const key = document.createElement('span');
+  key.className = 'lk';
+  key.innerHTML =
+    `<span class="sw" style="background:currentColor;opacity:.18;width:15px;height:10px"></span>25th–75th pct` +
+    `<span class="sw" style="background:currentColor;width:15px;height:3px;margin-left:.6rem"></span>median`;
+  toggles.append(key);
+
+  wrap.append(toggles, chartHost);
+  render();
   return wrap;
 }
