@@ -83,11 +83,48 @@ export const RECENT_CHANGE_COLORS = [
  *  one near-white bin (the Shores-Tower "looks unchanged" bug). */
 const CHANGE_STOP_PER_YEAR = [1.8, 4, 8, 16];
 
+/** "Nice" mantissas — breaks are rounded to one of these × a power of ten so the
+ *  legend always reads in round numbers (10/20/50/100…) instead of the raw scaled
+ *  value (11/24/48/96…). */
+const NICE_MANTISSAS = [1, 2, 5];
+
+/** Round to the nearest 1·2·5 × 10ⁿ. Keeps the geometric spacing of the per-year
+ *  breaks while guaranteeing clean legend numbers. */
+function roundNice(v: number): number {
+  if (v <= 0) return 0;
+  const base = 10 ** Math.floor(Math.log10(v));
+  const f = v / base; // [1, 10)
+  const m = f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10;
+  return m * base;
+}
+
+/** Smallest nice number strictly greater than `v` — used to break ties when two
+ *  scaled breaks round to the same value (which would collapse a colour bin). */
+function ceilNiceAbove(v: number): number {
+  const exp = Math.floor(Math.log10(Math.max(v, 1)));
+  for (let k = exp; k <= exp + 2; k++) {
+    const base = 10 ** k;
+    for (const m of NICE_MANTISSAS) {
+      if (m * base > v) return m * base;
+    }
+  }
+  return v * 2;
+}
+
 /** Step thresholds (length 5: a leading 0 then four scaled breaks) for a window of
- *  `windowYears` years. The leading 0 splits decreases (green) from increases. */
+ *  `windowYears` years. The leading 0 splits decreases (green) from increases. The
+ *  per-year breaks are scaled by the window then snapped to nice numbers, kept
+ *  strictly increasing so no bin collapses at short windows. */
 export function changeStops(windowYears: number): number[] {
   const n = Math.max(1, windowYears);
-  return [0, ...CHANGE_STOP_PER_YEAR.map((c) => Math.round(c * n))];
+  const breaks: number[] = [];
+  for (const c of CHANGE_STOP_PER_YEAR) {
+    let b = roundNice(c * n);
+    const prev = breaks[breaks.length - 1];
+    if (prev !== undefined && b <= prev) b = ceilNiceAbove(prev);
+    breaks.push(b);
+  }
+  return [0, ...breaks];
 }
 
 /** Legend labels for a given `changeStops` array (length 6, matching the colours). */
