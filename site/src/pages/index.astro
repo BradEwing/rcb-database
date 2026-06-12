@@ -59,14 +59,31 @@ import MapView from '../components/MapView.astro';
     fetch(dataUrl('summary.json'))
       .then((r) => (r.ok ? (r.json() as Promise<SiteSummary>) : Promise.reject(r.status)))
       .then((s) => {
-        const stats: Array<[string, string]> = [
-          [formatCount(s.controlled_total), 'controlled units'],
-          [formatCount(s.units_total), 'with a MAR'],
-          [formatCount(s.rcb_comparable ?? 0), 'RCB-comparable'],
-          [s.latest_sweep, 'last sweep'],
+        // Labels follow docs/reconciliation-2025.md: the positive-MAR total is
+        // a superset of the Rent Control Board's "controlled units" headline,
+        // so never present it under that name unqualified.
+        const stats: Array<[string, string, string]> = [
+          [
+            formatCount(s.units_total),
+            'units tracked',
+            "Every unit the City's MAR lookup tool returns, including $0 (exempt) rows.",
+          ],
+          [
+            formatCount(s.controlled_total),
+            'with a positive MAR',
+            "Broader than the Rent Control Board's controlled-units count, which excludes some positive-MAR units. See About.",
+          ],
         ];
+        if (s.rcb_comparable) {
+          stats.push([
+            formatCount(s.rcb_comparable),
+            'RCB-comparable',
+            "Estimate aligned with the Rent Control Board's controlled-units definition. See About.",
+          ]);
+        }
+        stats.push([s.latest_sweep, 'last sweep', 'Most recent full pull of the MAR lookup tool.']);
         el.innerHTML = stats
-          .map(([v, k]) => `<div><dt>${v}</dt><dd>${k}</dd></div>`)
+          .map(([v, k, t]) => `<div title="${t}"><dt>${v}</dt><dd>${k}</dd></div>`)
           .join('');
       })
       .catch(() => {

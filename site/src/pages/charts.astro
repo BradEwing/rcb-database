@@ -154,7 +154,7 @@ const base = import.meta.env.BASE_URL;
         const built = new Date(m.built_at).toISOString().slice(0, 10);
         prov.textContent =
           `Latest sweep ${m.latest_sweep} · built ${built} · ` +
-          `${m.units_total.toLocaleString()} units tracked (controlled + exempt).`;
+          `${m.units_total.toLocaleString()} units tracked (positive-MAR + $0/exempt).`;
       })
       .catch(() => {
         prov.textContent = '';
