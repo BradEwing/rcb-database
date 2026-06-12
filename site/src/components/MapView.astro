@@ -62,7 +62,6 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     USE_TYPE_GROUPS,
     useTypeFilterExpression,
     type UseTypeGroupKey,
-    RECENT_CHANGE_DEFAULT_BASELINE,
     dataUrl,
     BOUNDARY_LINE_COLOR,
     BOUNDARY_LINE_WIDTH,
@@ -627,7 +626,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
         marByYear = (await r.json()) as MarByYear;
         const yrs = marByYear.years;
         endYear = yrs[yrs.length - 1]!;
-        baselineYear = Math.max(yrs[0]!, Math.min(RECENT_CHANGE_DEFAULT_BASELINE, endYear - 1));
+        // Default to the most recent year-over-year window (latest-1 → latest):
+        // the freshest GA cycle is the most newsworthy out of the box.
+        baselineYear = Math.max(yrs[0]!, endYear - 1);
         renderRangePicker();
         applyRangeChange();
       })();

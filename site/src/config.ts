@@ -54,10 +54,6 @@ export interface ChoroplethMetric {
   legend: string[];
 }
 
-/** Default baseline year for the MAR-change choropleth (the end year defaults to
- *  the latest year with data). Data reliably reaches back to ~2012; 2020 gives a
- *  meaningful multi-year window out of the box. Clamped to the available range. */
-export const RECENT_CHANGE_DEFAULT_BASELINE = 2020;
 /** Fill for parcels with no controlled MAR established in the baseline year (the
  *  % change is undefined). A cool grey, deliberately distinct in HUE from the
  *  warm change ramp so "no baseline" never reads as "barely changed". */
