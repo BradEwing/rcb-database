@@ -7,7 +7,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 <div id="metric-switch" class="metric-switch" role="group" aria-label="Choropleth metric"></div>
 
 <div class="legend">
-  <p id="legend-title" class="legend-title"></p>
+  <button id="legend-head" class="legend-head" type="button" aria-expanded="true">
+    <span id="legend-title" class="legend-title"></span>
+    <span class="legend-chevron" aria-hidden="true">▾</span>
+  </button>
   <div id="range-picker" class="range-picker" hidden>
     <label>From <select id="range-from" aria-label="Baseline year"></select></label>
     <span class="rp-arrow">→</span>
@@ -491,6 +494,17 @@ import 'maplibre-gl/dist/maplibre-gl.css';
   // ---- Choropleth metric switcher + legend ----------------------------------
   const switchEl = document.getElementById('metric-switch') as HTMLElement;
   const legendTitle = document.getElementById('legend-title') as HTMLElement;
+  // Collapsible legend on small screens — fully expanded (range picker + 3D
+  // toggles) it can cover most of a phone's map. Tapping the title collapses it
+  // to just the title bar; on desktop the head is inert (no chevron, no-op).
+  const legendEl = document.querySelector('.legend') as HTMLElement;
+  const legendHead = document.getElementById('legend-head') as HTMLButtonElement;
+  const mobileLayout = window.matchMedia('(max-width: 640px)');
+  legendHead.addEventListener('click', () => {
+    if (!mobileLayout.matches) return;
+    const collapsed = legendEl.classList.toggle('collapsed');
+    legendHead.setAttribute('aria-expanded', String(!collapsed));
+  });
   const legendBody = document.getElementById('legend-body') as HTMLElement;
   const legendNote = document.getElementById('legend-note') as HTMLElement;
   const rangePicker = document.getElementById('range-picker') as HTMLElement;
@@ -870,9 +884,25 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     font-size: 0.8rem;
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.12);
   }
-  .legend-title {
+  .legend-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    width: 100%;
     margin: 0 0 0.4rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
     font-weight: 600;
+    text-align: left;
+    cursor: default; /* inert on desktop; pointer + chevron on mobile below */
+  }
+  .legend-chevron {
+    display: none; /* collapse affordance is mobile-only */
+    transition: transform 0.15s ease;
   }
   .legend-note {
     margin: 0.4rem 0 0;
@@ -986,7 +1016,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     z-index: 2;
     display: flex;
     border-radius: 0.5rem;
-    overflow: hidden;
+    /* Tabs that don't fit (narrow phones) scroll horizontally instead of
+       sliding off-screen behind the map edge. */
+    max-width: calc(100vw - 2rem);
+    overflow-x: auto;
     border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.12);
   }
@@ -996,6 +1029,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     color: var(--fg);
     padding: 0.4rem 0.7rem;
     font-size: 0.78rem;
+    white-space: nowrap;
+    flex: none;
     cursor: pointer;
   }
   .metric-switch :global(button + button) {
@@ -1077,17 +1112,42 @@ import 'maplibre-gl/dist/maplibre-gl.css';
     background: color-mix(in srgb, var(--muted) 32%, transparent);
   }
 
-  /* On small screens the top bar wraps and grows; stack the map controls at the
-     bottom-left to avoid colliding with it, and let the panel fill the width. */
+  /* Small screens: the metric switch stays below the (wrapping) topbar via
+     --topbar-h and scrolls horizontally if the tabs don't fit. The legend keeps
+     the bottom-left corner to itself — height-capped, internally scrollable,
+     and collapsible via its title — so the two can never overlap. */
   @media (max-width: 640px) {
-    .metric-switch {
-      top: auto;
-      bottom: 8.5rem;
-      font-size: 0.72rem;
+    /* The buttons set their own font-size, so the override must target them
+       directly — sized so all four tabs fit a ~390px viewport without scroll. */
+    .metric-switch :global(button) {
+      font-size: 0.7rem;
+      padding: 0.35rem 0.5rem;
     }
     .legend {
-      bottom: 1rem;
+      bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
       font-size: 0.72rem;
+      max-width: calc(100vw - 2rem);
+      max-height: 45vh;
+      max-height: 45dvh;
+      overflow-y: auto;
+    }
+    .legend-head {
+      cursor: pointer;
+    }
+    .legend-chevron {
+      display: inline;
+    }
+    .legend.collapsed .legend-head {
+      margin-bottom: 0;
+    }
+    .legend.collapsed .legend-chevron {
+      transform: rotate(-90deg);
+    }
+    .legend.collapsed :global(ul),
+    .legend.collapsed .legend-note,
+    .legend.collapsed .range-picker,
+    .legend.collapsed .map-toggles {
+      display: none;
     }
     .detail-panel {
       width: 100vw;
@@ -1102,6 +1162,13 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 </style>
 
 <style is:global>
+  /* The map fills the viewport and the topbar floats over it, so MapLibre's
+     top-right controls (zoom/compass) must start below the topbar's real
+     height or they sit invisibly behind it. */
+  .maplibregl-ctrl-top-right {
+    top: var(--topbar-h, 3.6rem);
+  }
+
   /* Tooltip skin (Popup content lives outside the component's scoped styles). */
   .parcel-tip .maplibregl-popup-content {
     padding: 0.55rem 0.7rem;
