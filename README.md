@@ -1,49 +1,41 @@
 # rcb-database
 
-A self-hosted registry of Santa Monica rent-controlled units, scraped monthly
-from the City's public [Maximum Allowable Rent (MAR) lookup tool][mar]. The
-registry is the source of truth for tracking MAR changes over time — new
-tenancies, the annual general adjustment, capital-improvement pass-throughs —
-for every rent-controlled parcel in the city.
+A registry of every Santa Monica unit with an established
+[Maximum Allowable Rent (MAR)][mar], scraped monthly from the City's public
+lookup tool. The total runs above the Rent Control Board's official
+"controlled units" count by definition; see
+[`docs/reconciliation-2025.md`](docs/reconciliation-2025.md).
 
-The data is committed to the repo so each monthly snapshot is a line-level
-`git diff`: a free, per-unit change history.
+History before the first 2026 scrape is backfilled from the Rent Control
+Board's [document portal][portal] (OCR'd annual MAR reports back to 2012) and
+the City's one-time 2023 open-data export; parcel geometry comes from City
+GIS.
 
-## Snapshot (2026-06-07)
-
-- 147 streets · 10,714 address-parcels (~8,500 distinct APNs)
-- 35,419 units — 32,900 with a positive MAR, 2,519 currently exempt (`$0`)
-- The registry total is a *superset* of the RCB Annual Report's 27,589
-  "controlled" headline; the ~19% gap is definitional, not a scraper defect
-  (see [`docs/reconciliation-2025.md`](docs/reconciliation-2025.md)).
-
-## Layout
-
-- `scraper/` — TS/Node scraper (`tsx`, `undici`, `cheerio`, `zod`).
-- `data/` — the registry, one CSV per table (`streets`, `parcels`, `units`,
-  `mar_observations`) plus regenerable `data/derived/` analysis artifacts.
-- `.github/workflows/monthly-snapshot.yml` — monthly cron that drills every
-  parcel, reconciles, and commits the new snapshot.
+The data is committed, so each monthly `git diff` is a per-unit change
+history. Browse it on the
+[interactive map and charts](https://bradewing.github.io/rcb-database/)
+(source in `site/`).
 
 ## Usage
 
+The registry is already committed under `data/`; the scraper exists to
+re-collect it. The scrape commands hit the City's servers, so mind the rate
+limits in [`CLAUDE.md`](CLAUDE.md).
+
 ```sh
 npm install
-npm run typecheck
-npm run test
-npm run scraper -- <probe-one|refresh-streets|sweep-streets|drill-properties>
-npm run reconcile
+npm run scraper -- sweep-streets     # Phase A: street → parcel index
+npm run scraper -- drill-properties  # Phase B: per-parcel units + MAR
 ```
-
-See [`CLAUDE.md`](CLAUDE.md) for the full design, form behavior, and run cadence.
 
 ## License
 
-This repository is dual-licensed to reflect that it contains both software and
-public data:
+This repository is dual-licensed:
 
 - **Code** (scraper, tooling, site) — [MIT](LICENSE).
 - **Data** (`data/`) — [CC0 1.0](data/LICENSE), public domain. The underlying
-  MARs and APNs are factual public records compiled from the City's MAR tool.
+  MARs and APNs are factual public records from the City's MAR tool, document
+  portal, open-data export, and GIS.
 
 [mar]: https://www.smgov.net/departments/rentcontrol/mar.aspx
+[portal]: https://rentcontroldocs.santamonica.gov/
