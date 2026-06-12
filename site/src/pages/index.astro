@@ -59,29 +59,25 @@ import MapView from '../components/MapView.astro';
     fetch(dataUrl('summary.json'))
       .then((r) => (r.ok ? (r.json() as Promise<SiteSummary>) : Promise.reject(r.status)))
       .then((s) => {
-        // Labels follow docs/reconciliation-2025.md: the positive-MAR total is
-        // a superset of the Rent Control Board's "controlled units" headline,
-        // so never present it under that name unqualified.
+        // Labels follow docs/reconciliation-2025.md: the raw positive-MAR
+        // total is a superset of the Rent Control Board's "controlled units"
+        // headline, so "controlled units" is only ever the RCB-comparable
+        // estimate. If that stat is missing, the fallback total must carry the
+        // qualified label instead.
         const stats: Array<[string, string, string]> = [
-          [
-            formatCount(s.units_total),
-            'units tracked',
-            "Every unit the City's MAR lookup tool returns, including $0 (exempt) rows.",
-          ],
-          [
-            formatCount(s.controlled_total),
-            'with a positive MAR',
-            "Broader than the Rent Control Board's controlled-units count, which excludes some positive-MAR units. See About.",
-          ],
+          s.rcb_comparable
+            ? [
+                formatCount(s.rcb_comparable),
+                'controlled units',
+                "Estimate aligned with the Rent Control Board's controlled-units definition. See About.",
+              ]
+            : [
+                formatCount(s.controlled_total),
+                'with a positive MAR',
+                "Broader than the Rent Control Board's controlled-units count, which excludes some positive-MAR units. See About.",
+              ],
+          [s.latest_sweep, 'last scrape', 'Most recent full pull of the MAR lookup tool.'],
         ];
-        if (s.rcb_comparable) {
-          stats.push([
-            formatCount(s.rcb_comparable),
-            'RCB-comparable',
-            "Estimate aligned with the Rent Control Board's controlled-units definition. See About.",
-          ]);
-        }
-        stats.push([s.latest_sweep, 'last sweep', 'Most recent full pull of the MAR lookup tool.']);
         el.innerHTML = stats
           .map(([v, k, t]) => `<div title="${t}"><dt>${v}</dt><dd>${k}</dd></div>`)
           .join('');
