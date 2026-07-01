@@ -1968,7 +1968,7 @@ unit_id,apn,bedrooms,mar_status,parcel_unit_count,size_class,use_class,rcb_compa
 1038-9th-st-i,4281034010,2,controlled,9,multifamily,five_plus,1
 1038-grant-st,4284014007,2,controlled,3,small,three,0
 1038-maple-st,4284009018,2,controlled,1,single,single,0
-1039-26th-st-a,4266015033,3+,zero_mar,2,small,two,0
+1039-26th-st-a,4266015033,3+,controlled,2,small,two,0
 1039-26th-st-b,4266015033,0,controlled,2,small,two,0
 1039-maple-st,4284010014,1,controlled,2,small,single,0
 1039-pacific-st-a,4284014013,2,controlled,2,small,two,0
@@ -7006,7 +7006,7 @@ unit_id,apn,bedrooms,mar_status,parcel_unit_count,size_class,use_class,rcb_compa
 1255-princeton-st-202,4267006027,2,controlled,11,multifamily,five_plus,1
 1255-princeton-st-203,4267006027,3+,controlled,11,multifamily,five_plus,1
 1255-princeton-st-204,4267006027,3+,controlled,11,multifamily,five_plus,1
-1255-princeton-st-205,4267006027,2,zero_mar,11,multifamily,five_plus,0
+1255-princeton-st-205,4267006027,2,controlled,11,multifamily,five_plus,1
 1255-princeton-st-206,4267006027,2,controlled,11,multifamily,five_plus,1
 1256-25th-st-a,4276019017,2,controlled,3,small,three,0
 1256-25th-st-b,4276019017,1,controlled,3,small,three,0
@@ -24551,7 +24551,7 @@ unit_id,apn,bedrooms,mar_status,parcel_unit_count,size_class,use_class,rcb_compa
 2921-arizona-ave-10,4267004023,2,controlled,10,multifamily,five_plus,1
 2921-arizona-ave-2,4267004023,2,controlled,10,multifamily,five_plus,1
 2921-arizona-ave-3,4267004023,2,controlled,10,multifamily,five_plus,1
-2921-arizona-ave-4,4267004023,2,controlled,10,multifamily,five_plus,1
+2921-arizona-ave-4,4267004023,2,zero_mar,10,multifamily,five_plus,0
 2921-arizona-ave-5,4267004023,2,controlled,10,multifamily,five_plus,1
 2921-arizona-ave-6,4267004023,2,controlled,10,multifamily,five_plus,1
 2921-arizona-ave-7,4267004023,2,controlled,10,multifamily,five_plus,1
@@ -35249,11 +35249,11 @@ unit_id,apn,bedrooms,mar_status,parcel_unit_count,size_class,use_class,rcb_compa
 953-4th-st-303,4292015014,3+,controlled,14,multifamily,five_plus,1
 953-4th-st-304,4292015014,1,controlled,14,multifamily,five_plus,1
 953-4th-st-305,4292015014,2,controlled,14,multifamily,five_plus,1
-953-5th-st-1,4292010013,2,zero_mar,10,multifamily,five_plus,0
+953-5th-st-1,4292010013,2,controlled,10,multifamily,five_plus,1
 953-5th-st-10,4292010013,2,controlled,10,multifamily,five_plus,1
 953-5th-st-2,4292010013,1,controlled,10,multifamily,five_plus,1
 953-5th-st-3,4292010013,2,controlled,10,multifamily,five_plus,1
-953-5th-st-4,4292010013,2,zero_mar,10,multifamily,five_plus,0
+953-5th-st-4,4292010013,2,controlled,10,multifamily,five_plus,1
 953-5th-st-5,4292010013,0,controlled,10,multifamily,five_plus,1
 953-5th-st-6,4292010013,1,controlled,10,multifamily,five_plus,1
 953-5th-st-7,4292010013,2,controlled,10,multifamily,five_plus,1
