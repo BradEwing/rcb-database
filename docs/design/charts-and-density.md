@@ -203,6 +203,34 @@ Methodology (decided up front, all counts surfaced in the chart note / JSON):
   so quarters between surviving report compilations go thin. Thin bins are
   noisier, not biased; the 5-quarter smoothing damps it (same trade-off as #1).
 
+### Shipped — monthly bubble companion
+
+A fifth `/charts` section — **"New-tenancy rents each month"** — plots the *same*
+GA-clean events as a **bubble scatter** (the reference-style "initial rents"
+chart): **one dot per (bedroom, month)**, x = tenancy-start month, y = that
+month's median reset rent, and the dot's **area ∝ the number of new tenancies
+that month** (Plot's `r` channel is a sqrt scale, so radius ∝ √count → area ∝
+count). Deliberately **monthly and unsmoothed**, so sparse early months read as
+small, low-confidence dots and well-sampled recent months as large ones.
+
+Implementation notes:
+
+- The GA-clean rule now lives in one shared extractor, **`cleanNewTenancyEvents`**
+  in `build-data.ts`; both `buildNewTenancyRent` (quarterly band) and
+  **`buildNewTenancyMonthly`** (the `new_tenancy_monthly` aggregate) bin its
+  output, so the two views can never disagree on which events are clean
+  (`total_events` matches — 14,031 at this build). Types mirrored as
+  `NewTenancyMonthly` in `site/src/lib/types.ts`; renderer
+  `newTenancyMonthlyChart` in `chart.ts`.
+- **Defaults to a single bucket (1 BR — the most-populated).** Bubbles overlap far
+  more than the band chart's translucent regions, so showing all three at once is
+  muddy; the legend chips (round swatches) add Studio / 2 BR back. 3+ BR excluded
+  to match the other charts. The x-domain and the bubble-size (`r`) domain are
+  fixed across all buckets so toggling shifts neither the time axis nor the sizes.
+- Same honest-data framing as the band chart: y is the rent **as-of the reset**
+  (earliest GA-clean observation), not a literal lease amount. Native `<title>`
+  hover on each bubble gives month · median · new-tenancy count.
+
 ## Where it lives
 
 - Charts 1–2: a new static page (e.g. `/charts` or fold into `/about`'s

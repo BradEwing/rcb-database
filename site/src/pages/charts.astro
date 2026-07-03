@@ -40,6 +40,17 @@ const base = import.meta.env.BASE_URL;
     </section>
 
     <section class="chart-block">
+      <h2>New-tenancy rents each month</h2>
+      <p class="chart-note">
+        One dot per month; its height is the median rent set at that month's new
+        tenancies, and its area scales with how many new tenancies began that
+        month (same GA-clean resets as above, monthly and unsmoothed). Sparse
+        early months read as small dots. Click a bedroom type to add or remove it.
+      </p>
+      <figure id="new-tenancy-monthly" class="chart"><p class="loading">Loading chart…</p></figure>
+    </section>
+
+    <section class="chart-block">
       <h2>MAR vs Tenancy Start Date</h2>
       <p class="chart-note">
         Each line tracks the maximum rent of a tenancy today against the month it
@@ -58,13 +69,19 @@ const base = import.meta.env.BASE_URL;
 
 <script>
   import { dataUrl } from '../config';
-  import { marByTenancyVintageChart, newTenancyRentChart, rentOverTimeChart } from '../lib/chart';
+  import {
+    marByTenancyVintageChart,
+    newTenancyMonthlyChart,
+    newTenancyRentChart,
+    rentOverTimeChart,
+  } from '../lib/chart';
   import { formatMarCents, formatCount } from '../lib/format';
   import type { SiteAnalytics, SiteMeta } from '../lib/types';
 
   const timeHost = document.getElementById('rent-over-time');
   const vintageHost = document.getElementById('mar-by-vintage');
   const newTenancyHost = document.getElementById('new-tenancy-rent');
+  const newTenancyMonthlyHost = document.getElementById('new-tenancy-monthly');
   const tableEl = document.getElementById('rent-by-bedroom-table');
   let analytics: SiteAnalytics | null = null;
 
@@ -93,6 +110,18 @@ const base = import.meta.env.BASE_URL;
         );
       } else {
         newTenancyHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
+      }
+    }
+    if (newTenancyMonthlyHost) {
+      if (analytics.new_tenancy_monthly) {
+        newTenancyMonthlyHost.replaceChildren(
+          newTenancyMonthlyChart(
+            analytics.new_tenancy_monthly,
+            newTenancyMonthlyHost.clientWidth || 640,
+          ),
+        );
+      } else {
+        newTenancyMonthlyHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
       }
     }
   }
@@ -136,6 +165,7 @@ const base = import.meta.env.BASE_URL;
       if (timeHost) timeHost.innerHTML = msg;
       if (vintageHost) vintageHost.innerHTML = msg;
       if (newTenancyHost) newTenancyHost.innerHTML = msg;
+      if (newTenancyMonthlyHost) newTenancyMonthlyHost.innerHTML = msg;
       if (tableEl) tableEl.innerHTML = msg;
     });
 

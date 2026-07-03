@@ -186,6 +186,34 @@ export interface NewTenancyRent {
   buckets: VintageBucket[];
 }
 
+/** One month's bubble in the new-tenancy monthly chart (mirrors build-data
+ *  `NewTenancyMonthPoint`): the reset month, the count of GA-clean new-tenancy
+ *  events that month (→ bubble area), and their median reset rent (→ y). */
+export interface NewTenancyMonthPoint {
+  /** Month-start date, YYYY-MM-01. */
+  period: string;
+  count: number;
+  median_cents: number;
+}
+
+/** One bedroom bucket's monthly bubbles (mirrors build-data `NewTenancyMonthlyBucket`). */
+export interface NewTenancyMonthlyBucket {
+  bucket: '0' | '1' | '2' | '3+';
+  label: string;
+  count: number;
+  months: NewTenancyMonthPoint[];
+}
+
+/** new_tenancy_monthly — the same GA-clean events as new_tenancy_rent binned
+ *  MONTHLY per bedroom bucket and unsmoothed: one bubble per month sized by the
+ *  month's event count (mirrors build-data `NewTenancyMonthly`). The raw-dot
+ *  bubble view; see charts-and-density.md #4. */
+export interface NewTenancyMonthly {
+  bin: 'month';
+  total_events: number;
+  buckets: NewTenancyMonthlyBucket[];
+}
+
 /** analytics.json — citywide aggregates read by the /charts page. */
 export interface SiteAnalytics {
   latest_sweep: string;
@@ -193,6 +221,7 @@ export interface SiteAnalytics {
   rent_over_time: { dates: string[]; series: RentOverTimeSeries[] };
   mar_by_tenancy_vintage: MarByTenancyVintage;
   new_tenancy_rent: NewTenancyRent;
+  new_tenancy_monthly: NewTenancyMonthly;
 }
 
 /** mar_by_year.json — per-UNIT MAR (cents) "as of" the end of each year, grouped by

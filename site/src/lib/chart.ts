@@ -5,6 +5,7 @@ import * as Plot from '@observablehq/plot';
 import type {
   MarByTenancyVintage,
   MarHistoryPoint,
+  NewTenancyMonthly,
   NewTenancyRent,
   RentOverTimeSeries,
   VintageBucket,
@@ -152,6 +153,160 @@ export function newTenancyRentChart(
   width: number,
 ): HTMLElement | SVGSVGElement {
   return quarterlyBandChart(data.buckets, width, 'New-tenancy rent ($)');
+}
+
+/**
+ * New-tenancy rents each month, as a bubble scatter — the raw-dot companion to
+ * the smoothed band chart above. One dot per (bedroom, month): x = the tenancy-
+ * start month, y = the median rent set at that month's GA-clean resets, and the
+ * dot's AREA is proportional to the number of new tenancies that month (Plot's
+ * `r` channel is a sqrt scale by default, so radius ∝ √count → area ∝ count).
+ * Deliberately unsmoothed and monthly, so sparse early months read as small,
+ * low-confidence dots and well-sampled recent months as large ones (the shape of
+ * the reference "initial rents" bubble charts).
+ *
+ * Bubbles overlap far more than the band chart's translucent regions, so this
+ * defaults to a single bucket (1 BR — the most-populated) rather than all three;
+ * the legend chips add Studio / 2 BR back. 3+ BR is excluded to match the other
+ * charts (issue #11). Honest-data framing is the same as the band chart: the
+ * y-value is the rent as-of the reset (earliest GA-clean observation), not a
+ * literal lease amount.
+ */
+export function newTenancyMonthlyChart(
+  data: NewTenancyMonthly,
+  width: number,
+): HTMLElement {
+  const shown = data.buckets.filter((b) => b.bucket !== '3+' && b.months.length > 0);
+  const labels = shown.map((b) => b.label);
+  // Default to 1 BR alone (most-populated, and the reference cut); fall back to
+  // the first bucket with data if 1 BR is somehow absent.
+  const initial = shown.find((b) => b.bucket === '1') ?? shown[0];
+  const active = new Set<string>(initial ? [initial.label] : []);
+
+  // Fix the x domain and the r domain across ALL buckets so toggling a bucket
+  // shifts neither the time axis nor the bubble-size scale.
+  const allTimes = shown.flatMap((b) => b.months.map((m) => new Date(m.period).getTime()));
+  const xDomain: [Date, Date] = [new Date(Math.min(...allTimes)), new Date(Math.max(...allTimes))];
+  const maxCount = Math.max(1, ...shown.flatMap((b) => b.months.map((m) => m.count)));
+
+  const wrap = document.createElement('div');
+  const toggles = document.createElement('div');
+  toggles.className = 'plot-legend';
+  const chartHost = document.createElement('div');
+
+  const render = (): void => {
+    const bubbles = shown
+      .filter((b) => active.has(b.label))
+      .flatMap((b) =>
+        b.months.map((m) => {
+          const rent = m.median_cents / 100;
+          const monthLabel = new Date(m.period).toLocaleDateString('en-US', {
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'UTC', // YYYY-MM-01 parses as UTC midnight; keep the label on that month
+          });
+          return {
+            bedroom: b.label,
+            date: new Date(m.period),
+            rent,
+            count: m.count,
+            tip:
+              `${monthLabel} · ${b.label}\n` +
+              `median $${Math.round(rent).toLocaleString()}\n` +
+              `n = ${m.count.toLocaleString()} new ${m.count === 1 ? 'tenancy' : 'tenancies'}`,
+          };
+        }),
+      )
+      // Draw the biggest bubbles first (at the back) so small ones stay visible.
+      .sort((a, b) => b.count - a.count);
+
+    chartHost.replaceChildren(
+      Plot.plot({
+        width: Math.max(280, width),
+        height: 420,
+        marginLeft: 56,
+        marginRight: 14,
+        marginBottom: 34,
+        marginTop: 20,
+        style: { background: 'transparent', color: 'currentColor', fontSize: '11px' },
+        x: { label: null, grid: false, domain: xDomain },
+        y: {
+          label: 'New-tenancy rent ($)',
+          labelArrow: 'none',
+          grid: true,
+          nice: true,
+          tickFormat: (d: number) =>
+            `$${Number.isInteger(d / 1000) ? d / 1000 : (d / 1000).toFixed(1)}k`,
+        },
+        // sqrt scale (Plot default for r) → bubble AREA ∝ count. Fixed domain so
+        // a given count is the same size regardless of which buckets are shown.
+        r: { domain: [0, maxCount], range: [0, 16] },
+        color: { domain: labels, range: labels.map((l) => VINTAGE_COLORS[l] ?? 'currentColor') },
+        marks: [
+          Plot.dot(bubbles, {
+            x: 'date',
+            y: 'rent',
+            r: 'count',
+            fill: 'bedroom',
+            fillOpacity: 0.5,
+            stroke: 'bedroom',
+            strokeWidth: 0.6,
+            strokeOpacity: 0.9,
+          }),
+          // Instant hover tooltip (month · bucket, median, n) — Plot.pointer
+          // snaps to the nearest bubble; the theme vars keep the tip box
+          // readable in dark mode (Plot's default fill is hard-coded white).
+          Plot.tip(
+            bubbles,
+            Plot.pointer({
+              x: 'date',
+              y: 'rent',
+              title: 'tip',
+              fill: 'var(--bg)',
+              stroke: 'var(--muted)',
+              fontSize: 11,
+            }),
+          ),
+        ],
+      }),
+    );
+  };
+
+  // Legend chips double as show/hide toggles, one per bucket (round swatch to
+  // signal "bubbles"). At least one bucket stays visible.
+  for (const b of shown) {
+    const color = VINTAGE_COLORS[b.label] ?? 'currentColor';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lk plot-toggle';
+    const on0 = active.has(b.label);
+    btn.setAttribute('aria-pressed', String(on0));
+    btn.style.opacity = on0 ? '' : '0.4';
+    btn.innerHTML =
+      `<span class="sw" style="background:${color};width:12px;height:12px;border-radius:50%"></span>` +
+      `${b.label} · ${b.count.toLocaleString()}`;
+    btn.addEventListener('click', () => {
+      if (active.has(b.label)) {
+        if (active.size === 1) return; // keep at least one bucket visible
+        active.delete(b.label);
+      } else {
+        active.add(b.label);
+      }
+      const on = active.has(b.label);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.style.opacity = on ? '' : '0.4';
+      render();
+    });
+    toggles.append(btn);
+  }
+  const key = document.createElement('span');
+  key.className = 'lk';
+  key.textContent = 'bubble area ∝ new tenancies that month';
+  toggles.append(key);
+
+  wrap.append(toggles, chartHost);
+  render();
+  return wrap;
 }
 
 /** Shared renderer for the two quarterly median+IQR-by-bedroom charts: one

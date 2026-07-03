@@ -618,13 +618,47 @@ type NewTenancyRent = {
   buckets: VintageBucket[];
 };
 
+/** new_tenancy_monthly in analytics.json — the same GA-clean events as
+ *  new_tenancy_rent, binned MONTHLY (not quarterly) and left unsmoothed: the
+ *  bubble chart's dataset. One entry per (bucket, month); bubble area ∝ `count`,
+ *  y = `median_cents`. Mirrors `NewTenancyMonthly` in site/src/lib/types.ts. */
+type NewTenancyMonthPoint = { period: string; count: number; median_cents: number }; // period = YYYY-MM-01
+
+type NewTenancyMonthlyBucket = {
+  bucket: "0" | "1" | "2" | "3+";
+  label: string;
+  count: number;
+  months: NewTenancyMonthPoint[];
+};
+
+type NewTenancyMonthly = {
+  bin: "month";
+  total_events: number;
+  buckets: NewTenancyMonthlyBucket[];
+};
+
 /** First Sep 1 strictly after a date — the next GA effective date. */
 function nextGaDate(date: string): string {
   const y = parseInt(date.slice(0, 4), 10);
   return date < `${y}-09-01` ? `${y}-09-01` : `${y + 1}-09-01`;
 }
 
-/** New-tenancy reset rents over time. Every distinct (unit, tenancy_date) in the
+/** One GA-clean new-tenancy establishment event: the reset month + the rent set
+ *  then, tagged with its bedroom bucket. Build-time only. */
+type NewTenancyEvent = { bucket: string; month: string; mar_cents: number }; // month = YYYY-MM
+
+type NewTenancyEvents = {
+  events: NewTenancyEvent[];
+  total: number;
+  excluded_ga_lag: number;
+  excluded_invalid: number;
+};
+
+/** GA-clean new-tenancy establishment events — the one place the GA-clean rule
+ *  lives, consumed by both the quarterly band series (buildNewTenancyRent) and
+ *  the monthly bubble series (buildNewTenancyMonthly).
+ *
+ *  Every distinct (unit, tenancy_date) in the
  *  observation log is one establishment event; its rent is the EARLIEST
  *  positive-MAR observation carrying that tenancy_date. Unlike the vintage view,
  *  the y-value here is the rent as-of the reset itself, so an event only counts
@@ -634,9 +668,9 @@ function nextGaDate(date: string): string {
  *  with the report's pre-GA MAR column (see merge-history.ts), so portal-era
  *  events pass this filter whenever a surviving filing covers the reset period;
  *  first-sighting baselines carrying an old tenancy are correctly excluded.
- *  Quarterly median + IQR per bedroom bucket, same shape as the vintage view.
- *  See docs/design/charts-and-density.md #4. */
-function buildNewTenancyRent(units: Row[], obs: Row[]): NewTenancyRent {
+ *  Returns the flat GA-clean event list; the quarterly band series and the
+ *  monthly bubble series bin it. See docs/design/charts-and-density.md #4. */
+function cleanNewTenancyEvents(units: Row[], obs: Row[]): NewTenancyEvents {
   const bedroomByUnit = new Map<string, string>();
   for (const u of units) bedroomByUnit.set(g(u, "unit_id"), bedroomBucket(g(u, "bedrooms")));
 
@@ -653,13 +687,10 @@ function buildNewTenancyRent(units: Row[], obs: Row[]): NewTenancyRent {
     if (!prev || at < prev.at) earliest.set(key, { at, cents, ten, unit: g(o, "unit_id") });
   }
 
-  const pointsByBucket = new Map<string, VintagePoint[]>();
-  for (const b of BEDROOM_ORDER) pointsByBucket.set(b, []);
-  let totalEvents = 0;
+  const events: NewTenancyEvent[] = [];
   let excludedGaLag = 0;
   let excludedInvalid = 0;
   let excludedUnknownBedroom = 0;
-
   for (const e of earliest.values()) {
     // Impossible dates: future-dated relative to the observation (e.g. a 2923
     // form typo) or before rent control could plausibly anchor a tenancy.
@@ -678,8 +709,32 @@ function buildNewTenancyRent(units: Row[], obs: Row[]): NewTenancyRent {
       excludedUnknownBedroom++;
       continue;
     }
-    pointsByBucket.get(bucket)!.push({ t: `${e.ten.slice(0, 7)}-01`, mar_cents: e.cents });
-    totalEvents++;
+    events.push({ bucket, month: e.ten.slice(0, 7), mar_cents: e.cents });
+  }
+
+  if (excludedUnknownBedroom > 0) {
+    process.stdout.write(
+      `  new-tenancy: ${excludedUnknownBedroom} GA-clean events with ` +
+        `unparseable bedrooms excluded\n`,
+    );
+  }
+
+  return {
+    events,
+    total: events.length,
+    excluded_ga_lag: excludedGaLag,
+    excluded_invalid: excludedInvalid,
+  };
+}
+
+/** new_tenancy_rent — GA-clean reset rents binned QUARTERLY per bedroom bucket
+ *  (median + IQR), the smoothed band companion to the vintage view. Same shape as
+ *  mar_by_tenancy_vintage; see docs/design/charts-and-density.md #4. */
+function buildNewTenancyRent(ev: NewTenancyEvents): NewTenancyRent {
+  const pointsByBucket = new Map<string, VintagePoint[]>();
+  for (const b of BEDROOM_ORDER) pointsByBucket.set(b, []);
+  for (const e of ev.events) {
+    pointsByBucket.get(e.bucket)!.push({ t: `${e.month}-01`, mar_cents: e.mar_cents });
   }
 
   const buckets: VintageBucket[] = BEDROOM_ORDER.map((b) => {
@@ -704,20 +759,45 @@ function buildNewTenancyRent(units: Row[], obs: Row[]): NewTenancyRent {
     return { bucket: b, label: BEDROOM_LABELS[b] ?? b, count: pts.length, bins };
   });
 
-  if (excludedUnknownBedroom > 0) {
-    process.stdout.write(
-      `  new-tenancy-rent: ${excludedUnknownBedroom} GA-clean events with ` +
-        `unparseable bedrooms excluded\n`,
-    );
-  }
-
   return {
     bin: "quarter",
-    total_events: totalEvents,
-    excluded_ga_lag: excludedGaLag,
-    excluded_invalid: excludedInvalid,
+    total_events: ev.total,
+    excluded_ga_lag: ev.excluded_ga_lag,
+    excluded_invalid: ev.excluded_invalid,
     buckets,
   };
+}
+
+/** new_tenancy_monthly — the same GA-clean events binned MONTHLY per bedroom
+ *  bucket and left UNSMOOTHED: one bubble per (bucket, month), sized by that
+ *  month's event count and placed at its median reset rent. The raw-dot "bubble"
+ *  view of the new-tenancy series (charts-and-density.md #4). Early months are
+ *  n=1–3 and jumpy by design — small bubbles read as low-confidence, big recent
+ *  bubbles as well-sampled. */
+function buildNewTenancyMonthly(ev: NewTenancyEvents): NewTenancyMonthly {
+  const byBucket = new Map<string, Map<string, number[]>>(); // bucket → month → mar_cents[]
+  for (const b of BEDROOM_ORDER) byBucket.set(b, new Map());
+  for (const e of ev.events) {
+    const months = byBucket.get(e.bucket)!;
+    const arr = months.get(e.month);
+    if (arr) arr.push(e.mar_cents);
+    else months.set(e.month, [e.mar_cents]);
+  }
+
+  const buckets: NewTenancyMonthlyBucket[] = BEDROOM_ORDER.map((b) => {
+    const months = byBucket.get(b)!;
+    const points: NewTenancyMonthPoint[] = [...months.entries()]
+      .map(([month, vals]) => ({
+        period: `${month}-01`,
+        count: vals.length,
+        median_cents: median(vals),
+      }))
+      .sort((x, y) => x.period.localeCompare(y.period));
+    const count = points.reduce((a, p) => a + p.count, 0);
+    return { bucket: b, label: BEDROOM_LABELS[b] ?? b, count, months: points };
+  });
+
+  return { bin: "month", total_events: ev.total, buckets };
 }
 
 /** Per-UNIT MAR reconstructed "as of" the end of each year, grouped by parcel —
@@ -832,12 +912,14 @@ function buildAnalytics(
       p75_cents: percentile(v, 75),
     };
   });
+  const ntEvents = cleanNewTenancyEvents(units, obs);
   return {
     latest_sweep: sweepDate,
     rent_by_bedroom: rentByBedroom,
     rent_over_time: buildRentOverTime(units, obs),
     mar_by_tenancy_vintage: buildMarByTenancyVintage(units, latestMar),
-    new_tenancy_rent: buildNewTenancyRent(units, obs),
+    new_tenancy_rent: buildNewTenancyRent(ntEvents),
+    new_tenancy_monthly: buildNewTenancyMonthly(ntEvents),
   };
 }
 
