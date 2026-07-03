@@ -53,16 +53,8 @@ const base = import.meta.env.BASE_URL;
     <section class="chart-block">
       <h2>What a new tenancy goes for, by bedroom</h2>
       <p class="chart-note">
-        Tenancies set in the past year are the closest thing the registry has to
-        a live market read. Rent climbs with bedroom count:
-        <span id="histogram-note"></span>
         Each bar is a $250 bin, scaled to that type's own total; the hollow dot
-        is the median. Most new tenancies are studios and 1-bedrooms — bigger
-        units are scarce. 3+&nbsp;BR gets to appear here because these resets are
-        recent and directly observed; the backfill anomaly that keeps it out of
-        the time-series charts
-        (<a href="https://github.com/BradEwing/rcb-database/issues/11">issue #11</a>)
-        doesn't touch them.
+        is the median. 
       </p>
       <figure id="new-tenancy-histogram" class="chart"><p class="loading">Loading chart…</p></figure>
     </section>
