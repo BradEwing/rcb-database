@@ -27,6 +27,7 @@ export const EXITS_CSV = join(DERIVED_DIR, "unit_exits.csv");
 export const RECON_SUMMARY_CSV = join(DERIVED_DIR, "reconciliation_summary.csv");
 export const GEOMETRY_CACHE = join(EXTERNAL_DIR, "parcels-geometry.geojson");
 export const BOUNDARY_CACHE = join(EXTERNAL_DIR, "city-boundary.geojson");
+export const CPI_CACHE = join(EXTERNAL_DIR, "cpi-us-monthly.csv");
 
 export function readCsv(path: string): Row[] {
   if (!existsSync(path)) return [];

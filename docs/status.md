@@ -63,6 +63,30 @@ Live at https://bradewing.github.io/rcb-database/ (delivered across PRs 1–7; s
     14,005 kept / 37.4k GA-lag-excluded at seed; same renderer/bands.
 - **GoatCounter analytics**: cookie-free page-view tracking, prod builds only.
 
+### /charts notebook-parity set (shipped 2026-07)
+
+Closed the chart gap to the reference Berkeley Rent Board notebook
+(`docs/design/charts-and-density.md` #5): four additions to `/charts`, all from
+`analytics.json` aggregates —
+
+- **CPI deflator infrastructure**: `npm run fetch-cpi` caches FRED CPIAUCSL to
+  `data/external/cpi-us-monthly.csv` (committed; 2025-10 shutdown gap tolerated);
+  optional `cpi` key in `analytics.json`; missing cache degrades to nominal-only.
+  The two new-tenancy charts gained a **constant-dollar toggle** (nominal by
+  default); charts carry missing CPI months forward.
+- **New-tenancy rent histogram by bedroom** (`new_tenancy_histogram`): GA-clean
+  reset rents from the trailing 12 months, $250 bins, share-per-bucket facets
+  with median dots. **3+ BR included** (recent directly-observed events — the
+  issue-#11 anomaly doesn't apply); new fixed bucket colour `#2a9d8f`.
+- **Move-in-cohort trajectories** (`cohorts` aggregate): median MAR per
+  (tenancy-start year × as-of year), tenancy-in-effect semantics (a unit leaves
+  its cohort when re-let), real dollars by default, <100-unit cohort-years
+  hidden; purple→blue→teal order ramp. 2025/26 cohorts have no line yet (no
+  observations between the 2023-07 snapshot and the 2026-06 seed).
+- **Cohort × year count heatmap**: the count surface under those medians, sqrt
+  colour scale, all cohorts (thin pre-1996 rows are the survivorship story),
+  theme-aware ramp.
+
 ### Parcel use-class enrichment — increment 1 (shipped 2026-06)
 
 `docs/design/parcel-enrichment.md` first increment: `fetch-geometry` now also

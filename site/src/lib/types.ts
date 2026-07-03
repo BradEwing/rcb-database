@@ -214,6 +214,64 @@ export interface NewTenancyMonthly {
   buckets: NewTenancyMonthlyBucket[];
 }
 
+/** cpi — U.S. CPI monthly index (CPIAUCSL, cached by fetch-cpi.ts) for
+ *  constant-dollar chart views: real = nominal × points[base] / points[month].
+ *  Months absent from `points` (unpublished, or newer than the cache) carry the
+ *  prior month forward. Mirrors build-data `CpiDeflator`. */
+export interface CpiDeflator {
+  series: 'CPIAUCSL';
+  /** Latest cached month (YYYY-MM) — the constant-dollar base period. */
+  base: string;
+  /** YYYY-MM → index value. */
+  points: Record<string, number>;
+}
+
+/** One cell of the cohort table: units whose tenancy-in-effect began in `start`,
+ *  counted and medianed as-of the end of `year` (mirrors build-data `CohortCell`). */
+export interface CohortCell {
+  start: number;
+  year: number;
+  count: number;
+  median_cents: number;
+}
+
+/** cohorts — the move-in-cohort dataset behind the trajectory lines and the
+ *  cohort × year heatmap (mirrors build-data `Cohorts`). Sparse: only non-empty
+ *  (start, year) cells are present. */
+export interface Cohorts {
+  years: number[];
+  total_units: number;
+  cells: CohortCell[];
+}
+
+/** One rent bin of the new-tenancy histogram: [lo_cents, lo_cents + width). */
+export interface HistogramBin {
+  lo_cents: number;
+  count: number;
+}
+
+/** One bedroom bucket's distribution (mirrors build-data `NewTenancyHistogramBucket`). */
+export interface NewTenancyHistogramBucket {
+  bucket: '0' | '1' | '2' | '3+';
+  label: string;
+  count: number;
+  median_cents: number;
+  bins: HistogramBin[];
+  /** Events at or above the cap (excluded from `bins`, included in count/median). */
+  overflow_count: number;
+}
+
+/** new_tenancy_histogram — GA-clean reset rents over a trailing window, binned
+ *  per bedroom bucket (mirrors build-data `NewTenancyHistogram`). */
+export interface NewTenancyHistogram {
+  window_from: string;
+  window_to: string;
+  bin_width_cents: number;
+  cap_cents: number;
+  total_events: number;
+  buckets: NewTenancyHistogramBucket[];
+}
+
 /** analytics.json — citywide aggregates read by the /charts page. */
 export interface SiteAnalytics {
   latest_sweep: string;
@@ -222,6 +280,10 @@ export interface SiteAnalytics {
   mar_by_tenancy_vintage: MarByTenancyVintage;
   new_tenancy_rent: NewTenancyRent;
   new_tenancy_monthly: NewTenancyMonthly;
+  new_tenancy_histogram?: NewTenancyHistogram;
+  cohorts?: Cohorts;
+  /** Absent when the CPI cache was missing at build time (nominal-only mode). */
+  cpi?: CpiDeflator;
 }
 
 /** mar_by_year.json — per-UNIT MAR (cents) "as of" the end of each year, grouped by

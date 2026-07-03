@@ -7,6 +7,7 @@
   "scripts": {
     "fetch-geometry": "tsx scripts/fetch-geometry.ts",
     "fetch-boundary": "tsx scripts/fetch-boundary.ts",
+    "fetch-cpi": "tsx scripts/fetch-cpi.ts",
     "build-data": "tsx scripts/build-data.ts",
     "prebuild": "npm run build-data",
     "dev": "astro dev",

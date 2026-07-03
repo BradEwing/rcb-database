@@ -231,6 +231,83 @@ Implementation notes:
   (earliest GA-clean observation), not a literal lease amount. Native `<title>`
   hover on each bubble gives month · median · new-tenancy count.
 
+## 5. Notebook-parity set: distribution, cohorts, constant dollars *(shipped)*
+
+Closes the gap to the reference Berkeley Rent Board notebook
+(observablehq.com/d/56a49a0d6eb51936): its remaining chart families — the
+initial-rent histogram by bedrooms, the move-in-cohort trajectories, the
+cohort × year count heatmap, and CPI inflation adjustment throughout — now have
+Santa Monica equivalents on `/charts`.
+
+### CPI deflator (shared infrastructure)
+
+- **`npm run fetch-cpi`** (`site/scripts/fetch-cpi.ts`) caches **CPIAUCSL**
+  (FRED's bulk CSV of BLS CUSR0000SA0 — U.S. city average, all urban consumers,
+  seasonally adjusted, the reference notebook's series) to
+  **`data/external/cpi-us-monthly.csv`** (committed, occasional refresh — same
+  posture as `fetch-geometry`/`fetch-boundary`). Known series gap: **2025-10 was
+  never published** (fall-2025 government shutdown); the fetcher tolerates ≤ 2
+  missing months and omits them.
+- `build-data` ships the index as an optional **`cpi`** key in `analytics.json`
+  (`{series, base, points}`; base = latest cached month). A missing cache
+  **warns and degrades to nominal-only** (boundary-style, not a build gate).
+- Client-side, `deflatorOf` in `chart.ts` computes real = nominal ×
+  points[base]/points[month], **carrying the prior month forward** for missing
+  or newer-than-cache months — so a stale cache under-deflates recent months
+  toward 1 rather than failing or extrapolating.
+- The two new-tenancy charts (quarterly bands + monthly bubbles) grew a
+  **"constant <base> $" legend chip** — **nominal by default** (no silent change
+  to the shipped presentation); the cohort chart defaults to **real** (that's
+  its story). The vintage chart is untouched: its y is the *current* MAR,
+  already in today's dollars. Deflating a quarter's median by the quarter-start
+  month (rather than per-event) is a knowing approximation — CPI moves well
+  under 1% within a quarter.
+
+### What a new tenancy goes for (faceted histogram)
+
+- `new_tenancy_histogram` in `analytics.json`: GA-clean reset rents from the
+  **trailing 12 months** ending at the sweep month, binned at **$250** per
+  bedroom bucket, capped at **$8k** with an `overflow_count` (pooled, counted in
+  the note — never silently dropped). ~1,357 events at ship.
+- Renderer: row-facet per bucket, bars = **share of that bucket's events** (so
+  n≈170 Studio and n≈740 1 BR read on one footing; counts live in the legend
+  chips), hollow dot at the bucket median, hover tip with bin range/count/share.
+  Facet labels are in-plot text marks (the default fy axis would sit in the 8px
+  left margin).
+- **3+ BR is INCLUDED here** — the window holds only recent, directly-observed
+  events, so the issue-#11 portal-boundary anomaly doesn't apply. Its colour
+  (`#2a9d8f`, extending the page's fixed bucket mapping) was validated for CVD
+  separation and surface contrast against both themes; the note says why it
+  appears here but not in the time series.
+- GA-clean censoring caveat: tenancies starting Jul–Aug are mostly first
+  observed after the Sep-1 GA and drop out, so the window's early months thin
+  out rather than mislead.
+
+### Move-in cohorts (trajectories + count heatmap)
+
+- One `cohorts` aggregate feeds both charts (the notebook's `medians` table):
+  for each observation year Y (as-of Dec 31; final year = the live sweep, as in
+  `mar_by_year`) and each start year S of the **tenancy-in-effect** (from the
+  carry-forward observation's own `tenancy_date`), the count + median MAR of
+  controlled units. A unit **leaves its cohort when re-let** and old tenancies'
+  rows fade as they end — reference semantics, not "current tenants projected
+  backwards". Same 1971/future-date validity bounds as the GA-clean filter.
+- **Trajectory lines**: cohort-years with **< 100 units hidden** (notebook used
+  >99), a line needs ≥ 2 points. Colour encodes cohort ORDER — a hand-blended
+  purple→blue→teal ramp (`cohortColor`); the off-the-shelf `cool`/viridis ramps
+  end near-yellow, illegible on the light surface. Exact identity rides on the
+  hover tip; the legend is a gradient key. Real dollars by default (Dec-of-year
+  CPI; sweep month for the final year).
+- Known artifact: the **2025 and 2026 cohorts have no line** — no observations
+  landed between the 2023-07 archive snapshot and the 2026-06 seed, so their
+  first as-of year is 2026 (one point). They'll grow lines as sweeps accumulate.
+- **Heatmap**: x = observation year, y = start year (newest on top), fill =
+  count on a **sqrt** scale (linear washes out the 1–900-unit tail next to
+  3,000-unit cells). All cohorts shown, no floor — thin pre-1996 rows *are* the
+  survivorship story. Dark mode picks its own dim→bright ramp at render time
+  (`prefers-color-scheme`, re-rendered on theme change), not a flipped light
+  ramp.
+
 ## Where it lives
 
 - Charts 1–2: a new static page (e.g. `/charts` or fold into `/about`'s

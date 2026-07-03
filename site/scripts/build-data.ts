@@ -23,6 +23,7 @@ import {
   SITE_DATA_DIR,
   GEOMETRY_CACHE,
   BOUNDARY_CACHE,
+  CPI_CACHE,
   UNITS_CSV,
   OBS_CSV,
   SWEEPS_CSV,
@@ -800,6 +801,226 @@ function buildNewTenancyMonthly(ev: NewTenancyEvents): NewTenancyMonthly {
   return { bin: "month", total_events: ev.total, buckets };
 }
 
+/** cpi in analytics.json — the U.S. CPI monthly index (CPIAUCSL, cached by
+ *  fetch-cpi.ts), so charts can deflate nominal cents to constant `base`-month
+ *  dollars client-side: real = nominal × points[base] / points[month]. Months
+ *  absent from `points` (unpublished, or newer than the cache) carry the prior
+ *  month forward. Mirrors `CpiDeflator` in site/src/lib/types.ts. */
+type CpiDeflator = {
+  series: "CPIAUCSL";
+  /** Latest cached month (YYYY-MM) — the constant-dollar base period. */
+  base: string;
+  /** YYYY-MM → index value. */
+  points: Record<string, number>;
+};
+
+/** Load the committed CPI cache; null (with a warning) when absent, so the
+ *  constant-dollar chart views degrade to nominal-only instead of failing the
+ *  build (same posture as the optional city-boundary overlay). */
+function buildCpi(): CpiDeflator | null {
+  const rows = readCsv(CPI_CACHE);
+  if (rows.length === 0) {
+    process.stderr.write(
+      `WARN: ${CPI_CACHE} missing or empty — charts will be nominal-only. ` +
+        `Run \`npm run fetch-cpi\`.\n`,
+    );
+    return null;
+  }
+  const points: Record<string, number> = {};
+  let base = "";
+  for (const r of rows) {
+    const month = g(r, "month");
+    const cpi = Number(g(r, "cpi"));
+    if (!/^\d{4}-\d{2}$/.test(month) || !Number.isFinite(cpi) || cpi <= 0) {
+      throw new Error(`Bad CPI cache row: month="${month}" cpi="${g(r, "cpi")}"`);
+    }
+    points[month] = cpi;
+    if (month > base) base = month;
+  }
+  return { series: "CPIAUCSL", base, points };
+}
+
+/** One cell of the cohort table: for units whose tenancy-in-effect began in
+ *  `start`, their count and median MAR as-of the end of `year`. Mirrors
+ *  `CohortCell` in site/src/lib/types.ts. */
+type CohortCell = {
+  start: number;
+  year: number;
+  count: number;
+  median_cents: number;
+};
+
+/** cohorts in analytics.json — the move-in-cohort dataset behind the cohort
+ *  trajectory lines and the cohort × year heatmap. Mirrors `Cohorts` in
+ *  site/src/lib/types.ts. */
+type Cohorts = {
+  /** Observation years covered (first well-covered year → sweep year). */
+  years: number[];
+  total_units: number;
+  cells: CohortCell[];
+};
+
+/** Cohort table: median MAR by (tenancy-start year × observation year),
+ *  reconstructed from the event-sourced change log. For each observation year Y
+ *  (as-of Dec 31; the final year reads the live sweep, like buildMarByYear) a
+ *  unit's carry-forward observation supplies both its MAR and the tenancy_date
+ *  of the tenancy in effect THEN — so a unit re-let in 2019 counts toward its
+ *  pre-2019 cohort in 2012–2018 and toward the 2019 cohort afterward, and
+ *  tenancies that ended drop out of their cohort's later years (the reference
+ *  "medians" table semantics). Controlled ($>0) units with a tenancy date only;
+ *  cells are sparse (only non-empty (start, year) pairs are emitted). */
+function buildCohorts(obs: Row[], sweepDate: string): Cohorts {
+  const obsByUnit = new Map<string, Array<{ at: string; cents: number; ten: string }>>();
+  const obsPerYear = new Map<number, number>();
+  for (const o of obs) {
+    const at = g(o, "observed_at");
+    if (!at) continue;
+    obsPerYear.set(Number(at.slice(0, 4)), (obsPerYear.get(Number(at.slice(0, 4))) ?? 0) + 1);
+    const rec = {
+      at,
+      cents: intOf(o, "mar_amount_cents"),
+      ten: (g(o, "tenancy_date") ?? "").trim(),
+    };
+    const list = obsByUnit.get(g(o, "unit_id"));
+    if (list) list.push(rec);
+    else obsByUnit.set(g(o, "unit_id"), [rec]);
+  }
+  for (const list of obsByUnit.values()) list.sort((a, b) => a.at.localeCompare(b.at));
+
+  // Same year floor as buildMarByYear: skip years before real coverage begins.
+  const sweepYear = Number(sweepDate.slice(0, 4));
+  const MIN_YEAR_OBS = 500;
+  const covered = [...obsPerYear.entries()]
+    .filter(([y, n]) => n >= MIN_YEAR_OBS && y <= sweepYear)
+    .map(([y]) => y);
+  const minYear = covered.length ? Math.min(...covered) : sweepYear;
+  const years: number[] = [];
+  for (let y = minYear; y <= sweepYear; y++) years.push(y);
+  const cutoffs = years.map((y) => (y >= sweepYear ? sweepDate : `${y}-12-31`));
+
+  const cells = new Map<string, number[]>(); // "start|year" → cents[]
+  for (const list of obsByUnit.values()) {
+    // Two-pointer carry-forward across the ascending year cutoffs.
+    let li = 0;
+    let cur: { cents: number; ten: string } = { cents: 0, ten: "" };
+    for (let yi = 0; yi < years.length; yi++) {
+      const cutoff = cutoffs[yi]!;
+      while (li < list.length && list[li]!.at <= cutoff) {
+        cur = { cents: list[li]!.cents, ten: list[li]!.ten };
+        li++;
+      }
+      if (cur.cents <= 0 || !cur.ten) continue; // exempt / long-term (no reset date)
+      const start = Number(cur.ten.slice(0, 4));
+      const year = years[yi]!;
+      // Impossible starts (form typos, pre-rent-control noise) — same bounds as
+      // the GA-clean event filter.
+      if (!Number.isFinite(start) || start < 1971 || start > year) continue;
+      const key = `${start}|${year}`;
+      const arr = cells.get(key);
+      if (arr) arr.push(cur.cents);
+      else cells.set(key, [cur.cents]);
+    }
+  }
+
+  const out: CohortCell[] = [...cells.entries()]
+    .map(([key, vals]) => {
+      const [start = 0, year = 0] = key.split("|").map(Number);
+      return { start, year, count: vals.length, median_cents: median(vals) };
+    })
+    .sort((a, b) => a.start - b.start || a.year - b.year);
+
+  return { years, total_units: obsByUnit.size, cells: out };
+}
+
+/** One rent bin of the new-tenancy histogram: [lo_cents, lo_cents + width). */
+type HistogramBin = { lo_cents: number; count: number };
+
+type NewTenancyHistogramBucket = {
+  bucket: "0" | "1" | "2" | "3+";
+  label: string;
+  count: number;
+  median_cents: number;
+  bins: HistogramBin[];
+  /** Events at or above the cap (excluded from `bins`, included in `count`/median). */
+  overflow_count: number;
+};
+
+/** new_tenancy_histogram in analytics.json — the distribution of GA-clean reset
+ *  rents by bedroom bucket over a trailing window: the "what does a new tenancy
+ *  go for right now" view. Mirrors `NewTenancyHistogram` in site/src/lib/types.ts. */
+type NewTenancyHistogram = {
+  /** Tenancy-start months included, inclusive (YYYY-MM). */
+  window_from: string;
+  window_to: string;
+  bin_width_cents: number;
+  cap_cents: number;
+  total_events: number;
+  buckets: NewTenancyHistogramBucket[];
+};
+
+/** Months in the trailing new-tenancy window. 12 keeps it "the past year"; the
+ *  GA-clean rule already censors starts observed only after a Sep-1 GA, so the
+ *  window's early months thin out rather than mislead. */
+const HISTOGRAM_WINDOW_MONTHS = 12;
+const HISTOGRAM_BIN_CENTS = 25_000; // $250 bins
+const HISTOGRAM_CAP_CENTS = 800_000; // $8,000 — everything above pools as overflow
+
+/** YYYY-MM n months before a YYYY-MM (inclusive window arithmetic). */
+function monthsBefore(month: string, n: number): string {
+  const y = Number(month.slice(0, 4));
+  const m = Number(month.slice(5, 7)) - n;
+  const yy = y + Math.floor((m - 1) / 12);
+  const mm = ((m - 1 + 120) % 12) + 1;
+  return `${yy}-${String(mm).padStart(2, "0")}`;
+}
+
+function buildNewTenancyHistogram(ev: NewTenancyEvents, sweepDate: string): NewTenancyHistogram {
+  const windowTo = sweepDate.slice(0, 7);
+  const windowFrom = monthsBefore(windowTo, HISTOGRAM_WINDOW_MONTHS - 1);
+  const byBucket = new Map<string, number[]>();
+  for (const b of BEDROOM_ORDER) byBucket.set(b, []);
+  let total = 0;
+  for (const e of ev.events) {
+    if (e.month < windowFrom || e.month > windowTo) continue;
+    byBucket.get(e.bucket)!.push(e.mar_cents);
+    total++;
+  }
+
+  const buckets: NewTenancyHistogramBucket[] = BEDROOM_ORDER.map((b) => {
+    const vals = byBucket.get(b)!;
+    const binCounts = new Map<number, number>();
+    let overflow = 0;
+    for (const v of vals) {
+      if (v >= HISTOGRAM_CAP_CENTS) {
+        overflow++;
+        continue;
+      }
+      const lo = Math.floor(v / HISTOGRAM_BIN_CENTS) * HISTOGRAM_BIN_CENTS;
+      binCounts.set(lo, (binCounts.get(lo) ?? 0) + 1);
+    }
+    const bins: HistogramBin[] = [...binCounts.entries()]
+      .map(([lo_cents, count]) => ({ lo_cents, count }))
+      .sort((x, y) => x.lo_cents - y.lo_cents);
+    return {
+      bucket: b,
+      label: BEDROOM_LABELS[b] ?? b,
+      count: vals.length,
+      median_cents: median(vals),
+      bins,
+      overflow_count: overflow,
+    };
+  });
+
+  return {
+    window_from: windowFrom,
+    window_to: windowTo,
+    bin_width_cents: HISTOGRAM_BIN_CENTS,
+    cap_cents: HISTOGRAM_CAP_CENTS,
+    total_events: total,
+    buckets,
+  };
+}
+
 /** Per-UNIT MAR reconstructed "as of" the end of each year, grouped by parcel —
  *  the dataset behind the configurable MAR-change choropleth. For any chosen
  *  baseline/end year the map computes EACH unit's own % move (over units
@@ -913,6 +1134,7 @@ function buildAnalytics(
     };
   });
   const ntEvents = cleanNewTenancyEvents(units, obs);
+  const cpi = buildCpi();
   return {
     latest_sweep: sweepDate,
     rent_by_bedroom: rentByBedroom,
@@ -920,6 +1142,9 @@ function buildAnalytics(
     mar_by_tenancy_vintage: buildMarByTenancyVintage(units, latestMar),
     new_tenancy_rent: buildNewTenancyRent(ntEvents),
     new_tenancy_monthly: buildNewTenancyMonthly(ntEvents),
+    new_tenancy_histogram: buildNewTenancyHistogram(ntEvents, sweepDate),
+    cohorts: buildCohorts(obs, sweepDate),
+    ...(cpi ? { cpi } : {}),
   };
 }
 
@@ -1152,6 +1377,8 @@ function main(): void {
   writeFileSync(analyticsPath, JSON.stringify(analyticsJson, null, 2) + "\n");
   const vintage = analyticsJson.mar_by_tenancy_vintage as MarByTenancyVintage;
   const newTenancy = analyticsJson.new_tenancy_rent as NewTenancyRent;
+  const histogram = analyticsJson.new_tenancy_histogram as NewTenancyHistogram;
+  const cohorts = analyticsJson.cohorts as Cohorts;
 
   // Per-parcel median-MAR-by-year matrix for the configurable change choropleth.
   const marByYear = buildMarByYear(parcelUnits, obs, sweepDate);
@@ -1169,7 +1396,10 @@ function main(): void {
       `Wrote ${analyticsPath} (tenancy-vintage: ${vintage.total_points} controlled points, ` +
       `${vintage.excluded_empty_tenancy} excluded for empty tenancy_date; ` +
       `new-tenancy-rent: ${newTenancy.total_events} GA-clean events, ` +
-      `${newTenancy.excluded_ga_lag} GA-lag + ${newTenancy.excluded_invalid} invalid excluded)\n` +
+      `${newTenancy.excluded_ga_lag} GA-lag + ${newTenancy.excluded_invalid} invalid excluded; ` +
+      `histogram: ${histogram.total_events} events in ${histogram.window_from}…${histogram.window_to}; ` +
+      `cohorts: ${cohorts.cells.length} cells over ${cohorts.years[0]}–` +
+      `${cohorts.years[cohorts.years.length - 1]}${analyticsJson.cpi ? "" : "; CPI ABSENT"})\n` +
       `Wrote ${marByYearPath} (${marByYear.years.length} years ${marByYear.years[0]}–` +
       `${marByYear.years[marByYear.years.length - 1]}, ${Object.keys(marByYear.parcels).length} parcels)\n` +
       `Wrote ${metaPath}\n`,

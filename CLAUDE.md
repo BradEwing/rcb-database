@@ -39,6 +39,7 @@ The map site is its own package in `site/` (Astro + MapLibre GL JS + Observable 
 npm install
 npm run fetch-geometry   # occasional: cache City parcel polygons + usetype/usedescrip → data/external/ (committed)
 npm run fetch-boundary   # occasional: cache the City boundary polygon → data/external/ (committed)
+npm run fetch-cpi        # occasional: cache the CPIAUCSL monthly index (FRED) → data/external/ (committed); feeds the /charts constant-dollar views
 npm run build-data       # transform registry CSVs → site/public/data/ (gitignored build output)
 npm run check            # astro check (typecheck for .astro + island scripts)
 npm run build            # `prebuild` runs build-data first, then `astro build`

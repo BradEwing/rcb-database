@@ -42,12 +42,54 @@ const base = import.meta.env.BASE_URL;
     <section class="chart-block">
       <h2>New-tenancy rents each month</h2>
       <p class="chart-note">
-        One dot per month; its height is the median rent set at that month's new
-        tenancies, and its area scales with how many new tenancies began that
-        month (same GA-clean resets as above, monthly and unsmoothed). Sparse
-        early months read as small dots. Click a bedroom type to add or remove it.
+        One dot per month: height is the median rent set at that month's new
+        tenancies, area is how many there were (same GA-clean resets as above,
+        unsmoothed). Small dot, thin month — trust it less. Click a bedroom type
+        to add or remove it.
       </p>
       <figure id="new-tenancy-monthly" class="chart"><p class="loading">Loading chart…</p></figure>
+    </section>
+
+    <section class="chart-block">
+      <h2>What a new tenancy goes for, by bedroom</h2>
+      <p class="chart-note">
+        Tenancies set in the past year are the closest thing the registry has to
+        a live market read. Rent climbs with bedroom count:
+        <span id="histogram-note"></span>
+        Each bar is a $250 bin, scaled to that type's own total; the hollow dot
+        is the median. Most new tenancies are studios and 1-bedrooms — bigger
+        units are scarce. 3+&nbsp;BR gets to appear here because these resets are
+        recent and directly observed; the backfill anomaly that keeps it out of
+        the time-series charts
+        (<a href="https://github.com/BradEwing/rcb-database/issues/11">issue #11</a>)
+        doesn't touch them.
+      </p>
+      <figure id="new-tenancy-histogram" class="chart"><p class="loading">Loading chart…</p></figure>
+    </section>
+
+    <section class="chart-block">
+      <h2>Rent over time, by move-in year</h2>
+      <p class="chart-note">
+        Each line is one year's new tenants, followed through time: every point
+        is the median rent that cohort paid in a given year, in constant dollars
+        (the chip switches to nominal). Purple lines are the oldest cohorts,
+        teal the newest. Real rent drifts down the longer a cohort stays put —
+        rent control shields sitting tenants from market increases, but a market
+        dip only reaches you if you move. A unit that turns over jumps to a
+        newer cohort. Cohort-years under 100 units are hidden; the heatmap below
+        has every count.
+      </p>
+      <figure id="cohort-rent" class="chart"><p class="loading">Loading chart…</p></figure>
+    </section>
+
+    <section class="chart-block">
+      <h2>Units behind each cohort, year by year</h2>
+      <p class="chart-note">
+        How many units sit behind each median above. A low count means noise —
+        or bogus data. Rows fade to the right as a cohort's tenancies end, and
+        columns before 2023 cover only units with portal-backfilled history.
+      </p>
+      <figure id="cohort-heatmap" class="chart"><p class="loading">Loading chart…</p></figure>
     </section>
 
     <section class="chart-block">
@@ -70,7 +112,10 @@ const base = import.meta.env.BASE_URL;
 <script>
   import { dataUrl } from '../config';
   import {
+    cohortHeatmapChart,
+    cohortRentChart,
     marByTenancyVintageChart,
+    newTenancyHistogramChart,
     newTenancyMonthlyChart,
     newTenancyRentChart,
     rentOverTimeChart,
@@ -82,6 +127,9 @@ const base = import.meta.env.BASE_URL;
   const vintageHost = document.getElementById('mar-by-vintage');
   const newTenancyHost = document.getElementById('new-tenancy-rent');
   const newTenancyMonthlyHost = document.getElementById('new-tenancy-monthly');
+  const histogramHost = document.getElementById('new-tenancy-histogram');
+  const cohortHost = document.getElementById('cohort-rent');
+  const cohortHeatmapHost = document.getElementById('cohort-heatmap');
   const tableEl = document.getElementById('rent-by-bedroom-table');
   let analytics: SiteAnalytics | null = null;
 
@@ -106,7 +154,11 @@ const base = import.meta.env.BASE_URL;
     if (newTenancyHost) {
       if (analytics.new_tenancy_rent) {
         newTenancyHost.replaceChildren(
-          newTenancyRentChart(analytics.new_tenancy_rent, newTenancyHost.clientWidth || 640),
+          newTenancyRentChart(
+            analytics.new_tenancy_rent,
+            newTenancyHost.clientWidth || 640,
+            analytics.cpi,
+          ),
         );
       } else {
         newTenancyHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
@@ -118,10 +170,47 @@ const base = import.meta.env.BASE_URL;
           newTenancyMonthlyChart(
             analytics.new_tenancy_monthly,
             newTenancyMonthlyHost.clientWidth || 640,
+            analytics.cpi,
           ),
         );
       } else {
         newTenancyMonthlyHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
+      }
+    }
+    // Same cached-artifact guard as above for the keys added in this revision.
+    if (histogramHost) {
+      if (analytics.new_tenancy_histogram) {
+        histogramHost.replaceChildren(
+          newTenancyHistogramChart(
+            analytics.new_tenancy_histogram,
+            histogramHost.clientWidth || 640,
+          ),
+        );
+      } else {
+        histogramHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
+      }
+    }
+    if (cohortHost) {
+      if (analytics.cohorts) {
+        cohortHost.replaceChildren(
+          cohortRentChart(
+            analytics.cohorts,
+            cohortHost.clientWidth || 640,
+            analytics.cpi,
+            analytics.latest_sweep,
+          ),
+        );
+      } else {
+        cohortHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
+      }
+    }
+    if (cohortHeatmapHost) {
+      if (analytics.cohorts) {
+        cohortHeatmapHost.replaceChildren(
+          cohortHeatmapChart(analytics.cohorts, cohortHeatmapHost.clientWidth || 640),
+        );
+      } else {
+        cohortHeatmapHost.innerHTML = '<p class="loading">Chart data unavailable.</p>';
       }
     }
   }
@@ -150,6 +239,38 @@ const base = import.meta.env.BASE_URL;
           `${formatCount(nt.excluded_ga_lag)} excluded as first observed ` +
           `only after a general adjustment.`;
       }
+      const hist = a.new_tenancy_histogram;
+      const histNoteEl = document.getElementById('histogram-note');
+      if (hist && histNoteEl) {
+        const overflow = hist.buckets.reduce((n, b) => n + b.overflow_count, 0);
+        const fmtMonth = (m: string) =>
+          new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-US', {
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'UTC',
+          });
+        // Gradient sentence from the live medians, rounded to $50 — one
+        // "roughly" up front instead of a per-item qualifier.
+        const around = (cents: number) =>
+          `$${(Math.round(cents / 5000) * 50).toLocaleString()}`;
+        const names: Record<string, string> = {
+          '0': 'for a studio',
+          '1': 'for a 1-bedroom',
+          '2': 'for a 2-bedroom',
+          '3+': 'for 3+ bedrooms',
+        };
+        const parts = hist.buckets
+          .filter((b) => b.count > 0)
+          .map((b) => `${around(b.median_cents)} ${names[b.bucket] ?? b.label}`);
+        const last = parts.pop();
+        histNoteEl.textContent =
+          `roughly ${parts.join(', ')}${parts.length ? ', and ' : ''}${last ?? ''} ` +
+          `(${formatCount(hist.total_events)} tenancy starts, ` +
+          `${fmtMonth(hist.window_from)}–${fmtMonth(hist.window_to)}` +
+          (overflow > 0
+            ? `; ${formatCount(overflow)} above $${hist.cap_cents / 100 / 1000}k run off the axis).`
+            : ').');
+      }
       if (tableEl) {
         tableEl.innerHTML = a.rent_by_bedroom
           .map(
@@ -166,6 +287,9 @@ const base = import.meta.env.BASE_URL;
       if (vintageHost) vintageHost.innerHTML = msg;
       if (newTenancyHost) newTenancyHost.innerHTML = msg;
       if (newTenancyMonthlyHost) newTenancyMonthlyHost.innerHTML = msg;
+      if (histogramHost) histogramHost.innerHTML = msg;
+      if (cohortHost) cohortHost.innerHTML = msg;
+      if (cohortHeatmapHost) cohortHeatmapHost.innerHTML = msg;
       if (tableEl) tableEl.innerHTML = msg;
     });
 
@@ -175,6 +299,12 @@ const base = import.meta.env.BASE_URL;
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(renderChart, 150);
   });
+
+  // The heatmap picks its ramp for the active theme at render time — re-render
+  // if the OS theme flips while the page is open.
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', () => renderChart());
 
   const prov = document.getElementById('provenance');
   if (prov) {
