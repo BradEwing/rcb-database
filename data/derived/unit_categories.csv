@@ -4303,7 +4303,7 @@ unit_id,apn,bedrooms,mar_status,parcel_unit_count,size_class,use_class,rcb_compa
 1134-9th-st-f,4281035007,3+,controlled,20,multifamily,five_plus,1
 1134-9th-st-g,4281035007,1,controlled,20,multifamily,five_plus,1
 1134-9th-st-h,4281035007,1,controlled,20,multifamily,five_plus,1
-1134-9th-st-i,4281035007,1,controlled,20,multifamily,five_plus,1
+1134-9th-st-i,4281035007,1,zero_mar,20,multifamily,five_plus,0
 1134-9th-st-j,4281035007,1,controlled,20,multifamily,five_plus,1
 1134-chelsea-ave-a,4276003008,2,controlled,8,multifamily,five_plus,1
 1134-chelsea-ave-b,4276003008,2,controlled,8,multifamily,five_plus,1
