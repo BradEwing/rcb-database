@@ -1803,6 +1803,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1008-7th-st-1,2023-09-01,351700,2022-03-06,portal_mar_report
 1008-7th-st-1,2024-09-01,359300,2022-03-06,portal_mar_report
 1008-7th-st-1,2026-06-07,365300,2022-03-06,mar_tool
+1008-7th-st-1,2026-09-01,339500,2026-04-01,mar_tool
 1008-7th-st-10,2012-09-01,77700,,portal_mar_report
 1008-7th-st-10,2013-09-01,78500,,portal_mar_report
 1008-7th-st-10,2014-09-01,7900,,portal_mar_report
@@ -1827,6 +1828,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1008-7th-st-11,2023-09-01,399500,2023-04-24,portal_mar_report
 1008-7th-st-11,2024-09-01,407100,2023-04-24,portal_mar_report
 1008-7th-st-11,2026-06-07,406000,2024-07-14,mar_tool
+1008-7th-st-11,2026-09-01,405000,2026-05-01,mar_tool
 1008-7th-st-2,2012-09-01,113400,,portal_mar_report
 1008-7th-st-2,2013-09-01,114500,,portal_mar_report
 1008-7th-st-2,2014-09-01,115400,,portal_mar_report
@@ -2824,6 +2826,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1011-4th-st-110,2023-07-19,266500,2021-08-15,mar_tool
 1011-4th-st-110,2023-09-01,273200,2021-08-15,portal_mar_report
 1011-4th-st-110,2026-06-07,286000,2024-11-16,mar_tool
+1011-4th-st-110,2026-09-01,307500,2026-07-01,mar_tool
 1011-4th-st-111,2012-09-01,187100,2011-11-20,portal_mar_report
 1011-4th-st-111,2013-09-01,189000,2011-11-20,portal_mar_report
 1011-4th-st-111,2014-09-01,190400,2011-11-20,portal_mar_report
@@ -4215,6 +4218,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1015-2nd-st-102,2023-09-01,261000,2017-07-10,portal_mar_report
 1015-2nd-st-102,2024-09-01,268600,2017-07-10,portal_mar_report
 1015-2nd-st-102,2026-06-07,274600,2017-07-10,mar_tool
+1015-2nd-st-102,2026-09-01,263800,2026-06-05,mar_tool
 1015-2nd-st-103,2021-09-01,148000,2012-01-01,portal_mar_report
 1015-2nd-st-103,2023-07-19,152400,2012-01-01,mar_tool
 1015-2nd-st-103,2023-09-01,156700,2012-01-01,portal_mar_report
@@ -5530,6 +5534,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1018-17th-st,2023-09-01,417600,2019-11-15,portal_mar_report
 1018-17th-st,2024-09-01,425200,2019-11-15,portal_mar_report
 1018-17th-st,2026-06-07,431200,2019-11-15,mar_tool
+1018-17th-st,2026-09-01,550000,2026-05-01,mar_tool
 1018-20th-st-a,2023-07-19,225000,2022-04-01,mar_tool
 1018-20th-st-a,2023-09-01,220000,2023-06-07,portal_mar_report
 1018-20th-st-a,2024-09-01,226600,2023-06-07,portal_mar_report
@@ -7695,6 +7700,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1022-euclid-st-1,2023-07-19,97300,,mar_tool
 1022-euclid-st-1,2023-09-01,100000,,portal_mar_report
 1022-euclid-st-1,2026-06-07,410000,2024-12-30,mar_tool
+1022-euclid-st-1,2026-09-01,405000,2024-12-30,mar_tool
 1022-euclid-st-10,2012-09-01,170300,2010-01-25,portal_mar_report
 1022-euclid-st-10,2013-09-01,172000,2010-01-25,portal_mar_report
 1022-euclid-st-10,2014-09-01,173400,2010-01-25,portal_mar_report
@@ -8207,6 +8213,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1023-ocean-park-blvd-10,2023-07-19,188600,2020-08-01,mar_tool
 1023-ocean-park-blvd-10,2024-01-15,187500,2024-01-15,portal_mar_report
 1023-ocean-park-blvd-10,2026-06-07,199500,2025-03-15,mar_tool
+1023-ocean-park-blvd-10,2026-09-01,205000,2026-04-17,mar_tool
 1023-ocean-park-blvd-11,2012-09-01,101000,2010-10-18,portal_mar_report
 1023-ocean-park-blvd-11,2013-09-01,125000,2013-07-01,portal_mar_report
 1023-ocean-park-blvd-11,2014-09-01,126000,2013-07-01,portal_mar_report
@@ -8218,6 +8225,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1023-ocean-park-blvd-11,2023-07-19,164800,2021-02-01,mar_tool
 1023-ocean-park-blvd-11,2023-11-26,185000,2023-11-26,portal_mar_report
 1023-ocean-park-blvd-11,2026-06-07,189300,2023-11-26,mar_tool
+1023-ocean-park-blvd-11,2026-09-01,205000,2026-05-15,mar_tool
 1023-ocean-park-blvd-12,2021-09-01,255000,2021-01-22,portal_mar_report
 1023-ocean-park-blvd-12,2023-07-19,262000,2021-01-22,mar_tool
 1023-ocean-park-blvd-12,2023-09-01,268700,2021-01-22,portal_mar_report
@@ -8263,6 +8271,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1023-ocean-park-blvd-2,2023-09-01,190200,2022-07-10,portal_mar_report
 1023-ocean-park-blvd-2,2024-09-01,195900,2022-07-10,portal_mar_report
 1023-ocean-park-blvd-2,2026-06-07,200400,2022-07-10,mar_tool
+1023-ocean-park-blvd-2,2026-09-01,175000,2026-06-12,mar_tool
 1023-ocean-park-blvd-3,2012-09-01,125000,2012-08-01,portal_mar_report
 1023-ocean-park-blvd-3,2014-02-12,132500,2014-02-12,portal_mar_report
 1023-ocean-park-blvd-3,2015-02-17,140000,2015-02-17,portal_mar_report
@@ -8311,6 +8320,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1023-ocean-park-blvd-6,2023-09-01,190100,2021-08-15,portal_mar_report
 1023-ocean-park-blvd-6,2024-09-01,195800,2021-08-15,portal_mar_report
 1023-ocean-park-blvd-6,2026-06-07,200300,2021-08-15,mar_tool
+1023-ocean-park-blvd-6,2026-09-01,189500,2026-06-14,mar_tool
 1023-ocean-park-blvd-7,2012-09-01,96500,2011-04-09,portal_mar_report
 1023-ocean-park-blvd-7,2013-09-01,97500,2011-04-09,portal_mar_report
 1023-ocean-park-blvd-7,2015-05-23,145000,2015-05-23,portal_mar_report
@@ -8406,6 +8416,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1024-18th-st,2023-07-19,356700,2004-06-01,mar_tool
 1024-18th-st,2024-09-01,371000,2004-06-01,portal_mar_report
 1024-18th-st,2026-06-07,377000,2004-06-01,mar_tool
+1024-18th-st,2026-09-01,650000,2025-08-01,mar_tool
 1024-18th-st-a,2012-09-01,195000,2012-06-23,portal_mar_report
 1024-18th-st-a,2013-09-01,199500,2013-06-01,portal_mar_report
 1024-18th-st-a,2014-09-01,200900,2013-06-01,portal_mar_report
@@ -8443,6 +8454,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1024-18th-st-d,2020-09-08,215000,2020-09-08,portal_mar_report
 1024-18th-st-d,2023-07-19,269500,2023-01-01,mar_tool
 1024-18th-st-d,2026-06-07,283100,2023-01-01,mar_tool
+1024-18th-st-d,2026-09-01,277500,2026-02-21,mar_tool
 1024-19th-st-1,2012-09-01,272500,,portal_mar_report
 1024-19th-st-1,2013-09-01,275200,,portal_mar_report
 1024-19th-st-1,2014-09-01,276600,,portal_mar_report
@@ -9225,6 +9237,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1025-idaho-ave-10,2023-09-01,289500,2023-08-19,portal_mar_report
 1025-idaho-ave-10,2024-09-01,297100,2023-08-19,portal_mar_report
 1025-idaho-ave-10,2026-06-07,303100,2023-08-19,mar_tool
+1025-idaho-ave-10,2026-09-01,289500,2025-08-18,mar_tool
 1025-idaho-ave-11,2012-12-01,252300,2012-12-01,portal_mar_report
 1025-idaho-ave-11,2014-09-01,253700,2012-12-01,portal_mar_report
 1025-idaho-ave-11,2015-09-01,254400,2012-12-01,portal_mar_report
@@ -9248,6 +9261,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1025-idaho-ave-2,2023-09-01,300000,2023-03-01,portal_mar_report
 1025-idaho-ave-2,2024-09-01,307600,2023-03-01,portal_mar_report
 1025-idaho-ave-2,2026-06-07,313600,2023-03-01,mar_tool
+1025-idaho-ave-2,2026-09-01,310000,2026-05-23,mar_tool
 1025-idaho-ave-3,2012-12-11,176000,2012-12-11,portal_mar_report
 1025-idaho-ave-3,2014-02-01,187800,2014-02-01,portal_mar_report
 1025-idaho-ave-3,2015-09-01,188500,2014-02-01,portal_mar_report
@@ -9948,6 +9962,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1027-4th-st-5,2023-09-01,200000,2023-07-01,portal_mar_report
 1027-4th-st-5,2024-09-01,206000,2023-07-01,portal_mar_report
 1027-4th-st-5,2026-06-07,210700,2023-07-01,mar_tool
+1027-4th-st-5,2026-09-01,215000,2025-08-26,mar_tool
 1027-4th-st-6,2013-03-01,159600,2013-03-01,portal_mar_report
 1027-4th-st-6,2014-09-01,160900,2013-03-01,portal_mar_report
 1027-4th-st-6,2015-09-01,161500,2013-03-01,portal_mar_report
@@ -9972,6 +9987,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1027-4th-st-7,2023-09-01,213000,2015-04-19,portal_mar_report
 1027-4th-st-7,2024-09-01,219400,2015-04-19,portal_mar_report
 1027-4th-st-7,2026-06-07,224400,2015-04-19,mar_tool
+1027-4th-st-7,2026-09-01,220000,2026-04-17,mar_tool
 1027-4th-st-8,2012-09-01,84700,,portal_mar_report
 1027-4th-st-8,2013-09-01,85500,,portal_mar_report
 1027-4th-st-8,2014-09-01,86200,,portal_mar_report
@@ -9997,6 +10013,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1027-4th-st-9,2023-09-01,205000,2023-07-01,portal_mar_report
 1027-4th-st-9,2024-09-01,211200,2023-07-01,portal_mar_report
 1027-4th-st-9,2026-06-07,216100,2023-07-01,mar_tool
+1027-4th-st-9,2026-09-01,225000,2026-05-04,mar_tool
 1027-9th-st-1,2021-09-01,98800,,portal_mar_report
 1027-9th-st-1,2023-07-19,101800,,mar_tool
 1027-9th-st-1,2023-09-01,104700,,portal_mar_report
@@ -12283,6 +12300,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1032-2nd-st-205,2023-09-01,263200,2020-10-21,portal_mar_report
 1032-2nd-st-205,2024-09-01,270800,2020-10-21,portal_mar_report
 1032-2nd-st-205,2026-06-07,276800,2020-10-21,mar_tool
+1032-2nd-st-205,2026-09-01,262500,2025-12-01,mar_tool
 1032-2nd-st-301,2012-09-01,308000,2007-03-24,portal_mar_report
 1032-2nd-st-301,2013-09-01,311100,2007-03-24,portal_mar_report
 1032-2nd-st-301,2014-09-01,259700,2009-08-20,portal_mar_report
@@ -12598,6 +12616,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1033-10th-st-c,2023-07-19,201000,2018-12-05,mar_tool
 1033-10th-st-c,2024-09-01,212800,2018-12-05,portal_mar_report
 1033-10th-st-c,2026-06-07,217700,2018-12-05,mar_tool
+1033-10th-st-c,2026-09-01,177700,2018-12-05,mar_tool
 1033-10th-st-d,2023-07-19,93200,,mar_tool
 1033-10th-st-d,2026-06-07,101000,,mar_tool
 1033-11th-st-a,2012-09-01,155000,2012-02-01,portal_mar_report
@@ -12771,6 +12790,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1033-3rd-st-105,2023-09-01,415100,2019-09-07,portal_mar_report
 1033-3rd-st-105,2024-09-01,422700,2019-09-07,portal_mar_report
 1033-3rd-st-105,2026-06-07,428700,2019-09-07,mar_tool
+1033-3rd-st-105,2026-09-01,352500,2026-05-01,mar_tool
 1033-3rd-st-106,2012-09-01,262100,2011-05-21,portal_mar_report
 1033-3rd-st-106,2013-09-01,295000,2013-08-23,portal_mar_report
 1033-3rd-st-106,2014-09-01,296400,2013-08-23,portal_mar_report
@@ -13232,6 +13252,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1033-6th-st-310,2026-06-07,353500,2020-07-11,mar_tool
 1033-6th-st-310,2026-06-11,384700,2020-07-11,mar_tool
 1033-6th-st-310,2026-08-01,384700,2026-05-01,mar_tool
+1033-6th-st-310,2026-09-01,387500,2026-05-01,mar_tool
 1033-6th-st-311,2021-09-01,180200,,portal_mar_report
 1033-6th-st-311,2023-07-19,185600,,mar_tool
 1033-6th-st-311,2023-09-01,190800,,portal_mar_report
@@ -16264,6 +16285,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1039-26th-st-a,2026-06-07,0,,mar_tool
 1039-26th-st-a,2026-07-01,800000,2026-05-01,mar_tool
 1039-26th-st-b,2026-06-07,243500,,mar_tool
+1039-26th-st-b,2026-09-01,675000,2026-03-16,mar_tool
 1039-maple-st,2023-07-19,67800,,mar_tool
 1039-maple-st,2026-06-07,73500,,mar_tool
 1039-pacific-st-a,2012-09-01,73300,,portal_mar_report
@@ -16775,6 +16797,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1041-20th-st-l,2023-09-01,243000,2021-07-01,portal_mar_report
 1041-20th-st-l,2024-09-01,250300,2021-07-01,portal_mar_report
 1041-20th-st-l,2026-06-07,256100,2021-07-01,mar_tool
+1041-20th-st-l,2026-09-01,285000,2025-08-01,mar_tool
 1041-20th-st-m,2023-07-19,169500,2022-02-02,mar_tool
 1041-20th-st-m,2024-09-01,179400,2022-02-02,portal_mar_report
 1041-20th-st-m,2026-06-07,183500,2022-02-02,mar_tool
@@ -18081,6 +18104,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1044-4th-st-115,2023-07-19,154600,2010-06-01,mar_tool
 1044-4th-st-115,2023-09-01,158900,2010-06-01,portal_mar_report
 1044-4th-st-115,2026-06-07,163700,2010-06-01,mar_tool
+1044-4th-st-115,2026-09-01,167500,2010-06-01,mar_tool
 1044-7th-st-1,2012-09-01,92300,,portal_mar_report
 1044-7th-st-1,2013-09-01,93200,,portal_mar_report
 1044-7th-st-1,2014-09-01,93900,,portal_mar_report
@@ -19422,6 +19446,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1047-12th-st-7,2023-09-01,251700,2022-01-09,portal_mar_report
 1047-12th-st-7,2024-09-01,259300,2022-01-09,portal_mar_report
 1047-12th-st-7,2026-06-07,265300,2022-01-09,mar_tool
+1047-12th-st-7,2026-09-01,275000,2026-06-13,mar_tool
 1047-12th-st-8,2012-09-01,187000,2007-02-01,portal_mar_report
 1047-12th-st-8,2013-09-01,143600,2011-03-01,portal_mar_report
 1047-12th-st-8,2014-09-01,144700,2011-03-01,portal_mar_report
@@ -22789,6 +22814,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1108-19th-st-4,2023-09-01,303700,2021-05-01,portal_mar_report
 1108-19th-st-4,2024-09-01,342000,2024-08-16,portal_mar_report
 1108-19th-st-4,2026-06-07,348000,2024-08-16,mar_tool
+1108-19th-st-4,2026-09-01,360000,2026-06-01,mar_tool
 1108-19th-st-5,2012-09-01,151400,,portal_mar_report
 1108-19th-st-5,2013-09-01,152900,,portal_mar_report
 1108-19th-st-5,2014-09-01,154100,,portal_mar_report
@@ -25547,6 +25573,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1114-6th-st-6,2019-09-01,350400,2017-06-25,portal_mar_report
 1114-6th-st-6,2020-09-01,353600,2017-06-25,portal_mar_report
 1114-6th-st-6,2023-07-19,415000,2022-05-15,mar_tool
+1114-6th-st-6,2026-09-01,399500,2026-05-01,mar_tool
 1114-6th-st-7,2012-09-01,257600,2011-07-04,portal_mar_report
 1114-6th-st-7,2013-09-14,280000,2013-09-14,portal_mar_report
 1114-6th-st-7,2015-09-01,280700,2013-09-14,portal_mar_report
@@ -26392,6 +26419,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1115-5th-st-202,2023-09-01,286300,2019-01-05,portal_mar_report
 1115-5th-st-202,2024-09-01,293900,2019-01-05,portal_mar_report
 1115-5th-st-202,2026-06-07,299900,2019-01-05,mar_tool
+1115-5th-st-202,2026-09-01,285000,2026-04-25,mar_tool
 1115-5th-st-203,2013-09-01,131500,,portal_mar_report
 1115-5th-st-203,2014-09-01,132600,,portal_mar_report
 1115-5th-st-203,2015-09-01,133100,,portal_mar_report
@@ -27792,6 +27820,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1117-michigan-ave-1-2,2023-09-01,280000,2023-08-26,portal_mar_report
 1117-michigan-ave-1-2,2024-09-01,287600,2023-08-26,portal_mar_report
 1117-michigan-ave-1-2,2026-06-07,293600,2023-08-26,mar_tool
+1117-michigan-ave-1-2,2026-09-01,288000,2026-05-16,mar_tool
 1117-ocean-park-blvd-a,2012-09-01,105600,,portal_mar_report
 1117-ocean-park-blvd-a,2013-09-01,106700,,portal_mar_report
 1117-ocean-park-blvd-a,2014-09-01,107600,,portal_mar_report
@@ -27950,6 +27979,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1118-11th-st-10,2023-09-01,222800,2018-06-15,portal_mar_report
 1118-11th-st-10,2024-09-01,289900,2024-05-29,portal_mar_report
 1118-11th-st-10,2026-06-07,295900,2024-05-29,mar_tool
+1118-11th-st-10,2026-09-01,302200,2024-05-29,mar_tool
 1118-11th-st-11,2013-09-01,80000,2012-11-01,portal_mar_report
 1118-11th-st-11,2014-09-01,80600,2012-11-01,portal_mar_report
 1118-11th-st-11,2015-09-01,80900,2012-11-01,portal_mar_report
@@ -31199,6 +31229,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1125-6th-st-10,2023-07-19,267800,2021-02-01,mar_tool
 1125-6th-st-10,2024-01-01,260000,2024-01-01,portal_mar_report
 1125-6th-st-10,2026-06-07,266000,2024-01-01,mar_tool
+1125-6th-st-10,2026-09-01,240000,2026-07-01,mar_tool
 1125-6th-st-2,2012-09-01,128200,2009-07-01,portal_mar_report
 1125-6th-st-2,2013-09-01,129500,2009-07-01,portal_mar_report
 1125-6th-st-2,2015-03-12,175000,2015-03-12,portal_mar_report
@@ -33407,6 +33438,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1129-lincoln-blvd-2,2023-09-01,279500,2023-06-26,portal_mar_report
 1129-lincoln-blvd-2,2024-09-01,287100,2023-06-26,portal_mar_report
 1129-lincoln-blvd-2,2026-06-07,293100,2023-06-26,mar_tool
+1129-lincoln-blvd-2,2026-09-01,245000,2025-11-09,mar_tool
 1129-lincoln-blvd-3,2012-09-01,94500,,portal_mar_report
 1129-lincoln-blvd-3,2013-09-01,95400,,portal_mar_report
 1129-lincoln-blvd-3,2014-09-01,96200,,portal_mar_report
@@ -33421,6 +33453,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1129-lincoln-blvd-3,2023-09-01,114500,,portal_mar_report
 1129-lincoln-blvd-3,2024-09-01,117900,,portal_mar_report
 1129-lincoln-blvd-3,2026-06-07,120600,,mar_tool
+1129-lincoln-blvd-3,2026-09-01,240000,2025-12-15,mar_tool
 1129-lincoln-blvd-4,2012-09-01,118500,2006-01-01,portal_mar_report
 1129-lincoln-blvd-4,2013-09-01,119700,2006-01-01,portal_mar_report
 1129-lincoln-blvd-4,2014-09-01,120700,2006-01-01,portal_mar_report
@@ -33434,6 +33467,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1129-lincoln-blvd-4,2023-09-01,184200,2015-10-01,portal_mar_report
 1129-lincoln-blvd-4,2024-09-01,205500,2023-08-01,portal_mar_report
 1129-lincoln-blvd-4,2026-06-07,210200,2023-08-01,mar_tool
+1129-lincoln-blvd-4,2026-09-01,199500,2024-09-30,mar_tool
 1129-lincoln-blvd-5,2012-09-01,189500,2012-02-15,portal_mar_report
 1129-lincoln-blvd-5,2013-09-01,191400,2012-02-15,portal_mar_report
 1129-lincoln-blvd-5,2014-09-01,265000,2014-06-21,portal_mar_report
@@ -33448,6 +33482,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1129-lincoln-blvd-5,2023-09-01,303400,2014-06-21,portal_mar_report
 1129-lincoln-blvd-5,2024-09-01,337100,2023-08-15,portal_mar_report
 1129-lincoln-blvd-5,2026-06-07,343100,2023-08-15,mar_tool
+1129-lincoln-blvd-5,2026-09-01,305500,2024-08-30,mar_tool
 1129-lincoln-blvd-6,2012-09-01,89500,,portal_mar_report
 1129-lincoln-blvd-6,2013-09-01,90400,,portal_mar_report
 1129-lincoln-blvd-6,2014-09-01,91100,,portal_mar_report
@@ -33487,6 +33522,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1129-lincoln-blvd-8,2023-09-01,251200,2022-05-17,portal_mar_report
 1129-lincoln-blvd-8,2024-09-01,258700,2022-05-17,portal_mar_report
 1129-lincoln-blvd-8,2026-06-07,264700,2022-05-17,mar_tool
+1129-lincoln-blvd-8,2026-09-01,245000,2025-08-01,mar_tool
 1129-lincoln-blvd-9,2013-01-15,130000,2013-01-15,portal_mar_report
 1129-lincoln-blvd-9,2014-11-07,145000,2014-11-07,portal_mar_report
 1129-lincoln-blvd-9,2016-04-01,150000,2016-04-01,portal_mar_report
@@ -33817,6 +33853,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1131-14th-st-8,2020-09-01,382000,2008-08-15,portal_mar_report
 1131-14th-st-8,2023-07-19,392900,2008-08-15,mar_tool
 1131-14th-st-8,2026-06-07,456000,2024-07-01,mar_tool
+1131-14th-st-8,2026-09-01,442500,2026-06-12,mar_tool
 1131-17th-st-1,2023-07-19,0,,mar_tool
 1131-17th-st-2,2012-09-01,161400,,portal_mar_report
 1131-17th-st-2,2013-09-01,163000,,portal_mar_report
@@ -35336,6 +35373,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1134-11th-st-204,2023-09-01,226200,2021-10-26,portal_mar_report
 1134-11th-st-204,2024-09-01,233000,2021-10-26,portal_mar_report
 1134-11th-st-204,2026-06-07,238400,2021-10-26,mar_tool
+1134-11th-st-204,2026-09-01,262000,2026-05-20,mar_tool
 1134-11th-st-301,2012-09-01,128800,,portal_mar_report
 1134-11th-st-301,2013-09-01,130100,,portal_mar_report
 1134-11th-st-301,2014-09-01,131100,,portal_mar_report
@@ -37112,6 +37150,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1138-euclid-st-5,2023-09-01,211300,2021-01-23,portal_mar_report
 1138-euclid-st-5,2024-09-01,217600,2021-01-23,portal_mar_report
 1138-euclid-st-5,2026-06-07,222600,2021-01-23,mar_tool
+1138-euclid-st-5,2026-09-01,220000,2026-03-20,mar_tool
 1138-euclid-st-6,2012-09-01,160600,2007-08-11,portal_mar_report
 1138-euclid-st-6,2013-09-01,162200,2007-08-11,portal_mar_report
 1138-euclid-st-6,2014-09-01,163500,2007-08-11,portal_mar_report
@@ -42513,6 +42552,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1218-14th-st-11,2023-07-19,310000,2023-02-01,mar_tool
 1218-14th-st-11,2024-09-01,317600,2023-02-01,portal_mar_report
 1218-14th-st-11,2026-06-07,323600,2023-02-01,mar_tool
+1218-14th-st-11,2026-09-01,300000,2026-04-06,mar_tool
 1218-14th-st-2,2012-09-01,120000,2012-06-01,portal_mar_report
 1218-14th-st-2,2013-09-01,130000,2013-06-11,portal_mar_report
 1218-14th-st-2,2014-09-01,131000,2013-06-11,portal_mar_report
@@ -42603,6 +42643,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1218-14th-st-9,2023-07-19,190000,2022-02-01,mar_tool
 1218-14th-st-9,2023-09-25,205000,2023-09-25,portal_mar_report
 1218-14th-st-9,2026-06-07,209700,2023-09-25,mar_tool
+1218-14th-st-9,2026-09-01,205000,2026-04-01,mar_tool
 1218-23rd-st-a,2012-09-01,75100,,portal_mar_report
 1218-23rd-st-a,2013-09-01,75900,,portal_mar_report
 1218-23rd-st-a,2014-09-01,76500,,portal_mar_report
@@ -43716,8 +43757,10 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1221-ocean-ave-1606,2026-06-07,1606000,2024-07-31,mar_tool
 1221-ocean-ave-1607,2023-07-19,943300,2002-12-11,mar_tool
 1221-ocean-ave-1607,2026-06-07,1763600,2023-08-22,mar_tool
+1221-ocean-ave-1607,2026-09-01,1785000,2026-05-31,mar_tool
 1221-ocean-ave-1608,2023-07-19,1637500,2020-09-16,mar_tool
 1221-ocean-ave-1608,2026-06-07,1775000,2025-10-24,mar_tool
+1221-ocean-ave-1608,2026-09-01,1850000,2026-06-15,mar_tool
 1221-ocean-ave-1701,2023-07-19,3110400,2020-08-15,mar_tool
 1221-ocean-ave-1701,2026-06-07,2477500,2025-05-13,mar_tool
 1221-ocean-ave-1702,2023-07-19,2112000,2021-04-01,mar_tool
@@ -43991,6 +44034,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1221-ocean-ave-903,2026-06-07,1147900,2023-03-31,mar_tool
 1221-ocean-ave-904,2023-07-19,785500,2021-01-08,mar_tool
 1221-ocean-ave-904,2026-06-07,805800,2021-01-08,mar_tool
+1221-ocean-ave-904,2026-09-01,874000,2026-05-29,mar_tool
 1221-ocean-ave-905,2023-07-19,1127000,2021-12-09,mar_tool
 1221-ocean-ave-905,2026-06-07,1206000,2024-05-13,mar_tool
 1221-ocean-ave-906,2023-07-19,1258500,2020-10-14,mar_tool
@@ -44871,6 +44915,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1224-ocean-park-blvd-a,2023-09-01,253200,2021-01-18,portal_mar_report
 1224-ocean-park-blvd-a,2024-09-01,260800,2021-01-18,portal_mar_report
 1224-ocean-park-blvd-a,2026-06-07,266800,2021-01-18,mar_tool
+1224-ocean-park-blvd-a,2026-09-01,279500,2026-03-01,mar_tool
 1224-ocean-park-blvd-b,2021-09-01,242500,2020-11-14,portal_mar_report
 1224-ocean-park-blvd-b,2023-07-19,249500,2020-11-14,mar_tool
 1224-ocean-park-blvd-b,2023-10-01,290000,2023-10-01,portal_mar_report
@@ -45482,6 +45527,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1226-25th-st,2023-09-01,236600,2015-04-01,portal_mar_report
 1226-25th-st,2024-09-01,243700,2015-04-01,portal_mar_report
 1226-25th-st,2026-06-07,0,2015-04-01,mar_tool
+1226-25th-st,2026-09-01,196100,2015-04-01,mar_tool
 1226-25th-st-a,2012-09-01,146200,2009-12-10,portal_mar_report
 1226-25th-st-a,2013-09-01,147700,2009-12-10,portal_mar_report
 1226-25th-st-a,2014-09-01,148900,2009-12-10,portal_mar_report
@@ -46404,6 +46450,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1227-euclid-st-6,2023-09-01,245700,2021-10-11,portal_mar_report
 1227-euclid-st-6,2024-09-01,253100,2021-10-11,portal_mar_report
 1227-euclid-st-6,2026-06-07,258900,2021-10-11,mar_tool
+1227-euclid-st-6,2026-09-01,250000,2026-01-09,mar_tool
 1227-euclid-st-7,2012-09-01,87500,,portal_mar_report
 1227-euclid-st-7,2013-09-01,88400,,portal_mar_report
 1227-euclid-st-7,2014-09-01,89100,,portal_mar_report
@@ -50782,6 +50829,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1237-berkeley-st-3,2023-09-01,285800,2019-03-25,portal_mar_report
 1237-berkeley-st-3,2024-09-01,293400,2019-03-25,portal_mar_report
 1237-berkeley-st-3,2026-06-07,299400,2019-03-25,mar_tool
+1237-berkeley-st-3,2026-09-01,359500,2026-06-22,mar_tool
 1237-berkeley-st-4,2012-09-01,97300,,portal_mar_report
 1237-berkeley-st-4,2013-09-01,98300,,portal_mar_report
 1237-berkeley-st-4,2014-09-01,99100,,portal_mar_report
@@ -51704,6 +51752,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1239-24th-st,2023-07-19,289100,2019-01-01,mar_tool
 1239-24th-st,2023-09-01,295800,2019-01-01,portal_mar_report
 1239-24th-st,2026-06-07,337500,2025-01-26,mar_tool
+1239-24th-st,2026-09-01,305000,2026-06-15,mar_tool
 1239-24th-st-1-2,2019-09-01,240000,2019-05-01,portal_mar_report
 1239-24th-st-1-2,2020-09-01,243200,2019-05-01,portal_mar_report
 1239-24th-st-1-2,2021-09-01,247100,2019-05-01,portal_mar_report
@@ -51711,6 +51760,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1239-24th-st-1-2,2023-09-01,260800,2019-05-01,portal_mar_report
 1239-24th-st-1-2,2024-09-01,261800,2022-01-10,portal_mar_report
 1239-24th-st-1-2,2026-06-07,267800,2022-01-10,mar_tool
+1239-24th-st-1-2,2026-09-01,249000,2025-10-25,mar_tool
 1239-26th-st-a,2012-09-01,272400,2004-09-11,portal_mar_report
 1239-26th-st-a,2014-01-01,320000,2014-01-01,portal_mar_report
 1239-26th-st-a,2015-09-01,320700,2014-01-01,portal_mar_report
@@ -55300,6 +55350,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 125-washington-ave-g,2020-10-01,380000,2020-10-01,portal_mar_report
 125-washington-ave-g,2023-07-19,450000,2023-01-01,mar_tool
 125-washington-ave-g,2026-06-07,504000,2025-02-01,mar_tool
+125-washington-ave-g,2026-09-01,410000,2026-06-11,mar_tool
 125-washington-ave-h,2012-09-01,115600,,portal_mar_report
 125-washington-ave-h,2014-09-01,117700,,portal_mar_report
 125-washington-ave-h,2015-09-01,118200,,portal_mar_report
@@ -59787,6 +59838,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1308-franklin-st-c,2023-09-01,277600,2020-01-01,portal_mar_report
 1308-franklin-st-c,2024-09-01,285200,2020-01-01,portal_mar_report
 1308-franklin-st-c,2026-06-07,291200,2020-01-01,mar_tool
+1308-franklin-st-c,2026-09-01,339500,2026-03-14,mar_tool
 1308-ocean-park-blvd-1,2021-09-01,220000,2021-06-10,portal_mar_report
 1308-ocean-park-blvd-1,2023-07-19,194700,2021-06-10,mar_tool
 1308-ocean-park-blvd-1,2023-09-01,269500,2023-05-20,portal_mar_report
@@ -60418,6 +60470,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1311-15th-st-102,2023-09-01,229100,2017-05-08,portal_mar_report
 1311-15th-st-102,2024-09-01,236000,2017-05-08,portal_mar_report
 1311-15th-st-102,2026-06-07,225000,2024-11-01,mar_tool
+1311-15th-st-102,2026-09-01,230000,2025-09-05,mar_tool
 1311-15th-st-103,2012-09-01,186400,2001-09-08,portal_mar_report
 1311-15th-st-103,2013-09-01,188300,2001-09-08,portal_mar_report
 1311-15th-st-103,2014-09-01,189700,2001-09-08,portal_mar_report
@@ -60459,6 +60512,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1311-15th-st-201,2023-09-01,220000,2013-12-21,portal_mar_report
 1311-15th-st-201,2024-09-01,226600,2013-12-21,portal_mar_report
 1311-15th-st-201,2026-06-07,231800,2013-12-21,mar_tool
+1311-15th-st-201,2026-09-01,10200,2013-12-21,mar_tool
 1311-15th-st-202,2012-09-01,150800,2011-07-15,portal_mar_report
 1311-15th-st-202,2014-03-18,160000,2014-03-18,portal_mar_report
 1311-15th-st-202,2016-09-01,167100,2015-06-11,portal_mar_report
@@ -61430,6 +61484,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1313-pico-blvd-b,2023-07-19,229500,2022-09-15,mar_tool
 1313-pico-blvd-b,2024-09-01,236400,2022-09-15,portal_mar_report
 1313-pico-blvd-b,2026-06-07,241800,2022-09-15,mar_tool
+1313-pico-blvd-b,2026-09-01,239500,2025-10-01,mar_tool
 1313-pico-blvd-c,2018-09-01,70100,,portal_mar_report
 1313-pico-blvd-c,2019-09-01,71500,,portal_mar_report
 1313-pico-blvd-c,2021-09-01,73700,,portal_mar_report
@@ -61497,6 +61552,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1313-pico-blvd-h,2023-07-19,215800,2021-03-01,mar_tool
 1313-pico-blvd-h,2024-01-19,239500,2024-01-19,portal_mar_report
 1313-pico-blvd-h,2026-06-07,245000,2024-01-19,mar_tool
+1313-pico-blvd-h,2026-09-01,280000,2025-10-02,mar_tool
 1313-pico-blvd-j,2012-09-01,73400,,portal_mar_report
 1313-pico-blvd-j,2013-09-01,74100,,portal_mar_report
 1313-pico-blvd-j,2014-09-01,74700,,portal_mar_report
@@ -61520,6 +61576,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1313-pico-blvd-k,2023-07-19,229500,2023-03-08,mar_tool
 1313-pico-blvd-k,2024-09-01,236400,2023-03-08,portal_mar_report
 1313-pico-blvd-k,2026-06-07,241800,2023-03-08,mar_tool
+1313-pico-blvd-k,2026-09-01,270000,2025-05-09,mar_tool
 1313-pico-blvd-l,2012-09-01,140000,2012-09-01,portal_mar_report
 1313-pico-blvd-l,2014-09-01,141100,2012-09-01,portal_mar_report
 1313-pico-blvd-l,2015-10-01,160000,2015-10-01,portal_mar_report
@@ -61529,6 +61586,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1313-pico-blvd-l,2023-09-01,239500,2023-07-22,portal_mar_report
 1313-pico-blvd-l,2024-09-01,246700,2023-07-22,portal_mar_report
 1313-pico-blvd-l,2026-06-07,252400,2023-07-22,mar_tool
+1313-pico-blvd-l,2026-09-01,220000,2026-02-01,mar_tool
 1313-santa-monica-mall,2023-07-19,0,,mar_tool
 1314-10th-st-1,2012-09-01,166000,2011-07-01,portal_mar_report
 1314-10th-st-1,2013-09-01,167700,2011-07-01,portal_mar_report
@@ -63673,6 +63731,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1320-franklin-st-b,2023-09-01,290000,2023-08-01,portal_mar_report
 1320-franklin-st-b,2024-09-01,297600,2023-08-01,portal_mar_report
 1320-franklin-st-b,2026-06-07,303600,2023-08-01,mar_tool
+1320-franklin-st-b,2026-09-01,329500,2026-03-01,mar_tool
 1320-franklin-st-c,2021-09-01,194000,2004-08-01,portal_mar_report
 1320-franklin-st-c,2023-07-19,199800,2004-08-01,mar_tool
 1320-franklin-st-c,2023-09-01,205400,2004-08-01,portal_mar_report
@@ -64771,6 +64830,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1323-11th-st-10,2023-09-01,377100,2020-08-01,portal_mar_report
 1323-11th-st-10,2024-09-01,384700,2020-08-01,portal_mar_report
 1323-11th-st-10,2026-06-07,390700,2020-08-01,mar_tool
+1323-11th-st-10,2026-09-01,367500,2026-03-28,mar_tool
 1323-11th-st-2,2013-06-01,130000,2013-06-01,portal_mar_report
 1323-11th-st-2,2015-06-01,137000,2015-06-01,portal_mar_report
 1323-11th-st-2,2016-09-01,138800,2015-06-01,portal_mar_report
@@ -64782,6 +64842,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1323-11th-st-2,2023-09-01,263200,2021-02-23,portal_mar_report
 1323-11th-st-2,2024-09-01,279500,2024-07-01,portal_mar_report
 1323-11th-st-2,2026-06-07,285500,2024-07-01,mar_tool
+1323-11th-st-2,2026-09-01,239500,2026-05-19,mar_tool
 1323-11th-st-3,2012-09-01,129600,2008-07-19,portal_mar_report
 1323-11th-st-3,2013-09-01,130900,2008-07-19,portal_mar_report
 1323-11th-st-3,2014-09-01,131900,2008-07-19,portal_mar_report
@@ -64822,6 +64883,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1323-11th-st-5,2023-09-01,349500,2022-11-04,portal_mar_report
 1323-11th-st-5,2024-09-01,339500,2024-04-01,portal_mar_report
 1323-11th-st-5,2026-06-07,345500,2024-04-01,mar_tool
+1323-11th-st-5,2026-09-01,329500,2026-06-13,mar_tool
 1323-11th-st-6,2012-09-01,128200,2008-10-01,portal_mar_report
 1323-11th-st-6,2013-09-01,129500,2008-10-01,portal_mar_report
 1323-11th-st-6,2014-09-01,130500,2008-10-01,portal_mar_report
@@ -64835,6 +64897,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1323-11th-st-6,2023-09-01,312600,2020-06-30,portal_mar_report
 1323-11th-st-6,2024-09-01,320200,2020-06-30,portal_mar_report
 1323-11th-st-6,2026-06-07,326200,2020-06-30,mar_tool
+1323-11th-st-6,2026-09-01,249500,2026-05-11,mar_tool
 1323-11th-st-7,2012-09-01,120300,2000-01-11,portal_mar_report
 1323-11th-st-7,2013-09-01,121500,2000-01-11,portal_mar_report
 1323-11th-st-7,2014-09-01,122500,2000-01-11,portal_mar_report
@@ -66983,6 +67046,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1330-california-ave-104,2023-09-01,145400,,portal_mar_report
 1330-california-ave-104,2024-09-01,149800,,portal_mar_report
 1330-california-ave-104,2026-06-07,390000,2025-07-01,mar_tool
+1330-california-ave-104,2026-09-01,400000,2026-06-01,mar_tool
 1330-california-ave-105,2012-09-01,232200,2009-06-01,portal_mar_report
 1330-california-ave-105,2013-09-01,234500,2009-06-01,portal_mar_report
 1330-california-ave-105,2014-09-01,235900,2009-06-01,portal_mar_report
@@ -67736,6 +67800,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1333-11th-st-2,2023-09-01,180000,2021-06-19,portal_mar_report
 1333-11th-st-2,2024-09-01,185400,2021-06-19,portal_mar_report
 1333-11th-st-2,2026-06-07,189700,2021-06-19,mar_tool
+1333-11th-st-2,2026-09-01,239500,2025-11-01,mar_tool
 1333-11th-st-3,2012-09-01,85600,,portal_mar_report
 1333-11th-st-3,2013-09-01,86500,,portal_mar_report
 1333-11th-st-3,2014-09-01,87200,,portal_mar_report
@@ -69138,6 +69203,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1338-princeton-st-a,2023-09-01,253700,2021-01-27,portal_mar_report
 1338-princeton-st-a,2024-09-01,260000,2024-06-15,portal_mar_report
 1338-princeton-st-a,2026-06-07,266000,2024-06-15,mar_tool
+1338-princeton-st-a,2026-09-01,279500,2026-06-12,mar_tool
 1338-princeton-st-b,2021-09-01,230000,2021-06-01,portal_mar_report
 1338-princeton-st-b,2023-07-19,236900,2021-06-01,mar_tool
 1338-princeton-st-b,2023-12-15,247500,2023-12-15,portal_mar_report
@@ -70010,6 +70076,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1343-19th-st-4,2023-09-01,360000,2023-03-01,portal_mar_report
 1343-19th-st-4,2024-09-01,367600,2023-03-01,portal_mar_report
 1343-19th-st-4,2026-06-07,373600,2023-03-01,mar_tool
+1343-19th-st-4,2026-09-01,380000,2025-07-15,mar_tool
 1343-19th-st-5,2012-09-01,98500,,portal_mar_report
 1343-19th-st-5,2013-09-01,204600,2011-05-09,portal_mar_report
 1343-19th-st-5,2014-09-01,206000,2011-05-09,portal_mar_report
@@ -71795,6 +71862,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1412-17th-st-5,2023-09-01,165000,2005-12-01,portal_mar_report
 1412-17th-st-5,2024-09-01,170000,2005-12-01,portal_mar_report
 1412-17th-st-5,2026-06-07,283100,2023-04-15,mar_tool
+1412-17th-st-5,2026-09-01,252500,2026-06-01,mar_tool
 1412-17th-st-6,2012-09-01,98500,,portal_mar_report
 1412-17th-st-6,2013-09-01,99500,,portal_mar_report
 1412-17th-st-6,2014-09-01,100300,,portal_mar_report
@@ -73844,6 +73912,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1421-pearl-st-a,2023-07-19,284000,2017-02-01,mar_tool
 1421-pearl-st-a,2023-09-01,290700,2017-02-01,portal_mar_report
 1421-pearl-st-a,2026-06-07,298300,2017-02-01,mar_tool
+1421-pearl-st-a,2026-09-01,304300,2017-02-01,mar_tool
 1421-pearl-st-b,2012-09-01,199400,2003-06-01,portal_mar_report
 1421-pearl-st-b,2013-09-01,201400,2003-06-01,portal_mar_report
 1421-pearl-st-b,2014-09-01,202800,2003-06-01,portal_mar_report
@@ -73857,12 +73926,14 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1421-pearl-st-b,2023-07-19,234000,2003-06-01,mar_tool
 1421-pearl-st-b,2023-09-01,240600,2003-06-01,portal_mar_report
 1421-pearl-st-b,2026-06-07,247800,2003-06-01,mar_tool
+1421-pearl-st-b,2026-09-01,253500,2003-06-01,mar_tool
 1421-pearl-st-c,2015-09-01,199600,2013-08-15,portal_mar_report
 1421-pearl-st-c,2016-09-01,202100,2013-08-15,portal_mar_report
 1421-pearl-st-c,2021-09-01,223000,2013-08-15,portal_mar_report
 1421-pearl-st-c,2023-07-19,229700,2013-08-15,mar_tool
 1421-pearl-st-c,2023-09-01,236100,2013-08-15,portal_mar_report
 1421-pearl-st-c,2026-06-07,243200,2013-08-15,mar_tool
+1421-pearl-st-c,2026-09-01,248800,2013-08-15,mar_tool
 1421-pearl-st-d,2012-09-01,203700,2001-01-01,portal_mar_report
 1421-pearl-st-d,2013-09-01,205700,2001-01-01,portal_mar_report
 1421-pearl-st-d,2014-09-01,207100,2001-01-01,portal_mar_report
@@ -73876,6 +73947,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1421-pearl-st-d,2023-07-19,238700,2001-01-01,mar_tool
 1421-pearl-st-d,2023-09-01,245400,2001-01-01,portal_mar_report
 1421-pearl-st-d,2026-06-07,252800,2001-01-01,mar_tool
+1421-pearl-st-d,2026-09-01,258600,2001-01-01,mar_tool
 1421-princeton-st,2021-09-01,255500,1999-02-21,portal_mar_report
 1421-princeton-st,2023-07-19,262500,1999-02-21,mar_tool
 1421-princeton-st,2023-09-01,269200,1999-02-21,portal_mar_report
@@ -74703,6 +74775,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1423-9th-st-2,2023-09-01,205000,2022-12-27,portal_mar_report
 1423-9th-st-2,2024-09-01,211200,2022-12-27,portal_mar_report
 1423-9th-st-2,2026-06-07,209700,2024-08-01,mar_tool
+1423-9th-st-2,2026-09-01,210000,2026-01-28,mar_tool
 1423-9th-st-3,2014-04-23,137500,2014-04-23,portal_mar_report
 1423-9th-st-3,2015-09-01,138100,2014-04-23,portal_mar_report
 1423-9th-st-3,2017-04-21,158500,2017-04-21,portal_mar_report
@@ -74774,6 +74847,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1423-9th-st-8,2023-09-01,179500,2021-08-10,portal_mar_report
 1423-9th-st-8,2024-09-01,184900,2021-08-10,portal_mar_report
 1423-9th-st-8,2026-06-07,189200,2021-08-10,mar_tool
+1423-9th-st-8,2026-09-01,205000,2026-03-07,mar_tool
 1423-9th-st-9,2012-09-01,136500,2009-05-28,portal_mar_report
 1423-9th-st-9,2013-09-01,137900,2009-05-28,portal_mar_report
 1423-9th-st-9,2014-09-01,139000,2009-05-28,portal_mar_report
@@ -78717,6 +78791,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1431-ocean-ave-1505,2026-06-07,279000,2025-11-21,mar_tool
 1431-ocean-ave-1506,2023-07-19,219200,2020-06-01,mar_tool
 1431-ocean-ave-1506,2026-06-07,237100,2023-06-16,mar_tool
+1431-ocean-ave-1506,2026-09-01,274000,2026-06-11,mar_tool
 1431-ocean-ave-1507,2023-07-19,141200,,mar_tool
 1431-ocean-ave-1507,2026-06-07,153000,,mar_tool
 1431-ocean-ave-1508,2023-07-19,292800,2019-06-01,mar_tool
@@ -78727,6 +78802,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1431-ocean-ave-1510,2026-06-07,316500,2026-02-20,mar_tool
 1431-ocean-ave-1511,2023-07-19,164600,,mar_tool
 1431-ocean-ave-1511,2026-06-07,178300,,mar_tool
+1431-ocean-ave-1511,2026-09-01,449000,2026-06-02,mar_tool
 1431-ocean-ave-1512,2023-07-19,282500,2015-10-10,mar_tool
 1431-ocean-ave-1512,2026-06-07,279000,2025-09-08,mar_tool
 1431-ocean-ave-1513,2023-07-19,373600,2020-01-15,mar_tool
@@ -78797,6 +78873,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1431-ocean-ave-201,2023-09-01,335000,2023-05-15,portal_mar_report
 1431-ocean-ave-201,2024-09-01,299500,2024-06-30,portal_mar_report
 1431-ocean-ave-201,2026-06-07,324500,2024-06-30,mar_tool
+1431-ocean-ave-201,2026-09-01,328500,2026-06-15,mar_tool
 1431-ocean-ave-202,2012-09-01,240400,2011-03-20,portal_mar_report
 1431-ocean-ave-202,2013-09-01,298500,2012-06-28,portal_mar_report
 1431-ocean-ave-202,2015-05-01,327000,2015-05-01,portal_mar_report
@@ -78954,6 +79031,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1431-ocean-ave-404,2026-06-07,244600,2020-11-21,mar_tool
 1431-ocean-ave-405,2023-07-19,194800,2010-05-12,mar_tool
 1431-ocean-ave-405,2026-06-07,211000,2010-05-12,mar_tool
+1431-ocean-ave-405,2026-09-01,220000,2026-06-15,mar_tool
 1431-ocean-ave-406,2023-07-19,255500,2017-05-09,mar_tool
 1431-ocean-ave-406,2026-06-07,258500,2026-02-12,mar_tool
 1431-ocean-ave-407,2023-07-19,337000,2021-04-18,mar_tool
@@ -79129,6 +79207,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1431-ocean-ave-811,2026-06-07,404000,2025-07-19,mar_tool
 1431-ocean-ave-812,2023-07-19,240100,2020-07-10,mar_tool
 1431-ocean-ave-812,2026-06-07,248500,2025-10-04,mar_tool
+1431-ocean-ave-812,2026-09-01,267500,2025-10-04,mar_tool
 1431-ocean-ave-813,2023-07-19,300000,2012-09-18,mar_tool
 1431-ocean-ave-813,2026-06-07,369000,2025-06-13,mar_tool
 1431-ocean-ave-814,2023-07-19,88400,,mar_tool
@@ -81076,6 +81155,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1434-18th-st-1,2023-09-01,250800,2019-07-28,portal_mar_report
 1434-18th-st-1,2024-09-01,258300,2019-07-28,portal_mar_report
 1434-18th-st-1,2026-06-07,264200,2019-07-28,mar_tool
+1434-18th-st-1,2026-09-01,244900,2026-05-01,mar_tool
 1434-18th-st-2,2012-09-01,190000,2012-06-01,portal_mar_report
 1434-18th-st-2,2014-09-01,220000,2014-05-31,portal_mar_report
 1434-18th-st-2,2015-09-01,248900,2015-07-01,portal_mar_report
@@ -83330,6 +83410,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1441-euclid-st-2,2023-09-01,250200,2016-01-01,portal_mar_report
 1441-euclid-st-2,2024-09-01,257700,2016-01-01,portal_mar_report
 1441-euclid-st-2,2026-06-07,263600,2016-01-01,mar_tool
+1441-euclid-st-2,2026-09-01,250000,2026-06-08,mar_tool
 1441-euclid-st-3,2012-09-01,76000,,portal_mar_report
 1441-euclid-st-3,2013-09-01,76800,,portal_mar_report
 1441-euclid-st-3,2015-09-01,77700,,portal_mar_report
@@ -83907,6 +83988,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1443-9th-st-d,2021-09-01,225300,2013-06-01,portal_mar_report
 1443-9th-st-d,2023-07-19,299500,2022-07-15,mar_tool
 1443-9th-st-d,2026-06-07,319800,2022-07-15,mar_tool
+1443-9th-st-d,2026-09-01,380000,2026-02-07,mar_tool
 1443-9th-st-e,2021-09-01,213100,2019-09-01,portal_mar_report
 1443-9th-st-e,2023-07-19,239500,2023-03-15,mar_tool
 1443-9th-st-e,2023-10-01,239500,2023-10-01,portal_mar_report
@@ -84096,6 +84178,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1444-15th-st-2,2023-07-19,350000,2022-09-04,mar_tool
 1444-15th-st-2,2024-09-01,319500,2024-05-30,portal_mar_report
 1444-15th-st-2,2026-06-07,325500,2024-05-30,mar_tool
+1444-15th-st-2,2026-09-01,309500,2026-04-17,mar_tool
 1444-15th-st-3,2012-09-01,223500,1999-10-15,portal_mar_report
 1444-15th-st-3,2013-09-01,225700,1999-10-15,portal_mar_report
 1444-15th-st-3,2014-09-01,227100,1999-10-15,portal_mar_report
@@ -85580,6 +85663,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1449-princeton-st-5,2023-09-01,133500,1999-06-01,portal_mar_report
 1449-princeton-st-5,2024-09-01,137500,1999-06-01,portal_mar_report
 1449-princeton-st-5,2026-06-07,140700,1999-06-01,mar_tool
+1449-princeton-st-5,2026-09-01,249500,2026-06-05,mar_tool
 1449-princeton-st-6,2012-09-01,189500,,portal_mar_report
 1449-princeton-st-6,2013-09-01,189500,2012-10-13,portal_mar_report
 1449-princeton-st-6,2014-09-01,190900,2012-10-13,portal_mar_report
@@ -86641,6 +86725,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1455-24th-st-4,2023-09-01,210700,2021-09-01,portal_mar_report
 1455-24th-st-4,2024-09-01,236900,2023-03-11,portal_mar_report
 1455-24th-st-4,2026-06-07,242300,2023-03-11,mar_tool
+1455-24th-st-4,2026-09-01,215000,2026-06-05,mar_tool
 1455-24th-st-5,2012-09-01,67800,,portal_mar_report
 1455-24th-st-5,2013-09-01,68500,,portal_mar_report
 1455-24th-st-5,2014-09-01,69000,,portal_mar_report
@@ -86680,6 +86765,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1455-24th-st-7,2023-07-19,215000,2022-01-11,mar_tool
 1455-24th-st-7,2023-09-01,221000,2022-01-11,portal_mar_report
 1455-24th-st-7,2026-06-07,229500,2024-10-13,mar_tool
+1455-24th-st-7,2026-09-01,225000,2024-09-13,mar_tool
 1455-24th-st-8,2012-09-01,130000,2012-03-07,portal_mar_report
 1455-24th-st-8,2013-09-01,131300,2012-03-07,portal_mar_report
 1455-24th-st-8,2014-09-01,132400,2012-03-07,portal_mar_report
@@ -87443,6 +87529,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 149-wadsworth-ave,2023-07-19,1260900,2019-11-13,mar_tool
 149-wadsworth-ave,2023-09-01,1267600,2019-11-13,portal_mar_report
 149-wadsworth-ave,2026-06-07,1275200,2019-11-13,mar_tool
+149-wadsworth-ave,2026-09-01,1281200,2019-11-13,mar_tool
 150-fraser-ave,2023-07-19,219800,,mar_tool
 150-fraser-ave,2026-06-07,238200,,mar_tool
 150-san-vicente-blvd-2,2021-09-01,122900,,portal_mar_report
@@ -87458,6 +87545,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 150-san-vicente-blvd-6,2023-09-01,316700,2022-06-01,portal_mar_report
 150-san-vicente-blvd-6,2024-09-01,324300,2022-06-01,portal_mar_report
 150-san-vicente-blvd-6,2026-06-07,330300,2022-06-01,mar_tool
+150-san-vicente-blvd-6,2026-09-01,290000,2026-05-14,mar_tool
 150-san-vicente-blvd-8,2021-09-01,255000,2021-03-01,portal_mar_report
 150-san-vicente-blvd-8,2023-07-19,262000,2021-03-01,mar_tool
 150-san-vicente-blvd-8,2023-09-01,268700,2021-03-01,portal_mar_report
@@ -87532,6 +87620,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1501-pearl-st-2,2023-09-01,225600,2022-06-11,portal_mar_report
 1501-pearl-st-2,2024-09-01,229500,2024-05-01,portal_mar_report
 1501-pearl-st-2,2026-06-07,234800,2024-05-01,mar_tool
+1501-pearl-st-2,2026-09-01,249500,2026-06-01,mar_tool
 1501-pearl-st-3,2012-09-01,198100,2008-06-01,portal_mar_report
 1501-pearl-st-3,2014-05-16,210000,2014-05-16,portal_mar_report
 1501-pearl-st-3,2015-09-01,210700,2014-05-16,portal_mar_report
@@ -88346,6 +88435,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1507-princeton-st-e,2023-07-19,325000,2022-09-15,mar_tool
 1507-princeton-st-e,2024-09-01,332600,2022-09-15,portal_mar_report
 1507-princeton-st-e,2026-06-07,338600,2022-09-15,mar_tool
+1507-princeton-st-e,2026-09-01,280000,2026-05-01,mar_tool
 1507-princeton-st-f,2012-12-04,179500,2012-12-04,portal_mar_report
 1507-princeton-st-f,2014-09-01,180900,2012-12-04,portal_mar_report
 1507-princeton-st-f,2015-09-01,210000,2015-06-15,portal_mar_report
@@ -88633,6 +88723,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 151-wadsworth-ave,2023-07-19,332400,,mar_tool
 151-wadsworth-ave,2023-09-01,339100,,portal_mar_report
 151-wadsworth-ave,2026-06-07,346700,,mar_tool
+151-wadsworth-ave,2026-09-01,352700,,mar_tool
 151-wadsworth-ave-rear,2023-07-19,0,,mar_tool
 1510-california-ave-a,2021-09-01,203200,2008-02-15,portal_mar_report
 1510-california-ave-a,2023-07-19,209300,2008-02-15,mar_tool
@@ -89867,6 +89958,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1517-18th-st-f,2023-07-19,270000,2022-06-24,mar_tool
 1517-18th-st-f,2023-09-01,276700,2022-06-24,portal_mar_report
 1517-18th-st-f,2026-06-07,286000,2024-08-18,mar_tool
+1517-18th-st-f,2026-09-01,280000,2026-03-26,mar_tool
 1517-19th-st-1,2012-09-01,182500,2011-12-01,portal_mar_report
 1517-19th-st-1,2013-09-01,184300,2011-12-01,portal_mar_report
 1517-19th-st-1,2014-09-01,222500,2014-07-16,portal_mar_report
@@ -95855,7 +95947,9 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1531-stanford-st-c,2024-09-01,270300,2015-02-22,portal_mar_report
 1531-stanford-st-c,2026-06-07,276300,2015-02-22,mar_tool
 1532-11th-st-a,2026-06-07,389500,,mar_tool
+1532-11th-st-a,2026-09-01,389500,2025-08-01,mar_tool
 1532-11th-st-b,2026-06-07,469500,,mar_tool
+1532-11th-st-b,2026-09-01,469500,2025-07-24,mar_tool
 1532-16th-st,2012-09-01,141100,,portal_mar_report
 1532-16th-st,2023-07-19,166100,,mar_tool
 1532-16th-st,2026-06-07,179900,,mar_tool
@@ -96624,6 +96718,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1535-harvard-st-d,2026-06-07,230000,2025-09-01,mar_tool
 1535-harvard-st-e,2023-07-19,0,,mar_tool
 1536-11th-st,2023-07-19,0,,mar_tool
+1536-11th-st,2026-09-01,379500,2026-06-22,mar_tool
 1536-18th-st,2023-07-19,0,,mar_tool
 1536-18th-st-1-2,2023-07-19,0,,mar_tool
 1536-19th-st,2012-09-01,56300,,portal_mar_report
@@ -97494,6 +97589,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1538-11th-st-7,2023-07-19,209000,2023-05-05,mar_tool
 1538-11th-st-7,2024-09-01,209000,2024-03-23,portal_mar_report
 1538-11th-st-7,2026-06-07,213800,2024-03-23,mar_tool
+1538-11th-st-7,2026-09-01,208100,2026-06-12,mar_tool
 1538-11th-st-8,2012-09-01,151300,2011-01-05,portal_mar_report
 1538-11th-st-8,2013-09-01,152800,2011-01-05,portal_mar_report
 1538-11th-st-8,2014-09-01,154000,2011-01-05,portal_mar_report
@@ -97517,6 +97613,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1538-11th-st-9,2023-07-19,335000,2023-04-01,mar_tool
 1538-11th-st-9,2024-09-01,342600,2023-04-01,portal_mar_report
 1538-11th-st-9,2026-06-07,348600,2023-04-01,mar_tool
+1538-11th-st-9,2026-09-01,342500,2026-06-06,mar_tool
 1538-16th-st,2023-07-19,57700,,mar_tool
 1538-16th-st,2026-06-07,62500,,mar_tool
 1538-18th-st,2021-09-01,300000,,portal_mar_report
@@ -98421,6 +98518,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1541-harvard-st-a,2023-09-01,238300,2021-08-01,portal_mar_report
 1541-harvard-st-a,2024-09-01,245400,2021-08-01,portal_mar_report
 1541-harvard-st-a,2026-06-07,251000,2021-08-01,mar_tool
+1541-harvard-st-a,2026-09-01,265000,2026-07-03,mar_tool
 1541-harvard-st-b,2012-09-01,146700,2010-07-07,portal_mar_report
 1541-harvard-st-b,2013-09-01,148200,2010-07-07,portal_mar_report
 1541-harvard-st-b,2014-09-01,149400,2010-07-07,portal_mar_report
@@ -99748,6 +99846,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1601-franklin-st-b,2024-09-01,195200,2014-11-01,portal_mar_report
 1601-franklin-st-b,2026-06-07,199700,2014-11-01,mar_tool
 1601-franklin-st-c,2023-07-19,190000,2022-02-01,mar_tool
+1601-franklin-st-c,2026-09-01,205800,2022-02-01,mar_tool
 1601-ocean-front-a,2012-09-01,31200,,portal_mar_report
 1601-ocean-front-a,2013-09-01,60600,2013-07-01,portal_mar_report
 1601-ocean-front-a,2014-09-01,61100,2013-07-01,portal_mar_report
@@ -99807,6 +99906,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1603-california-ave-d,2023-09-01,272700,2015-03-15,portal_mar_report
 1603-california-ave-d,2024-09-01,280300,2015-03-15,portal_mar_report
 1603-california-ave-d,2026-06-07,286300,2015-03-15,mar_tool
+1603-california-ave-d,2026-09-01,325000,2026-04-01,mar_tool
 1603-franklin-st-a,2021-09-01,175000,2020-10-01,portal_mar_report
 1603-franklin-st-a,2023-07-19,180300,2020-10-01,mar_tool
 1603-franklin-st-a,2023-12-01,200000,2023-12-01,portal_mar_report
@@ -105735,6 +105835,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1754-euclid-st-e,2021-09-01,253400,2019-12-23,portal_mar_report
 1754-euclid-st-e,2023-07-19,260400,2019-12-23,mar_tool
 1754-euclid-st-e,2026-06-07,286000,2024-05-15,mar_tool
+1754-euclid-st-e,2026-09-01,283000,2026-05-12,mar_tool
 1754-euclid-st-f,2012-09-01,102800,,portal_mar_report
 1754-euclid-st-f,2013-09-01,103800,,portal_mar_report
 1754-euclid-st-f,2014-09-01,104600,,portal_mar_report
@@ -105876,6 +105977,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1756-12th-st,2023-09-01,63600,,portal_mar_report
 1756-12th-st,2024-09-01,65500,,portal_mar_report
 1756-12th-st,2026-06-07,67000,,mar_tool
+1756-12th-st,2026-09-01,360000,2026-05-16,mar_tool
 1756-franklin-st-1,2012-09-01,180800,2011-02-01,portal_mar_report
 1756-franklin-st-1,2013-09-01,182600,2011-02-01,portal_mar_report
 1756-franklin-st-1,2014-09-01,184000,2011-02-01,portal_mar_report
@@ -106584,6 +106686,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1801-ocean-park-blvd-105,2023-07-19,105000,,mar_tool
 1801-ocean-park-blvd-105,2024-03-08,215000,2024-03-08,portal_mar_report
 1801-ocean-park-blvd-105,2026-06-07,219900,2024-03-08,mar_tool
+1801-ocean-park-blvd-105,2026-09-01,220000,2026-05-25,mar_tool
 1801-ocean-park-blvd-106,2012-09-01,81700,,portal_mar_report
 1801-ocean-park-blvd-106,2013-09-01,82500,,portal_mar_report
 1801-ocean-park-blvd-106,2014-09-01,83200,,portal_mar_report
@@ -111089,6 +111192,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1827-10th-st-1,2023-09-01,258400,2013-09-01,portal_mar_report
 1827-10th-st-1,2024-09-01,266000,2013-09-01,portal_mar_report
 1827-10th-st-1,2026-06-07,280000,2018-10-05,mar_tool
+1827-10th-st-1,2026-09-01,279500,2026-06-01,mar_tool
 1827-10th-st-2,2012-09-01,156800,2004-02-01,portal_mar_report
 1827-10th-st-2,2013-09-01,158400,2004-02-01,portal_mar_report
 1827-10th-st-2,2014-09-01,159700,2004-02-01,portal_mar_report
@@ -111498,6 +111602,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1828-20th-st-b,2023-09-01,251700,2021-09-20,portal_mar_report
 1828-20th-st-b,2024-09-01,259300,2021-09-20,portal_mar_report
 1828-20th-st-b,2026-06-07,265300,2021-09-20,mar_tool
+1828-20th-st-b,2026-09-01,260000,2026-01-05,mar_tool
 1828-20th-st-c,2019-09-01,239400,2016-06-01,portal_mar_report
 1828-20th-st-c,2020-09-01,242600,2016-06-01,portal_mar_report
 1828-20th-st-c,2021-09-01,246500,2016-06-01,portal_mar_report
@@ -111845,6 +111950,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1831-pearl-st-2,2023-07-19,211300,2017-07-10,mar_tool
 1831-pearl-st-2,2023-09-01,217200,2017-07-10,portal_mar_report
 1831-pearl-st-2,2026-06-07,235000,2024-09-20,mar_tool
+1831-pearl-st-2,2026-09-01,239500,2026-05-24,mar_tool
 1831-pearl-st-3,2012-09-01,64900,,portal_mar_report
 1831-pearl-st-3,2013-09-01,65500,,portal_mar_report
 1831-pearl-st-3,2014-09-01,66000,,portal_mar_report
@@ -113202,6 +113308,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1839-euclid-st-c,2026-06-07,269500,2025-02-15,mar_tool
 1839-euclid-st-d,2023-07-19,172800,2014-11-01,mar_tool
 1839-euclid-st-d,2026-06-07,295500,2024-07-26,mar_tool
+1839-euclid-st-e,2026-09-01,0,,mar_tool
 1840-10th-st,2021-09-01,203300,2009-12-01,portal_mar_report
 1840-10th-st,2023-07-19,209400,2009-12-01,mar_tool
 1840-10th-st,2023-09-01,215300,2009-12-01,portal_mar_report
@@ -113999,6 +114106,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1845-17th-st-6,2023-07-19,78100,,mar_tool
 1845-17th-st-6,2024-04-11,195600,2024-04-11,portal_mar_report
 1845-17th-st-6,2026-06-07,200100,2024-04-11,mar_tool
+1845-17th-st-6,2026-09-01,235600,2026-06-17,mar_tool
 1845-17th-st-7,2021-09-01,83700,,portal_mar_report
 1845-17th-st-7,2023-07-19,86200,,mar_tool
 1845-17th-st-7,2023-09-01,88600,,portal_mar_report
@@ -120214,6 +120322,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 1935-cloverfield-blvd-17,2023-09-01,169600,2014-08-01,portal_mar_report
 1935-cloverfield-blvd-17,2024-09-01,174700,2014-08-01,portal_mar_report
 1935-cloverfield-blvd-17,2026-06-07,178700,2014-08-01,mar_tool
+1935-cloverfield-blvd-17,2026-09-01,185000,2026-06-15,mar_tool
 1935-cloverfield-blvd-18,2021-09-01,226400,2019-06-01,portal_mar_report
 1935-cloverfield-blvd-18,2023-07-19,233200,2019-06-01,mar_tool
 1935-cloverfield-blvd-18,2023-09-01,239700,2019-06-01,portal_mar_report
@@ -125514,6 +125623,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 202-bicknell-ave-4,2023-09-01,257600,2019-10-01,portal_mar_report
 202-bicknell-ave-4,2024-09-01,250000,2024-08-04,portal_mar_report
 202-bicknell-ave-4,2026-06-07,255800,2024-08-04,mar_tool
+202-bicknell-ave-4,2026-09-01,245000,2026-06-01,mar_tool
 202-bicknell-ave-5e,2012-09-01,125600,2009-03-08,portal_mar_report
 202-bicknell-ave-5e,2013-09-01,126900,2009-03-08,portal_mar_report
 202-bicknell-ave-5e,2014-09-01,127900,2009-03-08,portal_mar_report
@@ -125536,6 +125646,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 202-bicknell-ave-5w,2023-07-19,199500,2022-12-15,mar_tool
 202-bicknell-ave-5w,2024-09-01,205500,2022-12-15,portal_mar_report
 202-bicknell-ave-5w,2026-06-07,205000,2025-06-24,mar_tool
+202-bicknell-ave-5w,2026-09-01,199500,2026-06-01,mar_tool
 202-bicknell-ave-6,2012-09-01,128300,2009-09-01,portal_mar_report
 202-bicknell-ave-6,2013-09-01,129600,2009-09-01,portal_mar_report
 202-bicknell-ave-6,2014-09-01,130600,2009-09-01,portal_mar_report
@@ -125785,6 +125896,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2020-ocean-park-blvd-b,2023-09-01,198600,2016-06-11,portal_mar_report
 2020-ocean-park-blvd-b,2024-09-01,204600,2016-06-11,portal_mar_report
 2020-ocean-park-blvd-b,2026-06-07,209300,2016-06-11,mar_tool
+2020-ocean-park-blvd-b,2026-09-01,180000,2026-06-28,mar_tool
 2020-ocean-park-blvd-c,2019-09-01,174300,2010-08-01,portal_mar_report
 2020-ocean-park-blvd-c,2021-09-01,179700,2010-08-01,portal_mar_report
 2020-ocean-park-blvd-c,2023-07-19,185100,2010-08-01,mar_tool
@@ -126672,6 +126784,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2024-ocean-park-blvd-1-2,2023-09-01,265000,2023-08-28,portal_mar_report
 2024-ocean-park-blvd-1-2,2024-09-01,272600,2023-08-28,portal_mar_report
 2024-ocean-park-blvd-1-2,2026-06-07,278600,2023-08-28,mar_tool
+2024-ocean-park-blvd-1-2,2026-09-01,245000,2026-06-15,mar_tool
 2024-stewart-st,2012-09-01,53100,,portal_mar_report
 2024-stewart-st,2013-09-01,53600,,portal_mar_report
 2024-stewart-st,2014-09-01,54000,,portal_mar_report
@@ -128685,6 +128798,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 204-washington-ave-305,2023-09-01,403700,2020-10-10,portal_mar_report
 204-washington-ave-305,2024-09-01,411300,2020-10-10,portal_mar_report
 204-washington-ave-305,2026-06-07,417300,2020-10-10,mar_tool
+204-washington-ave-305,2026-09-01,445300,2026-06-01,mar_tool
 204-washington-ave-306,2021-09-01,303700,2020-06-26,portal_mar_report
 204-washington-ave-306,2023-07-19,310700,2020-06-26,mar_tool
 204-washington-ave-306,2023-09-01,317400,2020-06-26,portal_mar_report
@@ -130997,6 +131111,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2110-montana-ave,2023-09-01,333700,2021-08-13,portal_mar_report
 2110-montana-ave,2024-09-01,341300,2021-08-13,portal_mar_report
 2110-montana-ave,2026-06-07,347300,2021-08-13,mar_tool
+2110-montana-ave,2026-09-01,290000,2026-04-01,mar_tool
 2110-oak-st,2012-09-01,163700,,portal_mar_report
 2110-oak-st,2013-09-01,165300,,portal_mar_report
 2110-oak-st,2014-09-01,166600,,portal_mar_report
@@ -131277,6 +131392,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2112-ocean-park-blvd-2,2023-09-01,244800,2008-07-05,portal_mar_report
 2112-ocean-park-blvd-2,2024-09-01,252100,2008-07-05,portal_mar_report
 2112-ocean-park-blvd-2,2026-06-07,257900,2008-07-05,mar_tool
+2112-ocean-park-blvd-2,2026-09-01,325000,2026-05-21,mar_tool
 2112-ocean-park-blvd-3,2013-09-01,193900,2005-07-01,portal_mar_report
 2112-ocean-park-blvd-3,2014-09-01,195300,2005-07-01,portal_mar_report
 2112-ocean-park-blvd-3,2015-09-01,196000,2005-07-01,portal_mar_report
@@ -134500,6 +134616,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 220-bay-st-208,2023-09-01,283700,2021-03-06,portal_mar_report
 220-bay-st-208,2024-09-01,291300,2021-03-06,portal_mar_report
 220-bay-st-208,2026-06-07,297300,2021-03-06,mar_tool
+220-bay-st-208,2026-09-01,330000,2026-06-08,mar_tool
 220-bay-st-209,2021-09-01,240000,2021-03-20,portal_mar_report
 220-bay-st-209,2023-07-19,247000,2021-03-20,mar_tool
 220-bay-st-209,2023-09-01,253700,2021-03-20,portal_mar_report
@@ -135203,6 +135320,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2202-montana-ave-a,2023-07-19,86300,,mar_tool
 2202-montana-ave-a,2023-09-01,88700,,portal_mar_report
 2202-montana-ave-a,2026-06-07,91400,,mar_tool
+2202-montana-ave-a,2026-09-01,93500,,mar_tool
 2202-montana-ave-b,2021-09-01,333400,2019-10-01,portal_mar_report
 2202-montana-ave-b,2023-07-19,340400,2019-10-01,mar_tool
 2202-montana-ave-b,2023-09-01,347100,2019-10-01,portal_mar_report
@@ -135211,14 +135329,17 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2202-montana-ave-c,2023-07-19,87000,,mar_tool
 2202-montana-ave-c,2023-09-01,89400,,portal_mar_report
 2202-montana-ave-c,2026-06-07,92100,,mar_tool
+2202-montana-ave-c,2026-09-01,94200,,mar_tool
 2202-montana-ave-d,2021-09-01,176700,2015-12-19,portal_mar_report
 2202-montana-ave-d,2023-07-19,182000,2015-12-19,mar_tool
 2202-montana-ave-d,2023-09-01,187100,2015-12-19,portal_mar_report
 2202-montana-ave-d,2026-06-07,300000,2024-04-15,mar_tool
+2202-montana-ave-d,2026-09-01,306000,2024-04-15,mar_tool
 2202-montana-ave-e,2021-09-01,167000,2005-06-01,portal_mar_report
 2202-montana-ave-e,2023-07-19,172000,2005-06-01,mar_tool
 2202-montana-ave-e,2023-09-01,176800,2005-06-01,portal_mar_report
 2202-montana-ave-e,2026-06-07,320800,2021-04-07,mar_tool
+2202-montana-ave-e,2026-09-01,326800,2021-04-07,mar_tool
 2202-ocean-park-blvd,2021-09-01,50700,,portal_mar_report
 2202-ocean-park-blvd,2023-07-19,52200,,mar_tool
 2202-ocean-park-blvd,2023-09-01,53700,,portal_mar_report
@@ -135621,21 +135742,26 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2208-montana-ave,2023-07-19,86300,,mar_tool
 2208-montana-ave,2023-09-01,88700,,portal_mar_report
 2208-montana-ave,2026-06-07,91400,,mar_tool
+2208-montana-ave,2026-09-01,93500,,mar_tool
 2208-montana-ave-a,2021-09-01,194500,2011-05-15,portal_mar_report
 2208-montana-ave-a,2023-07-19,200300,2011-05-15,mar_tool
 2208-montana-ave-a,2026-06-07,212100,2011-05-15,mar_tool
+2208-montana-ave-a,2026-09-01,217000,2011-05-15,mar_tool
 2208-montana-ave-b,2021-09-01,91000,,portal_mar_report
 2208-montana-ave-b,2023-07-19,93700,,mar_tool
 2208-montana-ave-b,2023-09-01,96300,,portal_mar_report
 2208-montana-ave-b,2026-06-07,99200,,mar_tool
+2208-montana-ave-b,2026-09-01,101500,,mar_tool
 2208-montana-ave-c,2021-09-01,168500,2013-10-01,portal_mar_report
 2208-montana-ave-c,2023-07-19,173600,2013-10-01,mar_tool
 2208-montana-ave-c,2023-09-01,178500,2013-10-01,portal_mar_report
 2208-montana-ave-c,2026-06-07,183900,2013-10-01,mar_tool
+2208-montana-ave-c,2026-09-01,188100,2013-10-01,mar_tool
 2208-montana-ave-d,2021-09-01,150000,2021-07-01,portal_mar_report
 2208-montana-ave-d,2023-07-19,154500,2021-07-01,mar_tool
 2208-montana-ave-d,2023-09-01,158800,2021-07-01,portal_mar_report
 2208-montana-ave-d,2026-06-07,163600,2021-07-01,mar_tool
+2208-montana-ave-d,2026-09-01,167400,2021-07-01,mar_tool
 2208-ocean-park-blvd,2021-09-01,242100,2019-07-26,portal_mar_report
 2208-ocean-park-blvd,2023-07-19,249100,2019-07-26,mar_tool
 2208-ocean-park-blvd,2023-09-01,255800,2019-07-26,portal_mar_report
@@ -138411,6 +138537,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 223-pacific-st-f,2023-09-01,311200,2021-07-01,portal_mar_report
 223-pacific-st-f,2024-09-01,318800,2021-07-01,portal_mar_report
 223-pacific-st-f,2026-06-07,324800,2021-07-01,mar_tool
+223-pacific-st-f,2026-09-01,325000,2026-05-01,mar_tool
 223-pacific-st-g,2012-09-01,143500,,portal_mar_report
 223-pacific-st-g,2013-09-01,144900,,portal_mar_report
 223-pacific-st-g,2014-09-01,146100,,portal_mar_report
@@ -141400,6 +141527,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 228-idaho-ave-4,2023-09-01,263700,2020-12-19,portal_mar_report
 228-idaho-ave-4,2024-09-01,271300,2020-12-19,portal_mar_report
 228-idaho-ave-4,2026-06-07,265000,2026-05-01,mar_tool
+228-idaho-ave-4,2026-09-01,250000,2026-06-06,mar_tool
 228-idaho-ave-5,2023-07-19,72600,,mar_tool
 228-idaho-ave-5,2023-09-01,200000,2023-07-01,portal_mar_report
 228-idaho-ave-5,2024-09-01,206000,2023-07-01,portal_mar_report
@@ -142466,6 +142594,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2302-oak-st-3,2023-07-19,313500,2018-05-01,mar_tool
 2302-oak-st-3,2023-09-01,310000,2023-08-01,portal_mar_report
 2302-oak-st-3,2026-06-07,359500,2024-09-06,mar_tool
+2302-oak-st-3,2026-09-01,359500,2026-07-01,mar_tool
 2302-oak-st-4,2012-09-01,200000,2012-07-01,portal_mar_report
 2302-oak-st-4,2013-09-01,202000,2012-07-01,portal_mar_report
 2302-oak-st-4,2014-09-01,203400,2012-07-01,portal_mar_report
@@ -144336,6 +144465,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2317-ocean-park-blvd-a,2023-09-01,152200,2009-09-11,portal_mar_report
 2317-ocean-park-blvd-a,2024-09-01,156800,2009-09-11,portal_mar_report
 2317-ocean-park-blvd-a,2026-06-07,160400,2009-09-11,mar_tool
+2317-ocean-park-blvd-a,2026-09-01,229500,2026-06-06,mar_tool
 2317-ocean-park-blvd-b,2012-09-01,115500,2005-04-01,portal_mar_report
 2317-ocean-park-blvd-b,2015-01-16,195000,2015-01-16,portal_mar_report
 2317-ocean-park-blvd-b,2015-11-10,200000,2015-11-10,portal_mar_report
@@ -147386,6 +147516,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 234-san-vicente-blvd-7,2023-09-01,287600,2020-07-20,portal_mar_report
 234-san-vicente-blvd-7,2024-09-01,295200,2020-07-20,portal_mar_report
 234-san-vicente-blvd-7,2026-06-07,270000,2025-02-14,mar_tool
+234-san-vicente-blvd-7,2026-09-01,275000,2026-05-14,mar_tool
 234-san-vicente-blvd-8,2012-09-01,175600,2006-08-15,portal_mar_report
 234-san-vicente-blvd-8,2013-09-01,177400,2006-08-15,portal_mar_report
 234-san-vicente-blvd-8,2014-09-01,160100,2010-02-06,portal_mar_report
@@ -147906,6 +148037,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2345-20th-st-d,2023-07-19,199500,2021-11-06,mar_tool
 2345-20th-st-d,2024-09-01,211300,2021-11-06,portal_mar_report
 2345-20th-st-d,2026-06-07,216200,2021-11-06,mar_tool
+2345-20th-st-d,2026-09-01,225000,2026-05-31,mar_tool
 2345-20th-st-e,2012-09-01,109500,2012-07-15,portal_mar_report
 2345-20th-st-e,2014-02-15,110000,2014-02-15,portal_mar_report
 2345-20th-st-e,2015-09-01,110400,2014-02-15,portal_mar_report
@@ -148295,6 +148427,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2346-20th-st,2023-09-01,229100,2017-02-15,portal_mar_report
 2346-20th-st,2024-09-01,236000,2017-02-15,portal_mar_report
 2346-20th-st,2026-06-07,241400,2017-02-15,mar_tool
+2346-20th-st,2026-09-01,245000,2026-05-16,mar_tool
 2346-20th-st-a,2012-09-01,136000,1999-02-01,portal_mar_report
 2346-20th-st-a,2013-09-01,137400,1999-02-01,portal_mar_report
 2346-20th-st-a,2014-09-01,138500,1999-02-01,portal_mar_report
@@ -150852,6 +150985,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2410-ocean-park-blvd-5,2023-09-01,103700,,portal_mar_report
 2410-ocean-park-blvd-5,2024-09-01,106800,,portal_mar_report
 2410-ocean-park-blvd-5,2026-06-07,109300,,mar_tool
+2410-ocean-park-blvd-5,2026-09-01,242300,2023-08-20,mar_tool
 2410-ocean-park-blvd-6,2012-09-01,112900,,portal_mar_report
 2410-ocean-park-blvd-6,2013-09-01,114000,,portal_mar_report
 2410-ocean-park-blvd-6,2014-09-01,114900,,portal_mar_report
@@ -150888,6 +151022,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2411-20th-st-a,2023-09-01,200700,2017-04-01,portal_mar_report
 2411-20th-st-a,2024-09-01,206700,2017-04-01,portal_mar_report
 2411-20th-st-a,2026-06-07,211500,2017-04-01,mar_tool
+2411-20th-st-a,2026-09-01,200000,2026-02-15,mar_tool
 2411-28th-st,2019-04-23,350000,2019-04-23,portal_mar_report
 2411-28th-st,2020-09-01,353200,2019-04-23,portal_mar_report
 2411-28th-st,2021-09-01,357100,2019-04-23,portal_mar_report
@@ -151417,6 +151552,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2415-20th-st-b,2023-09-01,167800,2012-10-01,portal_mar_report
 2415-20th-st-b,2024-09-01,172800,2012-10-01,portal_mar_report
 2415-20th-st-b,2026-06-07,176800,2012-10-01,mar_tool
+2415-20th-st-b,2026-09-01,185000,2025-05-15,mar_tool
 2415-29th-st,2023-07-19,0,,mar_tool
 2415-arizona-ave,2012-09-01,130000,,portal_mar_report
 2415-arizona-ave,2013-09-01,131300,2012-01-11,portal_mar_report
@@ -152815,6 +152951,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2427-6th-st,2023-09-01,113500,,portal_mar_report
 2427-6th-st,2024-09-01,280000,2024-07-01,portal_mar_report
 2427-6th-st,2026-06-07,286000,2024-07-01,mar_tool
+2427-6th-st,2026-09-01,119600,,mar_tool
 2427-centinela-ave-a,2023-07-19,113500,,mar_tool
 2427-centinela-ave-a,2026-06-07,123000,,mar_tool
 2427-centinela-ave-b,2023-07-19,129800,,mar_tool
@@ -155732,6 +155869,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2445-oak-st,2021-09-01,200000,2020-11-16,portal_mar_report
 2445-oak-st,2023-07-19,206000,2020-11-16,mar_tool
 2445-oak-st,2026-06-07,250000,2023-03-10,mar_tool
+2445-oak-st,2026-09-01,263400,2023-03-10,mar_tool
 2445-oak-st-1-2,2021-09-01,182900,2008-08-01,portal_mar_report
 2445-oak-st-1-2,2023-07-19,188400,2008-08-01,mar_tool
 2445-oak-st-1-2,2023-09-01,193700,2008-08-01,portal_mar_report
@@ -161064,6 +161202,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2525-beverley-ave-10,2023-09-01,231600,2020-08-01,portal_mar_report
 2525-beverley-ave-10,2026-06-07,238500,2020-08-01,mar_tool
 2525-beverley-ave-10,2026-08-01,244000,2020-08-01,mar_tool
+2525-beverley-ave-10,2026-09-01,349500,2026-04-01,mar_tool
 2525-beverley-ave-2,2012-09-01,114300,,portal_mar_report
 2525-beverley-ave-2,2013-09-01,115400,,portal_mar_report
 2525-beverley-ave-2,2014-09-01,116300,,portal_mar_report
@@ -168081,6 +168220,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2635-5th-st-1,2023-09-01,249500,2023-07-01,portal_mar_report
 2635-5th-st-1,2024-09-01,249500,2024-07-31,portal_mar_report
 2635-5th-st-1,2026-06-07,255200,2024-07-31,mar_tool
+2635-5th-st-1,2026-09-01,219500,2026-05-31,mar_tool
 2635-5th-st-2,2012-09-01,135000,2011-09-18,portal_mar_report
 2635-5th-st-2,2014-02-14,174900,2014-02-14,portal_mar_report
 2635-5th-st-2,2015-10-01,220000,2015-10-01,portal_mar_report
@@ -168295,6 +168435,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2636-28th-st-5,2023-07-19,256500,2021-08-01,mar_tool
 2636-28th-st-5,2023-09-01,263200,2021-08-01,portal_mar_report
 2636-28th-st-5,2026-06-07,295000,2025-03-31,mar_tool
+2636-28th-st-5,2026-09-01,310000,2026-04-01,mar_tool
 2636-28th-st-6,2013-06-08,155000,2013-06-08,portal_mar_report
 2636-28th-st-6,2014-09-01,156200,2013-06-08,portal_mar_report
 2636-28th-st-6,2015-09-01,156800,2013-06-08,portal_mar_report
@@ -168379,6 +168520,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2636-kansas-ave-10,2023-09-01,216500,2021-05-15,portal_mar_report
 2636-kansas-ave-10,2024-09-01,223000,2021-05-15,portal_mar_report
 2636-kansas-ave-10,2026-06-07,228100,2021-05-15,mar_tool
+2636-kansas-ave-10,2026-09-01,255000,2026-02-21,mar_tool
 2636-kansas-ave-11,2012-09-01,141600,2011-07-18,portal_mar_report
 2636-kansas-ave-11,2013-09-01,143000,2011-07-18,portal_mar_report
 2636-kansas-ave-11,2014-09-01,144100,2011-07-18,portal_mar_report
@@ -168475,6 +168617,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2636-kansas-ave-6,2023-09-01,256700,2021-11-26,portal_mar_report
 2636-kansas-ave-6,2024-09-01,264300,2021-11-26,portal_mar_report
 2636-kansas-ave-6,2026-06-07,270300,2021-11-26,mar_tool
+2636-kansas-ave-6,2026-09-01,259500,2026-04-08,mar_tool
 2636-kansas-ave-7,2012-09-01,171000,2009-02-01,portal_mar_report
 2636-kansas-ave-7,2013-09-01,172700,2009-02-01,portal_mar_report
 2636-kansas-ave-7,2014-09-01,174100,2009-02-01,portal_mar_report
@@ -168504,6 +168647,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2636-kansas-ave-8a,2023-07-19,219500,2022-12-28,mar_tool
 2636-kansas-ave-8a,2024-09-01,226100,2022-12-28,portal_mar_report
 2636-kansas-ave-8a,2026-06-07,209900,2025-09-22,mar_tool
+2636-kansas-ave-8a,2026-09-01,219500,2026-04-06,mar_tool
 2636-kansas-ave-9,2012-09-01,141600,2011-02-01,portal_mar_report
 2636-kansas-ave-9,2013-09-01,143000,2011-02-01,portal_mar_report
 2636-kansas-ave-9,2014-09-01,144100,2011-02-01,portal_mar_report
@@ -169050,6 +169194,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2638-4th-st-e,2023-07-19,230400,2014-02-01,mar_tool
 2638-4th-st-e,2024-09-01,244000,2014-02-01,portal_mar_report
 2638-4th-st-e,2026-06-07,249600,2014-02-01,mar_tool
+2638-4th-st-e,2026-09-01,277500,2026-03-28,mar_tool
 2638-4th-st-f,2012-09-01,181200,2009-03-01,portal_mar_report
 2638-4th-st-f,2013-09-01,183000,2009-03-01,portal_mar_report
 2638-4th-st-f,2014-09-01,200900,2013-05-01,portal_mar_report
@@ -170785,6 +170930,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2700-neilson-way-1425,2026-06-07,142500,,mar_tool
 2700-neilson-way-1426,2023-07-19,442000,2021-08-15,mar_tool
 2700-neilson-way-1426,2026-06-07,416000,2023-12-01,mar_tool
+2700-neilson-way-1426,2026-09-01,430000,2026-06-13,mar_tool
 2700-neilson-way-1427,2023-07-19,656500,2021-05-19,mar_tool
 2700-neilson-way-1427,2026-06-07,676800,2021-05-19,mar_tool
 2700-neilson-way-1428,2023-07-19,520400,2020-07-01,mar_tool
@@ -170998,6 +171144,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2700-neilson-way-331,2026-06-07,287300,2021-03-21,mar_tool
 2700-neilson-way-332,2023-07-19,380000,2021-11-06,mar_tool
 2700-neilson-way-332,2026-06-07,400300,2021-11-06,mar_tool
+2700-neilson-way-332,2026-09-01,409500,2026-05-30,mar_tool
 2700-neilson-way-333,2023-07-19,350000,2022-08-06,mar_tool
 2700-neilson-way-333,2026-06-07,379500,2025-01-31,mar_tool
 2700-neilson-way-334,2023-07-19,104900,,mar_tool
@@ -171121,6 +171268,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2700-neilson-way-728,2026-06-07,610000,2025-07-09,mar_tool
 2700-neilson-way-729,2023-07-19,338700,2005-08-15,mar_tool
 2700-neilson-way-729,2026-06-07,369500,2025-02-14,mar_tool
+2700-neilson-way-729,2026-09-01,406500,2026-06-12,mar_tool
 2700-neilson-way-730,2023-07-19,378600,2013-04-30,mar_tool
 2700-neilson-way-730,2026-06-07,398900,2013-04-30,mar_tool
 2700-neilson-way-731,2023-07-19,335700,2011-05-01,mar_tool
@@ -171499,6 +171647,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2704-11th-st-2,2023-09-01,161400,,portal_mar_report
 2704-11th-st-2,2024-09-01,166200,,portal_mar_report
 2704-11th-st-2,2026-06-07,170000,,mar_tool
+2704-11th-st-2,2026-09-01,470000,2025-10-21,mar_tool
 2704-11th-st-3,2012-09-01,285000,2011-09-08,portal_mar_report
 2704-11th-st-3,2013-09-01,320000,2013-07-01,portal_mar_report
 2704-11th-st-3,2014-09-22,330000,2014-09-22,portal_mar_report
@@ -173985,6 +174134,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2731-4th-st-a,2023-09-01,310800,2019-06-15,portal_mar_report
 2731-4th-st-a,2024-09-01,318400,2019-06-15,portal_mar_report
 2731-4th-st-a,2026-06-07,324400,2019-06-15,mar_tool
+2731-4th-st-a,2026-09-01,320000,2026-06-15,mar_tool
 2731-4th-st-b,2023-07-19,254200,2006-10-02,mar_tool
 2731-4th-st-b,2023-09-01,260900,2006-10-02,portal_mar_report
 2731-4th-st-b,2026-06-07,274500,2006-10-02,mar_tool
@@ -174961,6 +175111,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2805-3rd-st-5,2023-09-01,131300,,portal_mar_report
 2805-3rd-st-5,2024-09-01,135200,,portal_mar_report
 2805-3rd-st-5,2026-06-07,138300,,mar_tool
+2805-3rd-st-5,2026-09-01,870000,2025-05-01,mar_tool
 2805-3rd-st-6,2012-09-01,104100,2001-05-01,portal_mar_report
 2805-3rd-st-6,2013-09-01,105100,2001-05-01,portal_mar_report
 2805-3rd-st-6,2019-09-01,115400,2001-05-01,portal_mar_report
@@ -175397,6 +175548,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2811-3rd-st-10,2023-07-19,427000,2021-07-10,mar_tool
 2811-3rd-st-10,2023-10-06,450000,2023-10-06,portal_mar_report
 2811-3rd-st-10,2026-06-07,456000,2023-10-06,mar_tool
+2811-3rd-st-10,2026-09-01,475000,2026-06-01,mar_tool
 2811-3rd-st-11,2012-09-01,70500,,portal_mar_report
 2811-3rd-st-11,2013-09-01,71200,,portal_mar_report
 2811-3rd-st-11,2017-09-01,74500,,portal_mar_report
@@ -176166,6 +176318,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2820-3rd-st-1,2023-09-01,349500,2023-05-06,portal_mar_report
 2820-3rd-st-1,2024-09-01,359500,2024-05-15,portal_mar_report
 2820-3rd-st-1,2026-06-07,365500,2024-05-15,mar_tool
+2820-3rd-st-1,2026-09-01,390000,2026-05-01,mar_tool
 2820-3rd-st-2,2012-09-01,90900,,portal_mar_report
 2820-3rd-st-2,2013-09-01,91800,,portal_mar_report
 2820-3rd-st-2,2014-09-01,92500,,portal_mar_report
@@ -176206,6 +176359,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2820-3rd-st-4,2023-09-01,344700,2018-07-01,portal_mar_report
 2820-3rd-st-4,2024-09-01,352300,2018-07-01,portal_mar_report
 2820-3rd-st-4,2026-06-07,358300,2018-07-01,mar_tool
+2820-3rd-st-4,2026-09-01,395000,2025-09-10,mar_tool
 2820-3rd-st-5,2012-09-01,211800,2009-08-01,portal_mar_report
 2820-3rd-st-5,2013-09-01,213900,2009-08-01,portal_mar_report
 2820-3rd-st-5,2014-09-01,215300,2009-08-01,portal_mar_report
@@ -179749,6 +179903,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2925-4th-st-4,2023-09-01,200700,2021-03-31,portal_mar_report
 2925-4th-st-4,2024-09-01,206700,2021-03-31,portal_mar_report
 2925-4th-st-4,2026-06-07,224000,2026-01-30,mar_tool
+2925-4th-st-4,2026-09-01,225000,2026-01-30,mar_tool
 2925-4th-st-5,2013-02-15,155000,2013-02-15,portal_mar_report
 2925-4th-st-5,2014-09-01,175000,2014-08-26,portal_mar_report
 2925-4th-st-5,2015-09-01,192500,2015-08-27,portal_mar_report
@@ -179780,6 +179935,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 2925-4th-st-7,2023-09-01,231600,2019-10-25,portal_mar_report
 2925-4th-st-7,2024-09-01,238500,2019-10-25,portal_mar_report
 2925-4th-st-7,2026-06-07,244000,2019-10-25,mar_tool
+2925-4th-st-7,2026-09-01,245000,2026-06-01,mar_tool
 2925-4th-st-8,2012-09-01,134500,2010-10-23,portal_mar_report
 2925-4th-st-8,2013-09-01,135800,2010-10-23,portal_mar_report
 2925-4th-st-8,2014-09-01,136900,2010-10-23,portal_mar_report
@@ -183101,6 +183257,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 3014-4th-st-a5,2023-07-19,133600,2007-11-05,mar_tool
 3014-4th-st-a5,2024-02-05,200000,2024-02-05,portal_mar_report
 3014-4th-st-a5,2026-06-07,204600,2024-02-05,mar_tool
+3014-4th-st-a5,2026-09-01,185000,2026-06-01,mar_tool
 3014-4th-st-b4,2021-09-01,118200,1999-08-01,portal_mar_report
 3014-4th-st-b4,2023-07-19,121700,1999-08-01,mar_tool
 3014-4th-st-b4,2023-09-01,125100,1999-08-01,portal_mar_report
@@ -184192,6 +184349,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 3025-2nd-st-2,2023-09-01,287500,2023-06-15,portal_mar_report
 3025-2nd-st-2,2024-09-01,295100,2024-08-16,portal_mar_report
 3025-2nd-st-2,2026-06-07,301100,2024-08-16,mar_tool
+3025-2nd-st-2,2026-09-01,305100,2026-07-15,mar_tool
 3025-2nd-st-3,2021-09-01,220100,2010-04-15,portal_mar_report
 3025-2nd-st-3,2023-07-19,226700,2010-04-15,mar_tool
 3025-2nd-st-3,2023-09-01,291700,2022-05-15,portal_mar_report
@@ -189989,6 +190147,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 329-california-ave-12,2023-09-01,280700,2017-02-06,portal_mar_report
 329-california-ave-12,2024-09-01,288300,2017-02-06,portal_mar_report
 329-california-ave-12,2026-06-07,294300,2017-02-06,mar_tool
+329-california-ave-12,2026-09-01,330000,2026-06-07,mar_tool
 329-california-ave-12a,2021-09-01,205600,2017-04-01,portal_mar_report
 329-california-ave-12a,2023-07-19,211800,2017-04-01,mar_tool
 329-california-ave-12a,2023-09-01,217700,2017-04-01,portal_mar_report
@@ -191161,6 +191320,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 402-montana-ave-12,2023-09-01,242500,2009-03-10,portal_mar_report
 402-montana-ave-12,2024-09-01,249800,2009-03-10,portal_mar_report
 402-montana-ave-12,2026-06-07,255500,2009-03-10,mar_tool
+402-montana-ave-12,2026-09-01,359500,2026-06-19,mar_tool
 402-montana-ave-2,2012-10-03,159500,2012-10-03,portal_mar_report
 402-montana-ave-2,2014-09-01,160800,2012-10-03,portal_mar_report
 402-montana-ave-2,2015-09-01,161400,2012-10-03,portal_mar_report
@@ -191199,6 +191359,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 402-montana-ave-4,2023-07-19,239500,2023-05-18,mar_tool
 402-montana-ave-4,2024-09-01,246700,2023-05-18,portal_mar_report
 402-montana-ave-4,2026-06-07,252400,2023-05-18,mar_tool
+402-montana-ave-4,2026-09-01,259500,2026-06-19,mar_tool
 402-montana-ave-5,2012-09-01,141600,2010-10-14,portal_mar_report
 402-montana-ave-5,2013-09-01,143000,2010-10-14,portal_mar_report
 402-montana-ave-5,2014-09-01,144100,2010-10-14,portal_mar_report
@@ -192880,6 +193041,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 420-california-ave-11,2023-09-01,320000,2023-08-20,portal_mar_report
 420-california-ave-11,2024-09-01,327600,2023-08-20,portal_mar_report
 420-california-ave-11,2026-06-07,333600,2023-08-20,mar_tool
+420-california-ave-11,2026-09-01,330000,2026-07-03,mar_tool
 420-california-ave-12,2021-09-01,203400,2020-03-01,portal_mar_report
 420-california-ave-12,2023-07-19,215000,2022-08-15,mar_tool
 420-california-ave-12,2023-09-01,215000,2023-06-15,portal_mar_report
@@ -195657,6 +195819,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 440-raymond-ave-7,2023-07-19,235900,2021-07-26,mar_tool
 440-raymond-ave-7,2023-09-01,242500,2021-07-26,portal_mar_report
 440-raymond-ave-7,2026-06-07,264100,2025-02-04,mar_tool
+440-raymond-ave-7,2026-09-01,264000,2026-06-02,mar_tool
 440-raymond-ave-8,2012-09-01,159000,2012-01-19,portal_mar_report
 440-raymond-ave-8,2013-12-01,169000,2013-12-01,portal_mar_report
 440-raymond-ave-8,2015-09-01,169700,2013-12-01,portal_mar_report
@@ -195913,6 +196076,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 449-san-vicente-blvd-b,2023-07-19,250900,2019-11-15,mar_tool
 449-san-vicente-blvd-b,2024-09-01,280000,2023-12-01,portal_mar_report
 449-san-vicente-blvd-b,2026-06-07,286000,2023-12-01,mar_tool
+449-san-vicente-blvd-b,2026-09-01,290000,2026-04-01,mar_tool
 451-san-vicente-blvd-1,2012-09-01,230000,2012-08-04,portal_mar_report
 451-san-vicente-blvd-1,2014-03-10,237500,2014-03-10,portal_mar_report
 451-san-vicente-blvd-1,2014-10-01,380000,2014-10-01,portal_mar_report
@@ -198947,6 +199111,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 518-raymond-ave-15,2023-07-19,247500,2022-11-23,mar_tool
 518-raymond-ave-15,2024-09-01,249500,2024-07-27,portal_mar_report
 518-raymond-ave-15,2026-06-07,255200,2024-07-27,mar_tool
+518-raymond-ave-15,2026-09-01,249500,2026-06-10,mar_tool
 518-raymond-ave-16,2012-09-01,138900,2009-01-01,portal_mar_report
 518-raymond-ave-16,2013-09-01,140300,2009-01-01,portal_mar_report
 518-raymond-ave-16,2014-09-01,141400,2009-01-01,portal_mar_report
@@ -200758,6 +200923,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 529-california-ave-6,2023-09-01,431700,2022-08-01,portal_mar_report
 529-california-ave-6,2024-09-01,439300,2022-08-01,portal_mar_report
 529-california-ave-6,2026-06-07,445300,2022-08-01,mar_tool
+529-california-ave-6,2026-09-01,425000,2026-04-18,mar_tool
 529-california-ave-7,2012-09-01,223900,2002-07-01,portal_mar_report
 529-california-ave-7,2013-09-01,226100,2002-07-01,portal_mar_report
 529-california-ave-7,2014-09-01,227500,2002-07-01,portal_mar_report
@@ -204266,6 +204432,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 621-san-vicente-blvd-104,2023-09-01,265200,2006-06-02,portal_mar_report
 621-san-vicente-blvd-104,2024-09-01,470000,2024-08-17,portal_mar_report
 621-san-vicente-blvd-104,2026-06-07,476000,2024-08-17,mar_tool
+621-san-vicente-blvd-104,2026-09-01,479500,2026-05-30,mar_tool
 621-san-vicente-blvd-105,2012-09-01,121000,,portal_mar_report
 621-san-vicente-blvd-105,2013-09-01,122200,,portal_mar_report
 621-san-vicente-blvd-105,2014-09-01,123200,,portal_mar_report
@@ -209121,6 +209288,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 707-pine-st-4,2023-09-01,395000,2023-01-01,portal_mar_report
 707-pine-st-4,2024-09-01,402600,2023-01-01,portal_mar_report
 707-pine-st-4,2026-06-07,408600,2023-01-01,mar_tool
+707-pine-st-4,2026-09-01,389000,2026-06-15,mar_tool
 707-pine-st-5,2013-05-25,175000,2013-05-25,portal_mar_report
 707-pine-st-5,2014-09-01,177000,2014-06-22,portal_mar_report
 707-pine-st-5,2015-09-01,177700,2014-06-22,portal_mar_report
@@ -209416,12 +209584,15 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 709-ocean-park-blvd-a,2023-07-19,84800,,mar_tool
 709-ocean-park-blvd-a,2023-09-01,87200,,portal_mar_report
 709-ocean-park-blvd-a,2026-06-07,89800,,mar_tool
+709-ocean-park-blvd-a,2026-09-01,91900,,mar_tool
 709-ocean-park-blvd-b,2023-07-19,100500,,mar_tool
 709-ocean-park-blvd-b,2023-09-01,103300,,portal_mar_report
 709-ocean-park-blvd-b,2026-06-07,106400,,mar_tool
+709-ocean-park-blvd-b,2026-09-01,108800,,mar_tool
 709-ocean-park-blvd-c,2023-07-19,100500,,mar_tool
 709-ocean-park-blvd-c,2023-09-01,103300,,portal_mar_report
 709-ocean-park-blvd-c,2026-06-07,106400,,mar_tool
+709-ocean-park-blvd-c,2026-09-01,108800,,mar_tool
 709-ozone-st,2023-07-19,91900,,mar_tool
 709-ozone-st,2026-06-07,99500,,mar_tool
 710-24th-st,2023-07-19,0,,mar_tool
@@ -209788,6 +209959,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 711-hill-st-a,2023-07-19,55000,,mar_tool
 711-hill-st-a,2023-09-01,56500,,portal_mar_report
 711-hill-st-a,2026-06-07,58200,,mar_tool
+711-hill-st-a,2026-09-01,59500,,mar_tool
 711-hill-st-b,2012-09-01,41500,,portal_mar_report
 711-hill-st-b,2013-09-01,41900,,portal_mar_report
 711-hill-st-b,2014-09-01,42200,,portal_mar_report
@@ -209800,12 +209972,14 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 711-hill-st-b,2023-07-19,284500,2017-07-25,mar_tool
 711-hill-st-b,2023-09-01,291200,2017-07-25,portal_mar_report
 711-hill-st-b,2026-06-07,298800,2017-07-25,mar_tool
+711-hill-st-b,2026-09-01,304800,2017-07-25,mar_tool
 711-hill-st-c,2018-09-01,45200,,portal_mar_report
 711-hill-st-c,2019-09-01,46100,,portal_mar_report
 711-hill-st-c,2020-09-01,46700,,portal_mar_report
 711-hill-st-c,2021-09-01,47500,,portal_mar_report
 711-hill-st-c,2023-07-19,48900,,mar_tool
 711-hill-st-c,2026-06-07,51800,,mar_tool
+711-hill-st-c,2026-09-01,53000,,mar_tool
 711-hill-st-d,2012-09-01,40700,,portal_mar_report
 711-hill-st-d,2013-09-01,41100,,portal_mar_report
 711-hill-st-d,2014-09-01,41400,,portal_mar_report
@@ -209816,6 +209990,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 711-hill-st-d,2020-09-01,187600,2018-10-15,portal_mar_report
 711-hill-st-d,2023-07-19,196500,2018-10-15,mar_tool
 711-hill-st-d,2026-06-07,208100,2018-10-15,mar_tool
+711-hill-st-d,2026-09-01,212900,2018-10-15,mar_tool
 711-kensington-rd,2021-09-01,461500,2017-11-01,portal_mar_report
 711-kensington-rd,2023-07-19,468500,2017-11-01,mar_tool
 711-kensington-rd,2023-09-01,475200,2017-11-01,portal_mar_report
@@ -212357,6 +212532,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 731-raymond-ave-a,2023-09-01,179500,2023-08-15,portal_mar_report
 731-raymond-ave-a,2024-09-01,184900,2023-08-15,portal_mar_report
 731-raymond-ave-a,2026-06-07,189200,2023-08-15,mar_tool
+731-raymond-ave-a,2026-09-01,189500,2026-05-22,mar_tool
 731-raymond-ave-b,2013-09-01,180000,,portal_mar_report
 731-raymond-ave-b,2014-09-01,180000,2014-04-21,portal_mar_report
 731-raymond-ave-b,2015-09-01,189500,2015-08-29,portal_mar_report
@@ -213910,6 +214086,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 807-18th-st-1,2021-09-01,171200,,portal_mar_report
 807-18th-st-1,2023-07-19,176300,,mar_tool
 807-18th-st-1,2026-06-07,186600,,mar_tool
+807-18th-st-1,2026-09-01,190900,,mar_tool
 807-20th-st-a,2012-09-01,150000,2011-12-16,portal_mar_report
 807-20th-st-a,2013-09-01,151500,2011-12-16,portal_mar_report
 807-20th-st-a,2014-09-01,162700,2011-12-16,portal_mar_report
@@ -214513,6 +214690,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 808-2nd-st-8,2023-07-19,335000,2022-09-01,mar_tool
 808-2nd-st-8,2024-09-01,342600,2022-09-01,portal_mar_report
 808-2nd-st-8,2026-06-07,348600,2022-09-01,mar_tool
+808-2nd-st-8,2026-09-01,329500,2026-07-15,mar_tool
 808-2nd-st-9,2012-09-01,106600,,portal_mar_report
 808-2nd-st-9,2013-09-01,107700,,portal_mar_report
 808-2nd-st-9,2014-09-01,108600,,portal_mar_report
@@ -215032,6 +215210,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 808-princeton-st-a,2023-09-01,366200,2021-10-01,portal_mar_report
 808-princeton-st-a,2024-09-01,334600,2021-10-01,portal_mar_report
 808-princeton-st-a,2026-06-07,340600,2021-10-01,mar_tool
+808-princeton-st-a,2026-09-01,369500,2026-06-05,mar_tool
 808-princeton-st-b,2021-09-01,274100,2003-09-01,portal_mar_report
 808-princeton-st-b,2023-07-19,281100,2003-09-01,mar_tool
 808-princeton-st-b,2023-09-01,287800,2003-09-01,portal_mar_report
@@ -215047,11 +215226,13 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 808-princeton-st-d,2023-09-01,177600,,portal_mar_report
 808-princeton-st-d,2024-09-01,182900,,portal_mar_report
 808-princeton-st-d,2026-06-07,187100,,mar_tool
+808-princeton-st-d,2026-09-01,369500,2026-06-29,mar_tool
 808-princeton-st-e,2021-09-01,146100,2021-06-13,portal_mar_report
 808-princeton-st-e,2023-07-19,250500,2021-06-13,mar_tool
 808-princeton-st-e,2023-09-01,257200,2021-06-13,portal_mar_report
 808-princeton-st-e,2024-09-01,255000,2024-04-23,portal_mar_report
 808-princeton-st-e,2026-06-07,260900,2024-04-23,mar_tool
+808-princeton-st-e,2026-09-01,249500,2026-06-15,mar_tool
 808-washington-ave,2023-07-19,315100,,mar_tool
 808-washington-ave,2026-06-07,335400,,mar_tool
 809-26th-st-a,2021-09-01,77600,,portal_mar_report
@@ -221197,6 +221378,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 823-10th-st-a,2023-07-19,393100,2013-05-01,mar_tool
 823-10th-st-a,2023-09-01,399800,2013-05-01,portal_mar_report
 823-10th-st-a,2026-06-07,571300,2021-04-01,mar_tool
+823-10th-st-a,2026-09-01,577300,2021-04-01,mar_tool
 823-10th-st-b,2012-09-01,93400,,portal_mar_report
 823-10th-st-b,2013-09-01,94300,,portal_mar_report
 823-10th-st-b,2014-09-01,95100,,portal_mar_report
@@ -221208,11 +221390,14 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 823-10th-st-b,2023-07-19,109900,,mar_tool
 823-10th-st-b,2023-09-01,113000,,portal_mar_report
 823-10th-st-b,2026-06-07,116400,,mar_tool
+823-10th-st-b,2026-09-01,119100,,mar_tool
 823-10th-st-c,2023-07-19,134700,,mar_tool
 823-10th-st-c,2026-06-07,142700,,mar_tool
+823-10th-st-c,2026-09-01,146000,,mar_tool
 823-10th-st-d,2023-07-19,116600,,mar_tool
 823-10th-st-d,2023-09-01,256700,2021-12-01,portal_mar_report
 823-10th-st-d,2026-06-07,264300,2021-12-01,mar_tool
+823-10th-st-d,2026-09-01,270300,2021-12-01,mar_tool
 823-10th-st-e,2012-09-01,159400,2007-08-12,portal_mar_report
 823-10th-st-e,2013-09-01,150000,2013-05-01,portal_mar_report
 823-10th-st-e,2014-09-01,151200,2013-05-01,portal_mar_report
@@ -221224,6 +221409,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 823-10th-st-e,2023-07-19,174900,2013-05-01,mar_tool
 823-10th-st-e,2023-09-01,179800,2013-05-01,portal_mar_report
 823-10th-st-e,2026-06-07,185200,2013-05-01,mar_tool
+823-10th-st-e,2026-09-01,189500,2013-05-01,mar_tool
 823-10th-st-f,2012-09-01,99800,,portal_mar_report
 823-10th-st-f,2013-09-01,100800,,portal_mar_report
 823-10th-st-f,2014-09-01,101600,,portal_mar_report
@@ -221236,6 +221422,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 823-10th-st-f,2023-07-19,117500,,mar_tool
 823-10th-st-f,2023-09-01,120800,,portal_mar_report
 823-10th-st-f,2026-06-07,124400,,mar_tool
+823-10th-st-f,2026-09-01,127300,,mar_tool
 823-12th-st,2021-09-01,68300,,portal_mar_report
 823-12th-st,2023-07-19,70300,,mar_tool
 823-12th-st,2023-09-01,72300,,portal_mar_report
@@ -223634,6 +223821,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 826-5th-st-10,2023-07-19,230000,2022-10-09,mar_tool
 826-5th-st-10,2024-01-13,225000,2024-01-13,portal_mar_report
 826-5th-st-10,2026-06-07,209500,2025-04-21,mar_tool
+826-5th-st-10,2026-09-01,209500,2026-06-20,mar_tool
 826-5th-st-2,2012-09-01,211600,2008-03-05,portal_mar_report
 826-5th-st-2,2014-04-09,220000,2014-04-09,portal_mar_report
 826-5th-st-2,2014-11-09,220000,2014-11-09,portal_mar_report
@@ -223680,6 +223868,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 826-5th-st-5,2023-09-01,134300,,portal_mar_report
 826-5th-st-5,2024-09-01,138300,,portal_mar_report
 826-5th-st-5,2026-06-07,141500,,mar_tool
+826-5th-st-5,2026-09-01,375000,2026-06-15,mar_tool
 826-5th-st-6,2012-09-01,97900,,portal_mar_report
 826-5th-st-6,2013-09-01,98900,,portal_mar_report
 826-5th-st-6,2014-09-01,99700,,portal_mar_report
@@ -223946,6 +224135,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 827-12th-st-5,2023-09-01,267900,2014-07-01,portal_mar_report
 827-12th-st-5,2024-09-01,275500,2014-07-01,portal_mar_report
 827-12th-st-5,2026-06-07,281500,2014-07-01,mar_tool
+827-12th-st-5,2026-09-01,315000,2026-06-19,mar_tool
 827-12th-st-6,2012-09-01,211800,2009-03-01,portal_mar_report
 827-12th-st-6,2013-09-01,213900,2009-03-01,portal_mar_report
 827-12th-st-6,2014-09-01,215300,2009-03-01,portal_mar_report
@@ -224543,6 +224733,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 827-3rd-st-9,2023-09-01,215100,2011-05-01,portal_mar_report
 827-3rd-st-9,2024-09-01,221600,2011-05-01,portal_mar_report
 827-3rd-st-9,2026-06-07,226700,2011-05-01,mar_tool
+827-3rd-st-9,2026-09-01,289000,2026-06-20,mar_tool
 827-4th-st-101,2012-09-01,147700,2003-01-25,portal_mar_report
 827-4th-st-101,2013-09-01,149200,2003-01-25,portal_mar_report
 827-4th-st-101,2014-09-01,150400,2003-01-25,portal_mar_report
@@ -230789,6 +230980,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 835-pacific-st-4,2023-07-19,184900,2021-05-15,mar_tool
 835-pacific-st-4,2023-09-01,190100,2021-05-15,portal_mar_report
 835-pacific-st-4,2026-06-07,199500,2024-06-01,mar_tool
+835-pacific-st-4,2026-09-01,189500,2026-06-12,mar_tool
 835-pacific-st-5,2012-10-01,265000,2012-10-01,portal_mar_report
 835-pacific-st-5,2014-09-01,266400,2012-10-01,portal_mar_report
 835-pacific-st-5,2015-09-01,267100,2012-10-01,portal_mar_report
@@ -232456,6 +232648,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 839-21st-st,2023-09-01,285000,2022-10-21,portal_mar_report
 839-21st-st,2024-09-01,292600,2022-10-21,portal_mar_report
 839-21st-st,2026-06-07,298600,2022-10-21,mar_tool
+839-21st-st,2026-09-01,300000,2025-08-15,mar_tool
 839-21st-st-a,2023-07-19,185100,2010-08-01,mar_tool
 839-21st-st-a,2026-06-07,200500,2010-08-01,mar_tool
 839-21st-st-b,2023-07-19,219800,2014-01-01,mar_tool
@@ -233391,6 +233584,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 843-18th-st-3,2023-09-01,344200,2021-09-01,portal_mar_report
 843-18th-st-3,2024-09-01,351800,2021-09-01,portal_mar_report
 843-18th-st-3,2026-06-07,357800,2021-09-01,mar_tool
+843-18th-st-3,2026-09-01,369500,2026-06-10,mar_tool
 843-18th-st-4,2012-09-01,103900,,portal_mar_report
 843-18th-st-4,2013-09-01,104900,,portal_mar_report
 843-18th-st-4,2015-02-22,269500,2015-02-22,portal_mar_report
@@ -233691,6 +233885,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 843-4th-st-209,2021-09-01,209800,2009-08-29,portal_mar_report
 843-4th-st-209,2023-07-19,216100,2009-08-29,mar_tool
 843-4th-st-209,2026-06-07,355000,2022-08-29,mar_tool
+843-4th-st-209,2026-09-01,375300,2022-08-29,mar_tool
 843-4th-st-210,2023-07-19,269700,2004-08-26,mar_tool
 843-4th-st-210,2026-06-07,290000,2004-08-26,mar_tool
 843-4th-st-211,2021-09-01,145300,,portal_mar_report
@@ -235059,6 +235254,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 845-20th-st-201,2023-09-01,274500,1999-03-20,portal_mar_report
 845-20th-st-201,2024-09-01,282100,1999-03-20,portal_mar_report
 845-20th-st-201,2026-06-07,288100,1999-03-20,mar_tool
+845-20th-st-201,2026-09-01,499500,2026-06-05,mar_tool
 845-20th-st-202,2012-09-01,111500,,portal_mar_report
 845-20th-st-202,2013-09-01,252500,2012-08-21,portal_mar_report
 845-20th-st-202,2014-10-24,285000,2014-10-24,portal_mar_report
@@ -236613,6 +236809,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 848-18th-st-3,2023-09-01,285200,2016-03-01,portal_mar_report
 848-18th-st-3,2024-09-01,292800,2016-03-01,portal_mar_report
 848-18th-st-3,2026-06-07,298800,2016-03-01,mar_tool
+848-18th-st-3,2026-09-01,579500,2026-07-01,mar_tool
 848-18th-st-4,2012-09-01,227100,2009-08-30,portal_mar_report
 848-18th-st-4,2013-09-01,229400,2009-08-30,portal_mar_report
 848-18th-st-4,2014-09-01,230800,2009-08-30,portal_mar_report
@@ -236815,6 +237012,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 848-5th-st-10,2023-09-01,516700,2022-05-01,portal_mar_report
 848-5th-st-10,2024-09-01,524300,2022-05-01,portal_mar_report
 848-5th-st-10,2026-06-07,530300,2022-05-01,mar_tool
+848-5th-st-10,2026-09-01,575000,2026-07-01,mar_tool
 848-5th-st-2,2012-09-01,79500,,portal_mar_report
 848-5th-st-2,2013-09-01,80300,,portal_mar_report
 848-5th-st-2,2014-09-01,89500,2014-05-01,portal_mar_report
@@ -236840,6 +237038,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 848-5th-st-3,2023-07-19,80400,,mar_tool
 848-5th-st-3,2023-09-01,82700,,portal_mar_report
 848-5th-st-3,2026-06-07,282500,2024-09-24,mar_tool
+848-5th-st-3,2026-09-01,290000,2026-06-06,mar_tool
 848-5th-st-4,2012-09-01,104000,2010-07-02,portal_mar_report
 848-5th-st-4,2013-11-11,116800,2013-11-11,portal_mar_report
 848-5th-st-4,2015-04-09,145700,2015-04-09,portal_mar_report
@@ -238043,6 +238242,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 853-16th-st-3,2023-07-19,295000,2023-03-04,mar_tool
 853-16th-st-3,2024-09-01,302600,2023-03-04,portal_mar_report
 853-16th-st-3,2026-06-07,308600,2023-03-04,mar_tool
+853-16th-st-3,2026-09-01,349500,2026-04-16,mar_tool
 853-16th-st-4,2012-09-01,230000,2012-03-10,portal_mar_report
 853-16th-st-4,2013-09-01,250000,2013-08-31,portal_mar_report
 853-16th-st-4,2015-01-09,265000,2015-01-09,portal_mar_report
@@ -239348,6 +239548,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 855-bay-st-4,2023-09-01,113300,2004-01-01,portal_mar_report
 855-bay-st-4,2024-09-01,116700,2004-01-01,portal_mar_report
 855-bay-st-4,2026-06-07,119400,2004-01-01,mar_tool
+855-bay-st-4,2026-09-01,209900,2026-05-20,mar_tool
 855-euclid-st,2023-07-19,124300,,mar_tool
 855-euclid-st,2026-06-07,134600,,mar_tool
 856-euclid-st,2012-09-01,304300,2004-08-15,portal_mar_report
@@ -243630,6 +243831,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 912-9th-st-8,2023-09-01,288300,2019-02-01,portal_mar_report
 912-9th-st-8,2024-09-01,295900,2019-02-01,portal_mar_report
 912-9th-st-8,2026-06-07,301900,2019-02-01,mar_tool
+912-9th-st-8,2026-09-01,285000,2026-05-28,mar_tool
 912-9th-st-9,2012-09-01,194900,2006-08-16,portal_mar_report
 912-9th-st-9,2013-09-01,196800,2006-08-16,portal_mar_report
 912-9th-st-9,2014-09-01,198200,2006-08-16,portal_mar_report
@@ -245496,6 +245698,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 917-15th-st-c,2023-09-01,241600,2021-11-15,portal_mar_report
 917-15th-st-c,2024-09-01,248800,2021-11-15,portal_mar_report
 917-15th-st-c,2026-06-07,254500,2021-11-15,mar_tool
+917-15th-st-c,2026-09-01,245000,2026-06-20,mar_tool
 917-15th-st-d,2012-09-01,172500,2012-05-15,portal_mar_report
 917-15th-st-d,2013-09-01,174200,2012-05-15,portal_mar_report
 917-15th-st-d,2014-12-01,209500,2014-12-01,portal_mar_report
@@ -245708,6 +245911,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 917-5th-st-1,2023-09-01,349500,2023-07-22,portal_mar_report
 917-5th-st-1,2024-09-01,357100,2023-07-22,portal_mar_report
 917-5th-st-1,2026-06-07,363100,2023-07-22,mar_tool
+917-5th-st-1,2026-09-01,374900,2026-05-20,mar_tool
 917-5th-st-10,2012-09-01,200000,2012-03-01,portal_mar_report
 917-5th-st-10,2013-10-04,227400,2013-10-04,portal_mar_report
 917-5th-st-10,2015-10-05,249500,2015-10-05,portal_mar_report
@@ -245718,6 +245922,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 917-5th-st-10,2023-07-19,349500,2022-11-05,mar_tool
 917-5th-st-10,2024-09-01,357100,2022-11-05,portal_mar_report
 917-5th-st-10,2026-06-07,363100,2022-11-05,mar_tool
+917-5th-st-10,2026-09-01,349500,2025-12-11,mar_tool
 917-5th-st-2,2013-02-01,175000,2013-02-01,portal_mar_report
 917-5th-st-2,2014-09-01,176400,2013-02-01,portal_mar_report
 917-5th-st-2,2015-11-28,200000,2015-11-28,portal_mar_report
@@ -245769,6 +245974,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 917-5th-st-5,2023-09-01,319500,2018-12-01,portal_mar_report
 917-5th-st-5,2024-09-01,327100,2018-12-01,portal_mar_report
 917-5th-st-5,2026-06-07,333100,2018-12-01,mar_tool
+917-5th-st-5,2026-09-01,325000,2026-02-01,mar_tool
 917-5th-st-6,2012-09-01,170000,2012-07-07,portal_mar_report
 917-5th-st-6,2013-09-01,171700,2012-07-07,portal_mar_report
 917-5th-st-6,2014-09-15,185500,2014-09-15,portal_mar_report
@@ -245806,6 +246012,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 917-5th-st-8,2023-09-01,121200,,portal_mar_report
 917-5th-st-8,2024-09-01,124800,,portal_mar_report
 917-5th-st-8,2026-06-07,127700,,mar_tool
+917-5th-st-8,2026-09-01,395000,2026-02-21,mar_tool
 917-5th-st-9,2012-09-01,76900,,portal_mar_report
 917-5th-st-9,2013-09-01,77700,,portal_mar_report
 917-5th-st-9,2014-09-01,78300,,portal_mar_report
@@ -252813,6 +253020,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 932-7th-st-2,2023-07-19,516500,2020-10-15,mar_tool
 932-7th-st-2,2023-09-01,530000,2023-09-01,portal_mar_report
 932-7th-st-2,2026-06-07,536000,2023-09-01,mar_tool
+932-7th-st-2,2026-09-01,551500,2026-05-15,mar_tool
 932-7th-st-3,2012-09-01,120300,,portal_mar_report
 932-7th-st-3,2013-09-01,121500,,portal_mar_report
 932-7th-st-3,2014-09-01,122500,,portal_mar_report
@@ -254067,6 +254275,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 933-ocean-ave-10,2023-09-01,306200,2022-01-15,portal_mar_report
 933-ocean-ave-10,2024-09-01,313800,2022-01-15,portal_mar_report
 933-ocean-ave-10,2026-06-07,319800,2022-01-15,mar_tool
+933-ocean-ave-10,2026-09-01,299500,2026-05-01,mar_tool
 933-ocean-ave-11,2012-09-01,44800,,portal_mar_report
 933-ocean-ave-11,2013-09-01,45200,,portal_mar_report
 933-ocean-ave-11,2014-09-01,175000,2014-05-17,portal_mar_report
@@ -254078,6 +254287,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 933-ocean-ave-11,2023-07-19,239500,2022-11-11,mar_tool
 933-ocean-ave-11,2024-01-01,249500,2024-01-01,portal_mar_report
 933-ocean-ave-11,2026-06-07,255200,2024-01-01,mar_tool
+933-ocean-ave-11,2026-09-01,219500,2026-07-01,mar_tool
 933-ocean-ave-12,2021-09-01,179200,2011-12-16,portal_mar_report
 933-ocean-ave-12,2023-07-19,184600,2011-12-16,mar_tool
 933-ocean-ave-12,2023-09-01,189800,2011-12-16,portal_mar_report
@@ -254400,6 +254610,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 934-4th-st-10,2023-09-01,179500,2021-06-01,portal_mar_report
 934-4th-st-10,2024-09-01,184900,2021-06-01,portal_mar_report
 934-4th-st-10,2026-06-07,189200,2021-06-01,mar_tool
+934-4th-st-10,2026-09-01,185000,2026-05-01,mar_tool
 934-4th-st-2,2012-10-14,162500,2012-10-14,portal_mar_report
 934-4th-st-2,2014-05-01,190000,2014-05-01,portal_mar_report
 934-4th-st-2,2015-09-01,195000,2015-07-10,portal_mar_report
@@ -256501,6 +256712,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 938-3rd-st-306,2023-09-01,125600,,portal_mar_report
 938-3rd-st-306,2024-09-01,129400,,portal_mar_report
 938-3rd-st-306,2026-06-07,132400,,mar_tool
+938-3rd-st-306,2026-09-01,330000,2026-07-01,mar_tool
 938-3rd-st-307,2023-07-19,255000,2021-10-19,mar_tool
 938-3rd-st-307,2023-09-01,261700,2021-10-19,portal_mar_report
 938-3rd-st-307,2024-09-01,269300,2021-10-19,portal_mar_report
@@ -259320,6 +259532,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 947-6th-st-e,2023-07-19,373600,2018-10-01,mar_tool
 947-6th-st-e,2024-09-01,387900,2018-10-01,portal_mar_report
 947-6th-st-e,2026-06-07,393900,2018-10-01,mar_tool
+947-6th-st-e,2026-09-01,379500,2026-06-15,mar_tool
 947-6th-st-f,2012-09-01,73300,,portal_mar_report
 947-6th-st-f,2013-09-01,74000,,portal_mar_report
 947-6th-st-f,2014-09-01,74600,,portal_mar_report
@@ -261885,6 +262098,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 953-11th-st-9,2023-07-19,81100,,mar_tool
 953-11th-st-9,2024-09-01,307600,2023-03-01,portal_mar_report
 953-11th-st-9,2026-06-07,313600,2023-03-01,mar_tool
+953-11th-st-9,2026-09-01,255000,2026-06-01,mar_tool
 953-14th-st,2021-09-01,356400,2000-12-01,portal_mar_report
 953-14th-st,2023-07-19,363400,2000-12-01,mar_tool
 953-14th-st,2024-05-11,410000,2024-05-11,portal_mar_report
@@ -263193,6 +263407,7 @@ unit_id,observed_at,mar_amount_cents,tenancy_date,source
 960-10th-st-2,2023-09-01,391700,2022-03-04,portal_mar_report
 960-10th-st-2,2024-09-01,439500,2024-07-01,portal_mar_report
 960-10th-st-2,2026-06-07,445500,2024-07-01,mar_tool
+960-10th-st-2,2026-09-01,447500,2026-06-28,mar_tool
 960-10th-st-3,2012-09-01,232600,2011-06-20,portal_mar_report
 960-10th-st-3,2013-09-01,234900,2011-06-20,portal_mar_report
 960-10th-st-3,2014-09-01,236300,2011-06-20,portal_mar_report
